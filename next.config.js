@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
+// Détection de l'environnement Netlify
+const isNetlify = process.env.NETLIFY === 'true';
+
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
@@ -105,5 +108,16 @@ const nextConfig = {
     return config;
   },
 };
+
+// Optimisations spécifiques pour Netlify
+if (isNetlify) {
+  // Optimisations nécessaires pour le déploiement sur Netlify
+  nextConfig.output = 'standalone';
+  nextConfig.poweredByHeader = false;
+  nextConfig.trailingSlash = false;
+  nextConfig.productionBrowserSourceMaps = false;
+  
+  console.log('Configuration optimisée pour Netlify activée');
+}
 
 module.exports = nextConfig;
