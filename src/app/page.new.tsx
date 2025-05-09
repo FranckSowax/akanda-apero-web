@@ -172,13 +172,20 @@ export default function Home() {
       ? product.product_images[0].image_url 
       : 'https://picsum.photos/seed/default/600/600';
     
-    addToCart({
-      id: product.id.toString(),
+    // Adapter le produit Supabase au format attendu par le contexte
+    const adaptedProduct = {
+      id: Number(product.id),
       name: product.name,
+      description: product.description || '',
       price: product.price,
-      quantity: 1,
-      image: imageUrl
-    });
+      imageUrl: imageUrl,
+      currency: '€',
+      categorySlug: product.product_categories?.[0]?.category_id || 'default',
+      stock: product.stock_quantity || 0
+    };
+    
+    // Appeler avec le produit adapté et la quantité
+    addToCart(adaptedProduct, 1);
   };
   
   // Fonction de défilement vers une section
