@@ -1,16 +1,7 @@
-import { Suspense } from 'react';
 import ProductClient from './product-client';
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  return {
-    title: `Produit ${params.id} | Akanda Apéro`,
-  };
-}
-
-export default function ProductPage({ params }: { params: { id: string } }) {
-  return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Chargement...</div>}>
-      <ProductClient productId={params.id} />
-    </Suspense>
-  );
+// Version statique sans typage pour éviter les problèmes sur Netlify
+export default function ProductPage({ params }: any) {
+  const productId = params?.id || '';
+  return <ProductClient productId={productId} />;
 }
