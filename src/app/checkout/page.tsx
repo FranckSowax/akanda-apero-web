@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, CreditCard, Truck, MapPin, Check } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
@@ -12,25 +13,20 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { LocationMap } from '../../components/ui/location-map';
+import { useAppContext } from '../../context/AppContext';
+import { formatPrice } from '../../lib/utils/formatters';
 
-// Types
-interface CartItem {
+// Types pour la page de checkout
+interface CheckoutCartItem {
   id: number;
   name: string;
   price: number;
   quantity: number;
   imageUrl: string;
-  currency: string;
+  currency?: string;
   isPromo?: boolean;
   discount?: number;
 }
-
-// Mock Cart Data (In a real app, this would come from a cart state/API)
-const mockCartItems: CartItem[] = [
-  { id: 1, name: 'Pack Tout-en-Un', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae1/100/100', currency: 'XAF', quantity: 1, isPromo: true, discount: 10 },
-  { id: 3, name: 'Gingembre Yuzu', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae3/100/100', currency: 'XAF', quantity: 2 },
-  { id: 7, name: 'Chips Sel Marin', price: 2.50, imageUrl: 'https://picsum.photos/seed/snack1/100/100', currency: 'XAF', quantity: 3 },
-];
 
 // Delivery options
 const deliveryOptions = [
@@ -47,6 +43,29 @@ const paymentMethods = [
 ];
 
 export default function CheckoutPage() {
+  const router = useRouter();
+  const { state, getCartTotal, clearCart } = useAppContext();
+  const [cartItems, setCartItems] = useState<CheckoutCartItem[]>([]);
+  
+  // Rediriger vers la page panier si le panier est vide
+  useEffect(() => {
+    if (state.cart.items.length === 0) {
+      router.push('/cart');
+    } else {
+      // Convertir les articles du panier au format attendu par cette page
+      const formattedItems = state.cart.items.map(item => ({
+        id: Number(item.product.id),
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        imageUrl: item.product.imageUrl || 'https://picsum.photos/seed/product/100/100',
+        isPromo: item.product.discount ? true : false,
+        discount: item.product.discount
+      }));
+      setCartItems(formattedItems);
+    }
+  }, [state.cart.items, router]);
+
   // Form state
   const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
   const [deliveryInfo, setDeliveryInfo] = useState({
@@ -119,18 +138,10 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
 
-  // Cart calculations
-  const subtotal = mockCartItems.reduce((total, item) => {
-    const itemPrice = item.isPromo && item.discount 
-      ? item.price * (1 - item.discount / 100) 
-      : item.price;
-    return total + (itemPrice * item.quantity);
-  }, 0);
-  
-  const deliveryOption = deliveryOptions.find(option => option.id === deliveryInfo.deliveryOption);
-  const deliveryCost = deliveryOption?.price || 0;
-  
-  const total = subtotal + deliveryCost;
+  // Cart summary calculations from context
+  const { subtotal, discount: discountAmount, deliveryCost: deliveryFee, total } = getCartTotal();
+  // Ajuster le coût de livraison en fonction de l'option sélectionnée
+  const selectedDeliveryFee = deliveryInfo.deliveryOption === 'standard' ? deliveryFee : deliveryOptions.find(opt => opt.id === deliveryInfo.deliveryOption)?.price || 0;
 
   // Format price
   const formatPrice = (price: number, currency: string = 'XAF') => {
@@ -149,13 +160,24 @@ export default function CheckoutPage() {
     window.scrollTo(0, 0);
   };
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would send the order to the backend
     setOrderNumber(`AK${Math.floor(100000 + Math.random() * 900000)}`);
     setOrderPlaced(true);
     setFormStep('confirmation');
+    
+    // Vider le panier après confirmation de la commande
+    setTimeout(() => {
+      clearCart();
+    }, 2000);
+    
     window.scrollTo(0, 0);
+  };
+
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmitOrder(e);
   };
 
   // Handle input changes
@@ -190,8 +212,8 @@ export default function CheckoutPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Cart Items */}
-        <div className="space-y-3">
-          {mockCartItems.map(item => {
+        <div className="space-y-4 mt-6">
+          {cartItems.map((item) => {
             const itemPrice = item.isPromo && item.discount 
               ? item.price * (1 - item.discount / 100) 
               : item.price;
@@ -224,23 +246,26 @@ export default function CheckoutPage() {
         <Separator />
         
         {/* Subtotal */}
-        <div className="flex justify-between">
-          <span className="text-gray-600">Sous-total</span>
-          <span className="font-medium">{formatPrice(subtotal)}</span>
-        </div>
-        
-        {/* Delivery */}
-        <div className="flex justify-between">
-          <span className="text-gray-600">Livraison</span>
-          <span className="font-medium">{formatPrice(deliveryCost)}</span>
-        </div>
-        
-        <Separator />
-        
-        {/* Total */}
-        <div className="flex justify-between text-lg font-bold">
-          <span>Total</span>
-          <span>{formatPrice(total)}</span>
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <span>Sous-total</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-green-600">
+              <span>Réduction</span>
+              <span>-{formatPrice(discountAmount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span>Frais de livraison</span>
+            <span>{formatPrice(selectedDeliveryFee || deliveryFee)}</span>
+          </div>
+          <Separator />
+          <div className="flex justify-between font-bold">
+            <span>Total</span>
+            <span>{formatPrice(total + (selectedDeliveryFee - deliveryFee))}</span>
+          </div>
         </div>
         
         <div className="text-xs text-gray-500 mt-2">

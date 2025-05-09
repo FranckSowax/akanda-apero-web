@@ -23,7 +23,7 @@ const heroSlides: HeroSlideProps[] = [
     backgroundUrl: "https://imgur.com/Hzxantr.jpg",
     title: "Savourez",
     subtitle: "l'essence de l'apéro",
-    description: "Akanda Apéro livre directement chez vous des boissons fraîches et des snacks savoureux en moins de 60 minutes.",
+    description: "Akanda Apéro livre directement chez vous des boissons fraîches et des snacks savoureux.",
     buttonText: "Voir les produits",
     buttonLink: "/category",
     statValue: "78%",
@@ -45,15 +45,15 @@ const heroSlides: HeroSlideProps[] = [
   {
     id: 3,
     backgroundUrl: "https://imgur.com/N7KKA5C.jpg",
-    title: "Livraison rapide",
-    subtitle: "en moins de 60 min",
-    description: "Service de livraison express disponible dans toute la ville de Libreville. Vos boissons préférées à la bonne température.",
+    title: "Livraison express",
+    subtitle: "partout à Libreville",
+    description: "Service de livraison disponible dans toute la ville de Libreville. Vos boissons préférées à la bonne température.",
     buttonText: "Commander maintenant",
     buttonLink: "/category",
     secondaryButtonText: "Nos zones de livraison",
     secondaryButtonLink: "#delivery",
     statValue: "97%",
-    statLabel: "de nos livraisons arrivent en moins d'une heure"
+    statLabel: "de satisfaction sur nos livraisons"
   }
 ];
 
@@ -73,8 +73,8 @@ const benefits = [
   },
   {
     id: 3,
-    name: "Livraison éclair",
-    description: "Votre commande chez vous en moins de 30 minutes – parce que l'apéro n'attend pas !",
+    name: "Livraison express",
+    description: "Votre commande chez vous rapidement – parce que l'apéro n'attend pas !",
     iconUrl: "https://i.imgur.com/Qx4fu7a.jpg"
   },
   {

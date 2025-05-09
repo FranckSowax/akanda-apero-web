@@ -100,49 +100,22 @@ export const HeroSlider = ({
             {/* Overlay pour assurer la lisibilité du texte */}
             <div className="absolute inset-0 bg-black bg-opacity-30"></div>
             <div className="container mx-auto px-4 sm:px-6 relative z-10">
-              <div className="flex flex-col md:flex-row items-center py-8 sm:py-12 md:py-16 h-full">
-                <div className="w-full md:w-2/3 pr-0 md:pr-8">
-                  <h1 className={cn(styles.largeHeading, "text-2xl sm:text-3xl md:text-4xl lg:text-5xl", slide.textColor || "text-white")}>
+              <div className="flex flex-col justify-center items-center h-full py-12 sm:py-16 md:py-20 text-center">
+                <div className="w-full max-w-2xl px-8 py-10 bg-black bg-opacity-40 backdrop-blur-sm rounded-lg">
+                  <h1 className={cn(styles.largeHeading, "text-2xl sm:text-3xl md:text-4xl lg:text-5xl", "text-white")}>
                     {slide.title} <span className={styles.accentText}>{slide.subtitle}</span>
                   </h1>
-                  <p className={cn("mb-4 sm:mb-6 text-sm sm:text-base md:text-lg max-w-xl", slide.textColor || "text-white")}>
+                  <p className={cn("mb-6 sm:mb-8 text-sm sm:text-base md:text-lg max-w-xl mx-auto leading-relaxed", "text-white")}>
                     {slide.description}
                   </p>
-                  <div className="flex flex-wrap gap-3 sm:space-x-4">
-                    <Link href={slide.buttonLink} className="w-full sm:w-auto">
-                      <Button 
-                        className="rounded-full px-4 sm:px-6 py-2 sm:py-3 bg-[#f5a623] hover:bg-[#e09000] text-white text-sm sm:text-base w-full sm:w-auto"
-                        onClick={slide.buttonAction}
-                      >
-                        {slide.buttonText}
-                      </Button>
-                    </Link>
-                    {slide.secondaryButtonText && (
-                      <Link href={slide.secondaryButtonLink || "#"} className="w-full sm:w-auto">
-                        <Button 
-                          variant="outline" 
-                          className="rounded-full px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base w-full sm:w-auto mt-2 sm:mt-0"
-                          onClick={slide.secondaryButtonAction}
-                        >
-                          {slide.secondaryButtonText}
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
                   
                   {slide.statValue && (
-                    <div className="mt-6 sm:mt-8 md:mt-12 flex items-center">
-                      <div>
-                        <div className={cn(styles.stat, "text-white text-2xl sm:text-3xl md:text-4xl")}>{slide.statValue}</div>
-                        <p className="text-xs sm:text-sm text-white">{slide.statLabel}</p>
-                      </div>
+                    <div className="mt-4 border-t border-white border-opacity-30 pt-4">
+                      <div className={cn(styles.stat, "text-white text-2xl sm:text-3xl md:text-4xl font-bold")}>{slide.statValue}</div>
+                      <p className="text-xs sm:text-sm md:text-base text-white mt-1">{slide.statLabel}</p>
                     </div>
                   )}
-                  
-                  <div className="absolute top-4 sm:top-8 md:top-12 right-4 sm:right-8 md:right-12 bg-white rounded-full p-2 sm:p-3 shadow-md z-10">
-                    <div className="text-xs sm:text-sm font-bold text-[#f5a623]">Livraison</div>
-                    <div className="text-lg sm:text-xl md:text-2xl text-gray-700">&lt; 60 min</div>
-                  </div>
+
                 </div>
               </div>
             </div>
