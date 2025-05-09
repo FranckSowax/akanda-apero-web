@@ -144,13 +144,20 @@ export default function ProductClient({ productId }: { productId: string }) {
   // Gérer l'ajout au panier
   const handleAddToCart = () => {
     if (uiProduct) {
-      addToCart({
-        id: uiProduct.id,
+      // Adapter le produit UI au format attendu par le contexte
+      const adaptedProduct = {
+        id: Number(uiProduct.id),
         name: uiProduct.name,
+        description: uiProduct.description || '',
         price: uiProduct.price,
-        image: uiProduct.imageUrl,
-        quantity: quantity
-      });
+        imageUrl: uiProduct.imageUrl,
+        currency: '€',
+        categorySlug: uiProduct.categoryId || 'default',
+        stock: uiProduct.stock || 0
+      };
+      
+      // Appeler addToCart avec les deux arguments requis
+      addToCart(adaptedProduct, quantity);
     }
   };
 
