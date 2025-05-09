@@ -130,8 +130,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return total + itemPrice * item.quantity;
     }, 0);
 
-    // Coût de livraison (à adapter selon les options réelles)
-    const deliveryCost = state.cart.deliveryOption === 'express' ? 2000 : 1000;
+    // Coût de livraison selon l'option sélectionnée
+    let deliveryCost = 2000; // Standard par défaut (2000 FCFA)
+    
+    // Ajuster selon l'option choisie
+    if (state.cart.deliveryOption === 'express') {
+      deliveryCost = 3000; // Express (3000 FCFA)
+    } else if (state.cart.deliveryOption === 'night') {
+      deliveryCost = 3500; // Livraison de nuit (3500 FCFA)
+    }
 
     // Réduction du code promo
     const discount = state.cart.promoDiscount > 0

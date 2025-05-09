@@ -20,27 +20,49 @@ const LocationMap: React.FC<LocationMapProps> = ({ onLocationSelect, initialAddr
   const [address, setAddress] = useState(initialAddress || '');
   const [mapLoaded, setMapLoaded] = useState(false);
   
-  // Charger le script Google Maps
+  // Charger le script Google Maps de manière unique
   useEffect(() => {
+    // Vérifier si l'API est déjà chargée
     if (window.google?.maps) {
+      console.log('Google Maps API already loaded');
       setMapLoaded(true);
       return;
     }
     
+    // Vérifier si le script est déjà en cours de chargement
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    
+    if (existingScript) {
+      // Si le script existe déjà, ajouter un écouteur pour savoir quand il est chargé
+      console.log('Google Maps script already exists, waiting for it to load');
+      const checkGoogleMapsLoaded = () => {
+        if (window.google?.maps) {
+          setMapLoaded(true);
+          clearInterval(interval);
+        }
+      };
+      const interval = setInterval(checkGoogleMapsLoaded, 100);
+      return () => clearInterval(interval);
+    }
+    
+    // Si le script n'existe pas encore, le créer
+    console.log('Loading Google Maps API script');
     const script = document.createElement('script');
+    script.id = 'google-maps-api';
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
     script.defer = true;
-    script.onload = () => setMapLoaded(true);
+    script.onload = () => {
+      console.log('Google Maps API loaded successfully');
+      setMapLoaded(true);
+    };
+    script.onerror = (e) => {
+      console.error('Error loading Google Maps API:', e);
+    };
     
     document.head.appendChild(script);
     
-    return () => {
-      // Nettoyer le script si le composant est démonté avant le chargement
-      if (document.head.contains(script) && !window.google?.maps) {
-        document.head.removeChild(script);
-      }
-    };
+    return () => {}; // Ne pas supprimer le script quand le composant est démonté
   }, []);
   
   // Initialiser la carte une fois que le script est chargé
