@@ -23,17 +23,22 @@ export function useProductDetail() {
     return useQuery({
       queryKey: ['related-products', categoryId, currentProductId],
       queryFn: async () => {
-        const { data: allProducts, error } = await mcp.read('products');
-        if (error) throw error;
-        
-        // Filtrer pour ne retourner que les produits de la même catégorie, sauf le produit courant
-        return allProducts ? 
-          allProducts.filter((product: Product) => 
-            product.id !== currentProductId && 
-            product.product_categories && 
-            product.product_categories.some(pc => pc.category_id === categoryId)
-          ).slice(0, 4) : // limiter à 4 produits en rapport
-          [];
+        try {
+          // La fonction mcp.read retourne directement un tableau de produits
+          const products = await mcp.read('products') as Product[];
+          
+          // Filtrer pour ne retourner que les produits de la même catégorie, sauf le produit courant
+          return products ? 
+            products.filter((product: Product) => 
+              product.id !== currentProductId && 
+              product.product_categories && 
+              product.product_categories.some(pc => pc.category_id === categoryId)
+            ).slice(0, 4) : // limiter à 4 produits en rapport
+            [];
+        } catch (error) {
+          console.error('Error fetching related products:', error);
+          throw error;
+        }
       },
       enabled: !!categoryId && !!currentProductId
     });
