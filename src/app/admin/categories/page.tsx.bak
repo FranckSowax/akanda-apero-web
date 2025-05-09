@@ -1,0 +1,490 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { ClientOnly } from '../../../components/ui/client-only';
+import { 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  MoreHorizontal,
+  PackageOpen,
+  Wine,
+  Beer,
+  GlassWater,
+  Sparkles,
+  Package,
+  AlertCircle,
+  Loader2,
+  Box,
+  Star,
+  Coffee,
+  Beaker,
+  Utensils,
+  Lightbulb
+} from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Label } from "../../../components/ui/label";
+import { Badge } from '../../../components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../../components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
+import { useCategories } from "../../../hooks/supabase/useCategories";
+import { Category } from "../../../types/supabase";
+
+// Type étendu pour l'affichage des catégories
+interface DisplayCategory extends Omit<Category, 'icon'> {
+  icon: React.ReactNode; // Remplace le string icon par ReactNode pour l'affichage
+  formattedColor: string;
+}
+
+export default function CategoriesPage() {
+  const { getCategories, createCategory, updateCategory, deleteCategory } = useCategories();
+  const { data: categoriesData, isLoading, error: categoriesError } = getCategories();
+  
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<DisplayCategory | null>(null);
+  const [categories, setCategories] = useState<DisplayCategory[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // Valeurs du formulaire
+  const [formName, setFormName] = useState('');
+  const [formSlug, setFormSlug] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formColor, setFormColor] = useState('#f5a623');
+  const [formIcon, setFormIcon] = useState('Package');
+
+  // Fonction pour attribuer une icône en fonction du nom de la catégorie
+  const getIconForCategory = (category: Category): React.ReactNode => {
+    const iconProps = { className: "h-10 w-10" };
+    
+    if (category.icon) {
+      // Si une icône est déjà définie dans la catégorie, l'utiliser
+      switch(category.icon) {
+        case 'Star': return <Star {...iconProps} />;
+        case 'Package': return <Package {...iconProps} />;
+        case 'Wine': return <Wine {...iconProps} />;
+        case 'Beer': return <Beer {...iconProps} />;
+        case 'GlassWater': return <GlassWater {...iconProps} />;
+        case 'Sparkles': return <Sparkles {...iconProps} />;
+        case 'Coffee': return <Coffee {...iconProps} />;
+        case 'Beaker': return <Beaker {...iconProps} />;
+        case 'Utensils': return <Utensils {...iconProps} />;
+        case 'Lightbulb': return <Lightbulb {...iconProps} />;
+        default: return <Box {...iconProps} />;
+      }
+    }
+    
+    // Sinon, essayer de déterminer une icône basée sur le nom
+    const name = category.name.toLowerCase();
+    if (name.includes('pack')) return <Package {...iconProps} />;
+    if (name.includes('spirit') || name.includes('spiritueux')) return <GlassWater {...iconProps} />;
+    if (name.includes('vin')) return <Wine {...iconProps} />;
+    if (name.includes('bière')) return <Beer {...iconProps} />;
+    if (name.includes('cocktail')) return <Sparkles {...iconProps} />;
+    if (name.includes('accessoire')) return <PackageOpen {...iconProps} />;
+    
+    return <Box {...iconProps} />; // Icône par défaut
+  };
+
+  // Convertir les catégories Supabase en DisplayCategory
+  useEffect(() => {
+    if (categoriesData) {
+      const displayCategories = categoriesData.map((category: Category) => {
+        const iconComponent = getIconForCategory(category);
+        
+        return {
+          ...category,
+          icon: iconComponent,
+          formattedColor: category.color || '#f5a623' // Couleur par défaut si non définie
+        };
+      });
+      
+      setCategories(displayCategories);
+    }
+  }, [categoriesData]);
+
+  // Gestion des erreurs
+  useEffect(() => {
+    if (categoriesError) {
+      console.error("Erreur lors du chargement des catégories:", categoriesError);
+      setError("Impossible de charger les catégories. Veuillez réessayer plus tard.");
+    }
+  }, [categoriesError]);
+
+  // Filtrer les catégories selon le terme de recherche
+  const filteredCategories = categories.filter(category => 
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Générer un slug à partir du nom
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Enlever les accents
+      .replace(/[^a-z0-9]+/g, '-')     // Remplacer les caractères non alphanumériques par des tirets
+      .replace(/^-+|-+$/g, '')         // Enlever les tirets au début et à la fin
+      .trim();
+  };
+
+  // Préparer le formulaire d'ajout
+  const handleAddCategory = () => {
+    setFormName('');
+    setFormSlug('');
+    setFormDescription('');
+    setFormColor('#f5a623');
+    setFormIcon('Package');
+    setEditingCategory(null);
+    setIsAddEditDialogOpen(true);
+  };
+
+  // Préparer le formulaire d'édition
+  const handleEditCategory = (category: DisplayCategory) => {
+    setFormName(category.name);
+    setFormSlug(category.slug);
+    setFormDescription(category.description || '');
+    setFormColor(category.color || '#f5a623');
+    setFormIcon(category.icon ? (typeof category.icon === 'string' ? category.icon : 'Package') : 'Package');
+    setEditingCategory(category);
+    setIsAddEditDialogOpen(true);
+  };
+
+  // Gérer le changement de nom et générer automatiquement le slug
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setFormName(name);
+    if (!editingCategory || formSlug === '') {
+      setFormSlug(generateSlug(name));
+    }
+  };
+
+  // Enregistrer une catégorie (création ou mise à jour)
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formName || !formSlug) {
+      setError("Le nom et le slug sont obligatoires.");
+      return;
+    }
+    
+    try {
+      const categoryData = {
+        name: formName,
+        slug: formSlug,
+        description: formDescription,
+        image_url: formIcon, // Stocker l'icône dans image_url
+        color: formColor,
+        parent_id: null
+      };
+      
+      if (editingCategory) {
+        // Mode édition
+        await updateCategory.mutateAsync({
+          id: editingCategory.id,
+          category: categoryData
+        });
+        setActionSuccess("Catégorie mise à jour avec succès.");
+      } else {
+        // Mode création
+        await createCategory.mutateAsync(categoryData);
+        setActionSuccess("Catégorie créée avec succès.");
+      }
+      
+      // Fermer le dialogue et réinitialiser le formulaire
+      setIsAddEditDialogOpen(false);
+      setEditingCategory(null);
+      
+      // Masquer le message de succès après 3 secondes
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      console.error("Erreur lors de l'enregistrement de la catégorie:", err);
+      setError(`Erreur lors de ${editingCategory ? "la mise à jour" : "la création"} de la catégorie.`);
+      
+      // Masquer le message d'erreur après 3 secondes
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  // Confirmer la suppression d'une catégorie
+  const handleDeleteConfirm = async () => {
+    if (categoryToDelete) {
+      try {
+        await deleteCategory.mutateAsync(categoryToDelete);
+        setActionSuccess("Catégorie supprimée avec succès.");
+        setTimeout(() => setActionSuccess(null), 3000);
+      } catch (err) {
+        console.error("Erreur lors de la suppression de la catégorie:", err);
+        setError("Impossible de supprimer la catégorie.");
+        setTimeout(() => setError(null), 3000);
+      }
+    }
+    setIsDeleteDialogOpen(false);
+    setCategoryToDelete(null);
+  };
+
+  // Ouvrir le dialogue de confirmation de suppression
+  const handleDeleteCategory = (id: string) => {
+    setCategoryToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  return (
+    <ClientOnly>
+      <div className="space-y-6">
+        {/* En-tête avec titre et recherche */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold tracking-tight">Gestion des catégories</h1>
+          
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Rechercher une catégorie..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 w-64"
+              />
+            </div>
+            <Button
+              onClick={handleAddCategory}
+              className="bg-[#f5a623] hover:bg-[#e09000] text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" /> Ajouter une catégorie
+            </Button>
+          </div>
+        </div>
+
+        {/* Messages de statut */}
+        {error && (
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <span>{error}</span>
+          </div>
+        )}
+        
+        {actionSuccess && (
+          <div className="bg-green-50 text-green-700 p-4 rounded-lg flex items-center">
+            <Star className="h-5 w-5 mr-2" />
+            <span>{actionSuccess}</span>
+          </div>
+        )}
+                        {category.icon}
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{category.name}</CardTitle>
+                        <CardDescription>
+                          {category.product_count || 0} produits
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEditCategory(category)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={() => handleDeleteCategory(category.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {category.description && (
+                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{category.description}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-800">
+                      {category.product_count || 0} produits
+                    </Badge>
+                    <Badge variant="outline" style={{ borderColor: category.color || '#f5a623', color: category.color || '#f5a623' }}>
+                      {category.slug}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Dialogue d'ajout/modification de catégorie */}
+        <Dialog open={isAddEditDialogOpen} onOpenChange={setIsAddEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingCategory ? "Modifier la catégorie" : "Ajouter une nouvelle catégorie"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCategory 
+                  ? "Modifiez les informations de la catégorie ci-dessous."
+                  : "Créez une nouvelle catégorie pour organiser vos produits."}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSaveCategory}>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Nom</Label>
+                  <Input
+                    id="name"
+                    value={formName}
+                    onChange={handleNameChange}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="slug" className="text-right">Slug</Label>
+                  <Input
+                    id="slug"
+                    value={formSlug}
+                    onChange={(e) => setFormSlug(e.target.value)}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">Description</Label>
+                  <textarea
+                    id="description"
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    className="col-span-3 flex min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="color" className="text-right">Couleur</Label>
+                  <div className="col-span-3 flex gap-2 items-center">
+                    <Input
+                      type="color"
+                      id="color"
+                      value={formColor}
+                      onChange={(e) => setFormColor(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={formColor}
+                      onChange={(e) => setFormColor(e.target.value)}
+                      className="flex-1"
+                      placeholder="#f5a623"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="icon" className="text-right">Icône</Label>
+                  <Select value={formIcon} onValueChange={setFormIcon}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Sélectionnez une icône" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Package">Paquet</SelectItem>
+                      <SelectItem value="Wine">Vin</SelectItem>
+                      <SelectItem value="Beer">Bière</SelectItem>
+                      <SelectItem value="GlassWater">Spiritueux</SelectItem>
+                      <SelectItem value="Sparkles">Cocktail</SelectItem>
+                      <SelectItem value="Star">Étoile</SelectItem>
+                      <SelectItem value="Coffee">Café</SelectItem>
+                      <SelectItem value="Beaker">Laboratoire</SelectItem>
+                      <SelectItem value="Utensils">Ustensiles</SelectItem>
+                      <SelectItem value="Lightbulb">Idée</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddEditDialogOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#f5a623] hover:bg-[#e09000] text-white"
+                >
+                  {editingCategory ? "Mettre à jour" : "Ajouter"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialogue de confirmation de suppression */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Confirmer la suppression</DialogTitle>
+              <DialogDescription>
+                Êtes-vous sûr de vouloir supprimer cette catégorie ? Cette action est irréversible.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteConfirm}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Supprimer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </ClientOnly>
+  );
+}

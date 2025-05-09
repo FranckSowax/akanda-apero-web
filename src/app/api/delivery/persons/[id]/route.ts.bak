@@ -1,0 +1,236 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { DeliveryPerson, Delivery } from '../../../../../lib/types';
+
+// Base de données fictive pour les livreurs
+let deliveryPersons: DeliveryPerson[] = [
+  {
+    id: 1,
+    name: "Konan Kouadio",
+    phone: "+225 07 12 34 56 78",
+    vehicle: "Moto",
+    status: 'En ligne',
+    activeDeliveries: 0,
+    totalDeliveries: 67,
+    avatarUrl: "https://randomuser.me/api/portraits/men/1.jpg",
+    location: "Cocody, Abidjan",
+    createdAt: "2024-10-15T09:00:00.000Z",
+    updatedAt: "2025-05-06T11:25:00.000Z"
+  },
+  {
+    id: 2,
+    name: "Bamba Ibrahim",
+    phone: "+225 05 98 76 54 32",
+    vehicle: "Moto",
+    status: 'Occupé',
+    activeDeliveries: 1,
+    totalDeliveries: 42,
+    avatarUrl: "https://randomuser.me/api/portraits/men/2.jpg",
+    location: "Plateau, Abidjan",
+    createdAt: "2024-11-20T14:30:00.000Z",
+    updatedAt: "2025-05-06T12:15:00.000Z"
+  },
+  {
+    id: 3,
+    name: "Camara Mariam",
+    phone: "+225 07 45 67 89 01",
+    vehicle: "Voiture",
+    status: 'En ligne',
+    activeDeliveries: 0,
+    totalDeliveries: 29,
+    avatarUrl: "https://randomuser.me/api/portraits/women/1.jpg",
+    location: "Marcory, Abidjan",
+    createdAt: "2025-01-10T10:15:00.000Z",
+    updatedAt: "2025-05-06T15:30:00.000Z"
+  },
+  {
+    id: 4,
+    name: "Traoré Mamadou",
+    phone: "+225 05 23 45 67 89",
+    vehicle: "Moto",
+    status: 'Hors ligne',
+    activeDeliveries: 0,
+    totalDeliveries: 51,
+    avatarUrl: "https://randomuser.me/api/portraits/men/3.jpg",
+    location: "Abobo, Abidjan",
+    createdAt: "2024-09-05T11:45:00.000Z",
+    updatedAt: "2025-05-05T18:20:00.000Z"
+  }
+];
+
+// Base de données fictive pour les livraisons
+let deliveries: Delivery[] = [
+  {
+    id: 1,
+    orderId: "ORD-2025050601",
+    customerId: 1,
+    customerName: "Michel Dupont",
+    customerPhone: "+225 07 01 02 03 04",
+    address: "Cocody, Rue des Jardins, Abidjan",
+    items: ["Pack The Party Mix (x2)", "Cocktail DIY Kit"],
+    totalItems: 3,
+    amount: 58000,
+    status: 'Livrée',
+    deliveryPersonId: 1,
+    deliveryPerson: "Konan Kouadio",
+    assignedTime: "2025-05-06T10:35:00.000Z",
+    estimatedDelivery: "2025-05-06T11:30:00.000Z",
+    actualDelivery: "2025-05-06T11:25:00.000Z",
+    createdAt: "2025-05-06T10:30:00.000Z",
+    updatedAt: "2025-05-06T11:25:00.000Z"
+  },
+  {
+    id: 2,
+    orderId: "ORD-2025050602",
+    customerId: 2,
+    customerName: "Aminata Koné",
+    customerPhone: "+225 05 45 67 89 10",
+    address: "Plateau, Avenue de la République, Abidjan",
+    items: ["Vin Rouge Château Margaux"],
+    totalItems: 1,
+    amount: 45000,
+    status: 'En cours',
+    deliveryPersonId: 2,
+    deliveryPerson: "Bamba Ibrahim",
+    assignedTime: "2025-05-06T12:15:00.000Z",
+    estimatedDelivery: "2025-05-06T13:00:00.000Z",
+    createdAt: "2025-05-06T12:00:00.000Z",
+    updatedAt: "2025-05-06T12:15:00.000Z"
+  }
+  // Autres livraisons...
+];
+
+// GET /api/delivery/persons/:id
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver le livreur correspondant à l'ID
+  const deliveryPerson = deliveryPersons.find(p => p.id === id);
+  
+  if (!deliveryPerson) {
+    return NextResponse.json({
+      success: false,
+      error: 'Livreur non trouvé'
+    }, { status: 404 });
+  }
+  
+  return NextResponse.json({
+    success: true,
+    data: deliveryPerson
+  });
+}
+
+// PUT /api/delivery/persons/:id
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    
+    // Trouver l'index du livreur
+    const deliveryPersonIndex = deliveryPersons.findIndex(p => p.id === id);
+    
+    if (deliveryPersonIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Livreur non trouvé'
+      }, { status: 404 });
+    }
+    
+    // Mettre à jour le livreur
+    const updatedDeliveryPerson = {
+      ...deliveryPersons[deliveryPersonIndex],
+      ...body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    deliveryPersons[deliveryPersonIndex] = updatedDeliveryPerson;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedDeliveryPerson,
+      message: 'Livreur mis à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du livreur:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du livreur'
+    }, { status: 500 });
+  }
+}
+
+// PATCH /api/delivery/persons/:id/status
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+    const body = await request.json();
+    
+    // Trouver l'index du livreur
+    const deliveryPersonIndex = deliveryPersons.findIndex(p => p.id === id);
+    
+    if (deliveryPersonIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Livreur non trouvé'
+      }, { status: 404 });
+    }
+    
+    const deliveryPerson = deliveryPersons[deliveryPersonIndex];
+    let updatedDeliveryPerson = { ...deliveryPerson, updatedAt: new Date().toISOString() };
+    let message = '';
+    
+    // Traiter les différentes actions
+    if (action === 'status' && body.status) {
+      // Si le livreur a des livraisons actives et qu'on essaie de le mettre hors ligne
+      if (deliveryPerson.activeDeliveries > 0 && body.status === 'Hors ligne') {
+        return NextResponse.json({
+          success: false,
+          error: 'Impossible de mettre hors ligne: le livreur a des livraisons actives'
+        }, { status: 400 });
+      }
+      
+      updatedDeliveryPerson.status = body.status;
+      message = `Statut du livreur mis à jour vers ${body.status}`;
+    } else if (action === 'active-deliveries') {
+      // Récupérer les livraisons actives du livreur
+      const activeDeliveries = deliveries.filter(d => 
+        d.deliveryPersonId === id && 
+        (d.status === 'En cours' || d.status === 'En attente')
+      );
+      
+      return NextResponse.json({
+        success: true,
+        data: activeDeliveries
+      });
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: 'Action ou données invalides'
+      }, { status: 400 });
+    }
+    
+    deliveryPersons[deliveryPersonIndex] = updatedDeliveryPerson;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedDeliveryPerson,
+      message
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du livreur:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du livreur'
+    }, { status: 500 });
+  }
+}

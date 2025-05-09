@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #f5a623;
+  --primary-hover: #e09000;
+  --background-light: #f9f9f9;
+  --text-dark: #333333;
+  --text-light: #666666;
+}
+
+body {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+}
+
+/* Animation pour les produits */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fadeInUp {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Animation pour les catégories */
+.category-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.category-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+.category-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+.category-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Autres styles personnalisés */
+.product-card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.price-tag {
+  position: relative;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+  border-radius: 0.25rem;
+}
+
+.price-tag:after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -4px;
+  transform: translateY(-50%);
+  border-width: 4px 0 4px 4px;
+  border-style: solid;
+  border-color: transparent transparent transparent var(--primary-color);
+}
+
+.discount-badge {
+  background-color: #e53e3e;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
