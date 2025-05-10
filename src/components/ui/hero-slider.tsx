@@ -88,20 +88,21 @@ export const HeroSlider = ({
         {slides.map((slide) => (
           <div 
             key={slide.id} 
-            className="min-w-full relative h-[400px] sm:h-[500px] md:h-[600px]" 
+            className="min-w-full relative h-[450px] sm:h-[500px] md:h-[600px] overflow-hidden" 
           >
             <Image
               src={slide.backgroundUrl}
               alt={slide.title}
               fill
               priority
-              className="object-cover object-center"
+              sizes="100vw"
+              className="object-cover object-center w-full h-full"
             />
             {/* Overlay pour assurer la lisibilité du texte */}
             <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-            <div className="container mx-auto px-4 sm:px-6 relative z-10">
-              <div className="flex flex-col justify-center items-center h-full py-12 sm:py-16 md:py-20 text-center">
-                <div className="w-full max-w-2xl px-8 py-10 bg-black bg-opacity-40 backdrop-blur-sm rounded-lg">
+            <div className="container mx-auto px-2 sm:px-6 relative z-10">
+              <div className="flex flex-col justify-center items-center h-full py-8 sm:py-16 md:py-20 text-center">
+                <div className="w-full max-w-2xl px-4 sm:px-8 py-6 sm:py-10 bg-black bg-opacity-40 backdrop-blur-sm rounded-lg">
                   <h1 className={cn(styles.largeHeading, "text-2xl sm:text-3xl md:text-4xl lg:text-5xl", "text-white")}>
                     {slide.title} <span className={styles.accentText}>{slide.subtitle}</span>
                   </h1>
