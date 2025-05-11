@@ -648,91 +648,177 @@ export default function ProductsPage() {
         {!isLoading && !error && (
           <div className="bg-white rounded-lg shadow-sm">
             {filteredProducts && filteredProducts.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredProducts.map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center">
-                              <img 
-                                src={getProductImageUrl(product)} 
-                                alt={product.name} 
-                                className="h-10 w-10 rounded-md object-cover" 
-                                onError={(e) => {
-                                  // Remplacer par une icône si l'image ne charge pas
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = '<div class="flex items-center justify-center w-full h-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-gray-400"><path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"></path><polyline points="3 16 8 10 13 15"></polyline><polyline points="15 12 17 10 21 14"></polyline></svg></div>';
-                                  }
-                                }}
-                              />
+              <>
+                {/* Table pour les écrans moyens et grands */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredProducts.map((product) => (
+                        <tr key={product.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center">
+                                <img 
+                                  src={getProductImageUrl(product)} 
+                                  alt={product.name} 
+                                  className="h-10 w-10 rounded-md object-cover" 
+                                  onError={(e) => {
+                                    // Remplacer par une icône si l'image ne charge pas
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = '<div class="flex items-center justify-center w-full h-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-gray-400"><path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"></path><polyline points="3 16 8 10 13 15"></polyline><polyline points="15 12 17 10 21 14"></polyline></svg></div>';
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="ml-4">
+                                <div className="font-medium text-gray-900">{product.name}</div>
+                                <div className="text-sm text-gray-500">{product.slug}</div>
+                              </div>
                             </div>
-                            <div className="ml-4">
-                              <div className="font-medium text-gray-900">{product.name}</div>
-                              <div className="text-sm text-gray-500">{product.slug}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {product.price.toLocaleString()} XAF
-                          {product.compare_at_price && (
-                            <span className="text-xs text-gray-500 line-through ml-2">
-                              {product.compare_at_price.toLocaleString()} XAF
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {product.price.toLocaleString()} XAF
+                            {product.compare_at_price && (
+                              <span className="text-xs text-gray-500 line-through ml-2">
+                                {product.compare_at_price.toLocaleString()} XAF
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className={`${
+                              product.stock_quantity <= (product.low_stock_threshold || 5) 
+                                ? 'text-orange-600' 
+                                : 'text-green-600'
+                            }`}>
+                              {product.stock_quantity}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`${
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              product.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {product.is_active ? 'Actif' : 'Inactif'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 mr-2"
+                              onClick={() => setupEditForm(product)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Modifier
+                            </Button>
+                            <Button
+                              variant="ghost" 
+                              size="sm"
+                              className="text-red-600 hover:text-red-900 hover:bg-red-50"
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Supprimer
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Cards pour les écrans mobiles */}
+                <div className="grid grid-cols-1 gap-3 md:hidden">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                      {/* En-tête de la carte avec image et info de base */}
+                      <div className="flex items-center p-3 border-b border-gray-100">
+                        <div className="relative h-14 w-14 rounded-md flex-shrink-0 overflow-hidden bg-gray-50">
+                          <img 
+                            src={getProductImageUrl(product)} 
+                            alt={product.name} 
+                            className="h-full w-full object-cover" 
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.onerror = null;
+                              target.src = 'https://picsum.photos/seed/default/50/50';
+                            }}
+                          />
+                        </div>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <p className="text-xs text-gray-500 truncate">{product.slug}</p>
+                            <span className={`ml-2 px-2 py-0.5 text-xs leading-none font-medium rounded-full ${
+                              product.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {product.is_active ? 'Actif' : 'Inactif'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Corps de la carte avec détails */}
+                      <div className="grid grid-cols-2 gap-2 p-3 text-sm border-b border-gray-100">
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Prix</div>
+                          <div className="font-medium">
+                            {product.price.toLocaleString()} XAF
+                            {product.compare_at_price && (
+                              <div className="text-xs text-gray-400 line-through">
+                                {product.compare_at_price.toLocaleString()} XAF
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Stock</div>
+                          <div className={`font-medium ${
                             product.stock_quantity <= (product.low_stock_threshold || 5) 
                               ? 'text-orange-600' 
                               : 'text-green-600'
                           }`}>
-                            {product.stock_quantity}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            product.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {product.is_active ? 'Actif' : 'Inactif'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 mr-2"
-                            onClick={() => setupEditForm(product)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Modifier
-                          </Button>
-                          <Button
-                            variant="ghost" 
-                            size="sm"
-                            className="text-red-600 hover:text-red-900 hover:bg-red-50"
-                            onClick={() => handleDeleteProduct(product.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Supprimer
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            {product.stock_quantity} unités
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Pied de carte avec actions */}
+                      <div className="flex p-2 bg-gray-50 justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            window.scrollTo(0, 0); // Défilement vers le haut pour voir le formulaire
+                            setupEditForm(product);
+                          }}
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1.5" /> Modifier
+                        </Button>
+                        <Button
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 text-xs text-red-600 border-red-200"
+                          onClick={() => handleDeleteProduct(product.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Supprimer
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            
             ) : (
               <div className="p-6 text-center">
                 <PackageOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
