@@ -1,9 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// Importer notre polyfill au lieu de useMcp
 import { useMcpPolyfill } from '../../lib/mcp-polyfill';
 import { Product, Category, ProductImage } from '../../types/supabase';
 
-// Type pour la création et la modification de produit avec images et catégories
 type ProductFormData = {
   product: Partial<Product>;
   images?: { image_url: string; alt_text?: string }[];
@@ -12,10 +10,7 @@ type ProductFormData = {
 
 export function useProducts() {
   const queryClient = useQueryClient();
-  // Utiliser notre polyfill au lieu du client MCP original
   const mcp = useMcpPolyfill('supabase');
-  
-  // Récupérer tous les produits
   const getProducts = () => {
     return useQuery({
       queryKey: ['products'],
@@ -26,7 +21,7 @@ export function useProducts() {
     });
   };
   
-  // Récupérer un produit par ID
+
   const getProductById = (id: string) => {
     return useQuery({
       queryKey: ['products', id],
@@ -38,7 +33,7 @@ export function useProducts() {
     });
   };
   
-  // Récupérer toutes les catégories
+
   const getCategories = () => {
     return useQuery({
       queryKey: ['categories'],
@@ -48,7 +43,7 @@ export function useProducts() {
     });
   };
   
-  // Créer un nouveau produit
+
   const createProduct = useMutation({
     mutationFn: async (productData: ProductFormData) => {
       return mcp.create('products').mutateAsync(productData);
@@ -58,22 +53,34 @@ export function useProducts() {
     }
   });
   
-  // Mettre à jour un produit
+
   const updateProduct = useMutation({
     mutationFn: async ({ id, formData }: { id: string; formData: ProductFormData }) => {
-      return mcp.update('products').mutateAsync({ id, ...formData });
+      try {
+        // Fournir l'id en tant que second argument pour la fonction update
+        const result = await mcp.update('products', id).mutateAsync(formData);
+        return result;
+      } catch (error) {
+        console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     }
   });
   
-  // Supprimer un produit
+
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      await mcp.delete('products').mutateAsync(id);
-      // Retourner simplement l'ID pour maintenir la compatibilité avec les types attendus
-      return id;
+      try {
+        // Fournir l'id en tant que second argument pour la fonction delete
+        await mcp.delete('products', id).mutateAsync();
+        return id;
+      } catch (error) {
+        console.error(`Erreur lors de la suppression du produit ${id}:`, error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
