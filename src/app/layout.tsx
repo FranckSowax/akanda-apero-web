@@ -4,6 +4,9 @@ import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata } from "next";
 
+// Ajout de styles globaux pour la compatibilité mobile dans le fichier CSS global
+import "./mobile-optimizations.css";
+
 export const metadata: Metadata = {
   title: "Akanda Apéro - Votre boutique de cocktails",
   description: "Découvrez notre gamme de kits cocktails et accessoires pour vos apéros",
@@ -20,12 +23,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        {/* Correction du délai tactile sur iOS */}
-        <style jsx global>{`
-          * { -webkit-tap-highlight-color: rgba(0,0,0,0); }
-          button, a { touch-action: manipulation; }
-          input, button, a { -webkit-touch-callout: none; }
-        `}</style>
       </head>
       <body>
         <AppProvider>
