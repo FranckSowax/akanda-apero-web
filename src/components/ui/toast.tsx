@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "../../lib/utils"
+import { Button } from "./button"
 
 const toastVariants = cva(
   "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full",
@@ -60,4 +61,27 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
 )
 Toast.displayName = "Toast"
 
-export { Toast, toastVariants }
+export interface ToastActionProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+
+const ToastAction = React.forwardRef<HTMLButtonElement, ToastActionProps>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <Button
+        ref={ref}
+        variant="outline"
+        size="sm"
+        className={cn(
+          "h-8 px-3 text-sm font-medium",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </Button>
+    )
+  }
+)
+ToastAction.displayName = "ToastAction"
+
+export { Toast, ToastAction, toastVariants }

@@ -13,7 +13,6 @@ import { useProductDetail } from '../../../hooks/supabase/useProductDetail';
 import { useCategories } from '../../../hooks/supabase/useCategories';
 import { Product as SupabaseProduct } from '../../../types/supabase';
 
-// Types pour notre interface utilisateur
 interface UIProduct {
   id: string;
   name: string;
@@ -30,36 +29,22 @@ interface UIProduct {
   isPromo?: boolean;
 }
 
-// Fonction utilitaire pour obtenir une URL d'image fiable
 function getProductImageUrl(product: SupabaseProduct): string {
   if (product?.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
     const imageUrl = product.product_images[0].image_url;
     
-    // Vérifier si c'est un Data URL (commence par "data:")
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
-      return imageUrl; // Les Data URLs sont directement utilisables
+    if (imageUrl && typeof imageUrl === 'string') {
+      if (imageUrl.startsWith('data:')) return imageUrl;
+      if (imageUrl.startsWith('placeholder-') || imageUrl.startsWith('blob:')) {
+        return `https://source.unsplash.com/random/800x600?sig=${product.id}`;
+      }
+      return imageUrl;
     }
-    
-    // Vérifier si c'est un placeholder temporaire
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('placeholder-')) {
-      // Générer une image aléatoire basée sur l'ID du produit
-      return `https://source.unsplash.com/random/800x600?sig=${product.id}`;
-    }
-    
-    // Vérifier si l'URL est un blob local (ne fonctionnera pas pour le rendu)
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('blob:')) {
-      // Renvoyer une URL d'image aléatoire pour le développement
-      return `https://source.unsplash.com/random/800x600?sig=${product.id}`;
-    }
-    
-    return imageUrl;
   }
   
-  // Image par défaut si aucune image n'est disponible
   return 'https://picsum.photos/seed/default/600/600';
 }
 
-// Fonction utilitaire pour convertir un produit Supabase en UIProduct
 function convertToUIProduct(product: SupabaseProduct, categoryName?: string): UIProduct {
   return {
     id: product.id,
@@ -67,7 +52,7 @@ function convertToUIProduct(product: SupabaseProduct, categoryName?: string): UI
     description: product.description || '',
     price: product.price,
     imageUrl: getProductImageUrl(product),
-    rating: 4.5, // Valeur par défaut (à remplacer par une vraie donnée de notation quand disponible)
+    rating: 4.5,
     discount: product.compare_at_price ? Math.round((1 - product.price / product.compare_at_price) * 100) : undefined,
     details: product.description || '', // Utilisez description comme détails pour l'instant
     ingredients: 'Voir détails sur l\'étiquette du produit',
@@ -195,8 +180,8 @@ export default function ProductClient({ productId }: { productId: string }) {
   return (
     <div className="bg-background min-h-screen">
       {/* Breadcrumb */}
-      <div className="container mx-auto pt-6 pb-4 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
+      <div className="container mx-auto pt-4 sm:pt-6 pb-2 sm:pb-4 text-xs sm:text-sm text-muted-foreground px-4 sm:px-6">
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
           <Link href="/">Accueil</Link>
           <span>/</span>
           <Link href="/products">Produits</Link>
@@ -211,11 +196,11 @@ export default function ProductClient({ productId }: { productId: string }) {
         </div>
       </div>
 
-      <div className="container mx-auto py-8 px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+      <div className="container mx-auto py-4 sm:py-8 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-12">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="relative h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-lg bg-muted">
+            <div className="relative h-[300px] sm:h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-lg bg-muted">
               <Image
                 src={uiProduct.imageUrl}
                 alt={uiProduct.name}
@@ -242,7 +227,7 @@ export default function ProductClient({ productId }: { productId: string }) {
             </Button>
 
             <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{uiProduct.name}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{uiProduct.name}</h1>
               
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-0.5">
@@ -280,19 +265,21 @@ export default function ProductClient({ productId }: { productId: string }) {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-10 w-10 touch-manipulation"
                     onClick={() => handleQuantityChange(-1)}
                     disabled={quantity <= 1}
                   >
-                    <Minus size={16} />
+                    <Minus size={18} />
                   </Button>
-                  <span className="w-8 text-center">{quantity}</span>
+                  <span className="w-8 text-center text-base">{quantity}</span>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-10 w-10 touch-manipulation"
                     onClick={() => handleQuantityChange(1)}
                     disabled={quantity >= uiProduct.stock}
                   >
-                    <Plus size={16} />
+                    <Plus size={18} />
                   </Button>
                 </div>
               </div>
@@ -306,48 +293,48 @@ export default function ProductClient({ productId }: { productId: string }) {
               </div>
             </div>
 
-            <div className="pt-4 flex flex-col sm:flex-row gap-3">
+            <div className="pt-6 flex flex-col sm:flex-row gap-3">
               <Button
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 h-12 sm:h-auto text-base touch-manipulation"
                 size="lg"
                 onClick={handleAddToCart}
                 disabled={uiProduct.stock <= 0}
               >
-                <ShoppingCart size={18} />
+                <ShoppingCart size={20} />
                 Ajouter au panier
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className={isFavorite ? "text-red-500" : ""}
+                className={`h-12 sm:h-auto touch-manipulation ${isFavorite ? "text-red-500" : ""}`}
                 onClick={toggleFavorite}
               >
-                <Heart size={18} className={isFavorite ? "fill-red-500" : ""} />
+                <Heart size={20} className={isFavorite ? "fill-red-500" : ""} />
               </Button>
             </div>
           </div>
         </div>
 
         {/* Product Tabs */}
-        <Tabs defaultValue="description" className="w-full mb-12">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="description">Description</TabsTrigger>
-            <TabsTrigger value="ingredients">Ingrédients</TabsTrigger>
-            <TabsTrigger value="details">Détails</TabsTrigger>
+        <Tabs defaultValue="description" className="w-full mb-8 sm:mb-12">
+          <TabsList className="grid grid-cols-3 mb-4 touch-manipulation">
+            <TabsTrigger value="description" className="text-xs sm:text-sm py-2 sm:py-1.5 touch-manipulation">Description</TabsTrigger>
+            <TabsTrigger value="ingredients" className="text-xs sm:text-sm py-2 sm:py-1.5 touch-manipulation">Ingrédients</TabsTrigger>
+            <TabsTrigger value="details" className="text-xs sm:text-sm py-2 sm:py-1.5 touch-manipulation">Détails</TabsTrigger>
           </TabsList>
-          <TabsContent value="description" className="border rounded-md p-6">
+          <TabsContent value="description" className="border rounded-md p-4 sm:p-6">
             <div className="prose max-w-none">
-              <p className="leading-relaxed">{uiProduct.description}</p>
+              <p className="leading-relaxed text-sm sm:text-base">{uiProduct.description}</p>
             </div>
           </TabsContent>
-          <TabsContent value="ingredients" className="border rounded-md p-6">
+          <TabsContent value="ingredients" className="border rounded-md p-4 sm:p-6">
             <div className="prose max-w-none">
-              <p className="leading-relaxed">{uiProduct.ingredients}</p>
+              <p className="leading-relaxed text-sm sm:text-base">{uiProduct.ingredients}</p>
             </div>
           </TabsContent>
-          <TabsContent value="details" className="border rounded-md p-6">
+          <TabsContent value="details" className="border rounded-md p-4 sm:p-6">
             <div className="prose max-w-none">
-              <p className="leading-relaxed">{uiProduct.details}</p>
+              <p className="leading-relaxed text-sm sm:text-base">{uiProduct.details}</p>
               {uiProduct.isPromo && (
                 <p className="mt-4">
                   <Badge className="bg-red-500">Promotion</Badge>

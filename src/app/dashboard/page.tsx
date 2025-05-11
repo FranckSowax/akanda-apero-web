@@ -22,7 +22,7 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { PlusCircle, Edit, Trash2, ListPlus } from 'lucide-react';
 import Image from 'next/image';
 
-// Mock Data (Replace with actual data fetching and state management)
+
 interface Product {
   id: string;
   name: string;
@@ -61,9 +61,7 @@ export default function DashboardPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // TODO: Implement actual form handling, data saving, and deletion
   const handleSaveProduct = (formData: FormData) => {
-    // Simulate saving product
     const newProduct: Product = {
       id: editingProduct ? editingProduct.id : `p${Date.now()}`,
       name: formData.get('name') as string || 'Nouveau Produit',
@@ -71,7 +69,7 @@ export default function DashboardPage() {
       price: parseFloat(formData.get('price') as string) || 0,
       stock: parseInt(formData.get('stock') as string) || 0,
       category: formData.get('category') as string || '',
-      imageUrl: 'https://picsum.photos/seed/newprod/50/50', // Placeholder for image upload
+      imageUrl: 'https://picsum.photos/seed/newprod/50/50',
       isPromo: formData.get('isPromo') === 'on',
     };
 
@@ -84,26 +82,28 @@ export default function DashboardPage() {
     setEditingProduct(null);
   };
 
-   const handleAddCategory = () => {
+  const handleAddCategory = () => {
     if (newCategoryName.trim()) {
-        const newCategory: Category = {
-            id: `c${Date.now()}`,
-            name: newCategoryName.trim(),
-        };
-        setCategories([...categories, newCategory]);
-        setNewCategoryName('');
-        setIsCategoryDialogOpen(false);
+      const newCategory: Category = {
+        id: `c${Date.now()}`,
+        name: newCategoryName.trim(),
+      };
+      setCategories([...categories, newCategory]);
+      setNewCategoryName('');
+      setIsCategoryDialogOpen(false);
     }
   };
 
   const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
-    // TODO: Add confirmation dialog
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce produit?')) {
+      setProducts(products.filter(p => p.id !== id));
+    }
   };
 
-   const handleDeleteCategory = (id: string) => {
-    // Prevent deleting category if products use it (simple check)
+  const handleDeleteCategory = (id: string) => {
     if (products.some(p => p.category === categories.find(c => c.id === id)?.name.toLowerCase())) {
+      alert("Impossible de supprimer une catégorie utilisée par des produits.");
+      return;
         alert("Impossible de supprimer une catégorie utilisée par des produits.");
         return;
     }
@@ -344,7 +344,7 @@ export default function DashboardPage() {
                        <TableRow key={category.id}>
                          <TableCell className="font-medium">{category.name}</TableCell>
                          <TableCell className="text-right">
-                           {/* Add Edit Category button if needed */}
+  
                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteCategory(category.id)}>
                              <Trash2 className="h-4 w-4" />
                            </Button>

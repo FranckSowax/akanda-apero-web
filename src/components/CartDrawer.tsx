@@ -32,10 +32,8 @@ const CartDrawer: React.FC = () => {
   const { subtotal, deliveryCost, discount, total } = getCartTotal();
   const itemCount = getCartItemsCount();
   
-  // État pour contrôler le rendu client uniquement
   const [isClient, setIsClient] = React.useState(false);
   
-  // Effet pour marquer quand le composant est monté côté client
   React.useEffect(() => {
     setIsClient(true);
   }, []);
@@ -45,7 +43,6 @@ const CartDrawer: React.FC = () => {
     visible: { opacity: 1, x: 0 }
   };
 
-  // Fonction pour formater les prix
   const formatPrice = (price: number) => {
     return `${price.toLocaleString()} XAF`;
   };
@@ -54,7 +51,7 @@ const CartDrawer: React.FC = () => {
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" className="relative p-0 h-auto">
+          <Button variant="ghost" className="relative p-2 h-auto touch-manipulation">
             <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
             {itemCount > 0 && (
               <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white">
@@ -63,7 +60,7 @@ const CartDrawer: React.FC = () => {
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="w-full sm:max-w-md">
+        <SheetContent className="w-full sm:max-w-md p-3 sm:p-6">
           <SheetHeader className="mb-6">
             <SheetTitle className="text-xl font-bold">Votre Panier</SheetTitle>
           </SheetHeader>
@@ -89,11 +86,9 @@ const CartDrawer: React.FC = () => {
       <SheetTrigger asChild>
         <Button variant="ghost" className="relative p-0 h-auto">
           <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
-          {isClient && itemCount > 0 && (
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white">
-              {itemCount}
-            </span>
-          )}
+          <span suppressHydrationWarning className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white ${(!isClient || itemCount === 0) ? 'hidden' : ''}`}>
+            {itemCount || 0}
+          </span>
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">
@@ -103,7 +98,7 @@ const CartDrawer: React.FC = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-gray-500 hover:text-red-500 flex items-center gap-1 text-xs"
+              className="text-gray-500 hover:text-red-500 flex items-center gap-1 text-xs p-2 touch-manipulation"
               onClick={clearCart}
             >
               <Trash2 className="h-4 w-4" />
@@ -137,46 +132,46 @@ const CartDrawer: React.FC = () => {
                     {item.product.name}
                   </Link>
                   <p className="text-sm text-gray-500 line-clamp-1">{item.product.description}</p>
-                  <div className="flex justify-between items-center mt-2">
+                  <div className="flex justify-between items-center mt-3">
                     <div className="text-md font-semibold">{formatPrice(item.product.price * item.quantity)}</div>
                     <div className="flex items-center border rounded-lg overflow-hidden">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-none"
+                        className="h-10 w-10 rounded-none touch-manipulation"
                         onClick={() => updateCartItemQuantity(item.product.id, Math.max(1, item.quantity - 1))}
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-4 w-4" />
                       </Button>
-                      <span className="px-2 text-sm font-medium">{item.quantity}</span>
+                      <span className="px-3 text-sm font-medium min-w-[30px] text-center">{item.quantity}</span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-none"
+                        className="h-10 w-10 rounded-none touch-manipulation"
                         onClick={() => updateCartItemQuantity(item.product.id, item.quantity + 1)}
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </div>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-gray-400 hover:text-red-500"
+                  variant="outline"
+                  size="sm"
                   onClick={() => removeFromCart(item.product.id)}
+                  className="text-red-500 hover:bg-red-50 hover:text-red-600 text-xs p-0 h-10 w-10 touch-manipulation"
                 >
-                  <X className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </motion.div>
             ))}
           </AnimatePresence>
         </ScrollArea>
         
-        <div className="mt-6 space-y-4">
-          <div className="flex justify-between py-2">
-            <span className="text-gray-600">Sous-total</span>
-            <span className="font-medium">{formatPrice(subtotal)}</span>
+        <div className="bg-gray-50 p-4 space-y-4 rounded-lg mt-4">
+          <div className="flex justify-between">
+            <span className="text-gray-600 text-base">Sous-total</span>
+            <span className="font-medium text-base">{formatPrice(subtotal)}</span>
           </div>
           {discount > 0 && (
             <div className="flex justify-between py-2 text-green-600">
@@ -196,9 +191,9 @@ const CartDrawer: React.FC = () => {
         
         <SheetFooter className="mt-6 mb-4 sticky bottom-0 bg-white pt-4 border-t border-gray-200">
           <SheetClose asChild>
-            <Link href="/checkout" className="w-full block">
-              <Button className="w-full bg-black hover:bg-gray-800 text-white font-medium py-6 text-lg shadow-lg">
-                Passer la commande
+            <Link href="/checkout">
+              <Button className="w-full bg-[#f5a623] hover:bg-[#e09000] text-white py-6 text-base font-medium touch-manipulation">
+                Passer à la caisse
               </Button>
             </Link>
           </SheetClose>
