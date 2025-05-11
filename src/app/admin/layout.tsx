@@ -56,7 +56,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       title: 'Commandes', 
       icon: <ShoppingCart className="h-5 w-5" />, 
       href: '/admin/orders',
-      count: 12 // Exemple de commandes en attente
+      count: null
     },
     { 
       title: 'Catégories', 
@@ -80,13 +80,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       title: 'Promotions', 
       icon: <Percent className="h-5 w-5" />, 
       href: '/admin/promotions',
-      count: 2 // Exemple de promotions actives
+      count: null
     },
     { 
       title: 'Livraison', 
       icon: <Truck className="h-5 w-5" />, 
       href: '/admin/delivery',
-      count: 5 // Exemple de livraisons en cours
+      count: null
     },
     { 
       title: 'Clients', 

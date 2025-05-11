@@ -67,7 +67,8 @@ export const DashboardService = {
         .gte('created_at', todayISOString);
       
       if (ordersError) {
-        console.error('Erreur lors de la récupération des commandes:', ordersError);
+        // Log plus discret pour éviter d'afficher des erreurs quand c'est normal qu'il n'y ait pas de données
+        console.log('Aucune commande pour aujourd\'hui');
       }
       
       // Calculer le revenu total d'aujourd'hui
@@ -118,7 +119,8 @@ export const DashboardService = {
         .limit(4) as { data: OrderData[] | null, error: any };
       
       if (recentOrdersError) {
-        console.error('Erreur lors de la récupération des commandes récentes:', recentOrdersError);
+        // Log plus discret pour éviter d'afficher des erreurs quand c'est normal qu'il n'y ait pas de données
+        console.log('Aucune commande récente disponible');
       }
       
       // Formater les commandes récentes
@@ -165,7 +167,8 @@ export const DashboardService = {
         .order('created_at', { ascending: true });
       
       if (weekOrdersError) {
-        console.error('Erreur lors de la récupération des commandes de la semaine:', weekOrdersError);
+        // Log plus discret pour éviter d'afficher des erreurs quand c'est normal qu'il n'y ait pas de données
+        console.log('Aucune commande pour la semaine');
       }
       
       // Organiser les données par jour

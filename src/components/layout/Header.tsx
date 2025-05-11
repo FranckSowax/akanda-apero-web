@@ -44,7 +44,7 @@ export const Header: React.FC = () => {
           <nav className="hidden md:flex space-x-4 lg:space-x-6">
             <Link href="/produits" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Produits</Link>
             <Link href="/cocktail-kits" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Kits Cocktails</Link>
-            <Link href="#contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Contact</Link>
+            <Link href="/contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Contact</Link>
             <Link href="/admin/dashboard" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Admin</Link>
           </nav>
         </div>

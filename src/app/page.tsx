@@ -25,9 +25,7 @@ const heroSlides: HeroSlideProps[] = [
     subtitle: "l'essence de l'apéro",
     description: "Akanda Apéro livre directement chez vous des boissons fraîches et des snacks savoureux.",
     buttonText: "Voir les produits",
-    buttonLink: "/category",
-    statValue: "78%",
-    statLabel: "de nos clients commandent au moins une fois par semaine"
+    buttonLink: "/category"
   },
   {
     id: 2,
@@ -38,9 +36,7 @@ const heroSlides: HeroSlideProps[] = [
     buttonText: "Commander maintenant",
     buttonLink: "/category",
     secondaryButtonText: "En savoir plus",
-    secondaryButtonLink: "#about",
-    statValue: "89%",
-    statLabel: "de satisfaction client pour nos cocktails signature"
+    secondaryButtonLink: "#about"
   },
   {
     id: 3,
@@ -51,9 +47,7 @@ const heroSlides: HeroSlideProps[] = [
     buttonText: "Commander maintenant",
     buttonLink: "/category",
     secondaryButtonText: "Nos zones de livraison",
-    secondaryButtonLink: "#delivery",
-    statValue: "97%",
-    statLabel: "de satisfaction sur nos livraisons"
+    secondaryButtonLink: "#delivery"
   }
 ];
 
@@ -92,21 +86,21 @@ const testimonials = [
     name: "Marie Koumba",
     comment: "J'ai commandé un pack pour une soirée improvisée, livré en moins de 40 minutes. Le service est excellent !",
     rating: 5,
-    avatar: "https://i.imgur.com/J5oMBWr.jpg"
+    avatar: "https://i.imgur.com/oZIcVLL.png"
   },
   {
     id: 2,
     name: "Jean Mouloungui",
     comment: "Produits de qualité et interface de commande très intuitive. Je recommande Akanda Apéro à tous mes amis.",
     rating: 5,
-    avatar: "https://i.imgur.com/kXmAzQT.jpg"
+    avatar: "https://i.imgur.com/ZFlio8Q.png"
   },
   {
     id: 3,
     name: "Sarah Ndong",
     comment: "Le meilleur service de livraison de boissons à Libreville. Rapide et efficace !",
     rating: 4,
-    avatar: "https://i.imgur.com/gRrLZKw.jpg"
+    avatar: "https://i.imgur.com/s3JAOt2.png"
   }
 ];
 
@@ -477,9 +471,11 @@ export default function Home() {
                   <p className="text-sm text-gray-600">Profitez d'une expérience cocktail à domicile où chaque moment devient une fête</p>
                 </div>
               </div>
-              <Button className="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-6 rounded-lg">
-                Découvrir nos kits cocktails
-              </Button>
+              <Link href="/cocktail-kits">
+                <Button className="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-6 rounded-lg">
+                  Découvrir nos kits cocktails
+                </Button>
+              </Link>
             </div>
             <div className="md:w-1/2 relative">
               <div className="relative rounded-xl overflow-hidden shadow-2xl transform md:rotate-3 transition-transform hover:rotate-0 duration-500">

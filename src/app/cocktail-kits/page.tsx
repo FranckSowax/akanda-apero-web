@@ -92,8 +92,8 @@ const FullPageSlider = () => {
           
           {/* Contenu du slide */}
           <div className="absolute inset-0 flex flex-col justify-center items-center p-4 md:p-8 z-20 text-white text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 max-w-2xl">{slide.title}</h2>
-            <p className="text-sm sm:text-base md:text-xl max-w-2xl">{slide.subtitle}</p>
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 max-w-2xl text-white">{slide.title}</h2>
+            <p className="text-sm sm:text-base md:text-xl max-w-2xl text-white">{slide.subtitle}</p>
           </div>
         </div>
       ))}
