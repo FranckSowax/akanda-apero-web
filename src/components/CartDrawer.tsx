@@ -86,9 +86,14 @@ const CartDrawer: React.FC = () => {
       <SheetTrigger asChild>
         <Button variant="ghost" className="relative p-0 h-auto">
           <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
-          <span suppressHydrationWarning className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white ${(!isClient || itemCount === 0) ? 'hidden' : ''}`}>
-            {itemCount || 0}
-          </span>
+          {isClient ? (
+            <span 
+              suppressHydrationWarning={true} 
+              className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white ${itemCount === 0 ? 'hidden' : ''}`}
+            >
+              {itemCount || 0}
+            </span>
+          ) : null}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">
