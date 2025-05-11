@@ -95,9 +95,22 @@ export default function AuthPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
+            {/* TabsList optimisé pour les appareils tactiles */}
+            <TabsList className="grid w-full grid-cols-2 mb-4 touch-manipulation">
+              <TabsTrigger 
+                value="signin" 
+                className="py-3 px-4 text-base active:opacity-80 focus:outline-none touch-manipulation"
+                role="tab"
+              >
+                Connexion
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signup" 
+                className="py-3 px-4 text-base active:opacity-80 focus:outline-none touch-manipulation"
+                role="tab"
+              >
+                Inscription
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
@@ -120,10 +133,16 @@ export default function AuthPage() {
                     required
                   />
                 </div>
+                {/* Bouton optimisé pour les appareils tactiles avec plus de surface cliquable et meilleure réponse */}
                 <Button 
                   type="submit" 
-                  className="w-full bg-[#f5a623] hover:bg-[#e09000]"
+                  className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
                   disabled={loading}
+                  onClick={(e) => {
+                    if (loading) e.preventDefault(); // Éviter les soumissions multiples
+                  }}
+                  role="button"
+                  aria-label="Se connecter"
                 >
                   {loading ? "Chargement..." : "Se connecter"}
                 </Button>
@@ -152,8 +171,13 @@ export default function AuthPage() {
                 </div>
                 <Button 
                   type="submit" 
-                  className="w-full bg-[#f5a623] hover:bg-[#e09000]"
+                  className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
                   disabled={loading}
+                  onClick={(e) => {
+                    if (loading) e.preventDefault(); // Éviter les soumissions multiples
+                  }}
+                  role="button"
+                  aria-label="S'inscrire"
                 >
                   {loading ? "Chargement..." : "Créer un compte"}
                 </Button>
