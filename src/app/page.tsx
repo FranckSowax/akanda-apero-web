@@ -6,7 +6,7 @@ import { ParallaxSection } from '../components/ui/parallax-section';
 import { Header } from '../components/layout/Header';
 import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { formatPrice } from '../lib/utils/formatters';
 import styles from './landing.module.css';
 import { Star, ArrowRight } from 'lucide-react';
@@ -16,7 +16,7 @@ import { useCategories } from '../hooks/supabase/useCategories';
 import { Product, Category } from '../types/supabase';
 import { Footer } from '../components/layout/Footer';
 
-// Données pour le slider hero
+
 const heroSlides: HeroSlideProps[] = [
   {
     id: 1,
@@ -112,29 +112,33 @@ const testimonials = [
 
 export default function Home() {
   const { addToCart } = useAppContext();
-  const [activeCategory, setActiveCategory] = useState('bestseller'); // 'bestseller' par défaut pour montrer les produits en vedette
+  const [activeCategory, setActiveCategory] = useState('bestseller');
   const [isAnimating, setIsAnimating] = useState(false);
   const { getFeaturedProducts, getProductsByCategory } = useFeaturedProducts();
   const { getCategories } = useCategories();
   
-  // Récupérer les catégories
   const { data: categoriesData, isLoading: categoriesLoading } = getCategories();
   
-  // Récupérer les produits en fonction de la catégorie active
   const { data: productsData, isLoading: productsLoading } = 
     activeCategory === 'bestseller' 
       ? getFeaturedProducts() 
       : getProductsByCategory(activeCategory);
-  
-  // Produit mis en avant (utilise le premier produit en vedette si disponible)
-  const featuredProduct = productsData && productsData.length > 0 ? productsData[0] : {
+      
+  const featuredProduct = (productsData && productsData.length > 0) ? productsData[0] : {
     id: '1',
     name: 'Pack Tout-en-Un',
     description: '1 Boîte (12 Canettes)',
     price: 18000,
     compare_at_price: 22000,
     slug: 'pack-tout-en-un',
-    product_images: [{ image_url: 'https://picsum.photos/seed/pack1/600/600', position: 1, id: '1', product_id: '1', alt_text: 'Pack Tout-en-Un', created_at: '' }],
+    product_images: [{ 
+      image_url: 'https://picsum.photos/seed/pack1/600/600', 
+      position: 1, 
+      id: '1', 
+      product_id: '1', 
+      alt_text: 'Pack Tout-en-Un', 
+      created_at: '' 
+    }],
     is_featured: true,
     is_active: true,
     stock_quantity: 10,
@@ -143,52 +147,46 @@ export default function Home() {
     updated_at: ''
   };
   
-  // Fonction pour changer de catégorie avec animation
   const handleCategoryChange = (categoryId: string) => {
     if (categoryId === activeCategory || isAnimating) return;
     
     setIsAnimating(true);
     
-    // Délai pour permettre l'animation de sortie
     setTimeout(() => {
       setActiveCategory(categoryId);
       
-      // Délai pour permettre l'animation d'entrée
       setTimeout(() => {
         setIsAnimating(false);
       }, 300);
     }, 300);
   };
   
-  // Récupérer l'estimation du délai de livraison
   const getDeliveryEstimate = () => {
     const date = new Date();
-    date.setDate(date.getDate() + 1); // +1 jour
+    date.setDate(date.getDate() + 1);
     return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   };
   
-  // Fonction pour ajouter un produit au panier
   const handleAddToCart = (product: Product) => {
-    const imageUrl = product.product_images && product.product_images.length > 0 
+    const imageUrl = (product.product_images && product.product_images.length > 0) 
       ? product.product_images[0].image_url 
       : 'https://picsum.photos/seed/default/600/600';
     
     addToCart(
       {
-        id: parseInt(product.id) || 0, // Convertir l'ID en nombre
+        id: parseInt(product.id) || 0,
         name: product.name,
         price: product.price,
         imageUrl: imageUrl,
         description: product.description || '',
         currency: 'EUR',
-        categorySlug: product.product_categories && product.product_categories.length > 0 ? 'categorie' : 'general',
+        categorySlug: (product.product_categories && product.product_categories.length > 0) ? 'categorie' : 'general',
         stock: product.stock_quantity || 10
       },
-      1 // quantité par défaut
+      1
     );
   };
   
-  // Fonction de défilement vers une section
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
     if (section) {
@@ -196,21 +194,21 @@ export default function Home() {
     }
   };
   
-  // Catégories de produits
+
+  // Assurer que la catégorie "Meilleures Ventes" est toujours présente en première position
+  const bestsellerCategory = {
+    id: 'bestseller', 
+    name: 'Meilleures Ventes',
+    color: '#FFF5E8',
+    image_url: '🔥'
+  };
+  
   const categories = categoriesLoading || !categoriesData 
-    ? [{
-        id: 'bestseller', 
-        name: 'Meilleures Ventes',
-        color: '#FFF5E8', // Beige très clair
-        image_url: '🔥' // Feu/Flamme
-      }]
-    : [{
-        id: 'bestseller', 
-        name: 'Meilleures Ventes',
-        color: '#FFF5E8', // Beige très clair
-        image_url: '🔥' // Feu/Flamme
-      }, 
-      ...(categoriesData || [])
+    ? [bestsellerCategory]
+    : [
+        bestsellerCategory, 
+        // Filtrer pour éviter les doublons de la catégorie "Meilleures Ventes"
+        ...(categoriesData || []).filter(cat => cat.id !== 'bestseller')
         // Filtrer pour exclure les catégories indésirables et les doublons de Meilleures Ventes
         .filter((cat: Category) => (
           cat.name !== 'Meilleures Ventes' &&

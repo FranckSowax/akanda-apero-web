@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ParallaxSection } from '../../components/ui/parallax-section';
@@ -8,12 +8,11 @@ import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { useAppContext } from '../../context/AppContext';
 import { Button } from '../../components/ui/button';
-import { Star, ArrowRight, ShoppingCart, X } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useFeaturedProducts } from '../../hooks/supabase/useFeaturedProducts';
 import { useCategories } from '../../hooks/supabase/useCategories';
 import { Product, Category } from '../../types/supabase';
 import { formatPrice } from '../../lib/utils/formatters';
-
 
 
 export default function ProduitsPage() {
@@ -23,16 +22,12 @@ export default function ProduitsPage() {
   const { getFeaturedProducts, getProductsByCategory } = useFeaturedProducts();
   const { getCategories } = useCategories();
   
-  // Récupérer les catégories
   const { data: categoriesData, isLoading: categoriesLoading } = getCategories();
   
-  // Récupérer les produits en fonction de la catégorie active
   const { data: productsData, isLoading: productsLoading } = 
     activeCategory === 'bestseller' 
       ? getFeaturedProducts() 
       : getProductsByCategory(activeCategory);
-
-  // Fonction pour changer de catégorie avec animation
   const handleCategoryChange = (categoryId: string) => {
     if (categoryId === activeCategory || isAnimating) return;
     
@@ -49,7 +44,6 @@ export default function ProduitsPage() {
     }, 300);
   };
   
-  // Fonction pour ajouter un produit au panier
   const handleAddToCart = (product: Product) => {
     const imageUrl = product.product_images && product.product_images.length > 0 
       ? product.product_images[0].image_url 
@@ -57,7 +51,7 @@ export default function ProduitsPage() {
     
     addToCart(
       {
-        id: parseInt(product.id) || 0, // Convertir l'ID en nombre
+        id: parseInt(product.id) || 0,
         name: product.name,
         price: product.price,
         imageUrl: imageUrl,
@@ -66,11 +60,9 @@ export default function ProduitsPage() {
         categorySlug: product.product_categories && product.product_categories.length > 0 ? 'categorie' : 'general',
         stock: product.stock_quantity || 10
       },
-      1 // quantité par défaut
+      1
     );
   };
-  
-  // Catégories de produits
   const categories = categoriesLoading || !categoriesData 
     ? [{
         id: 'bestseller', 
@@ -121,7 +113,7 @@ export default function ProduitsPage() {
           <div className="container mx-auto px-4">
             <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">Nos Catégories</h2>
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8 sm:mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4 mb-6 sm:mb-10 px-1 sm:px-0">
               {categoriesLoading ? (
                 // Afficher des skeletons pendant le chargement
                 Array.from({ length: 5 }).map((_, i) => (
@@ -142,9 +134,9 @@ export default function ProduitsPage() {
                         backgroundColor: category.color
                       }}
                     ></div>
-                    <div className="relative p-3 sm:p-4 flex flex-col items-center justify-center h-24 sm:h-28 text-gray-800">
+                    <div className="relative p-2 sm:p-3 md:p-4 flex flex-col items-center justify-center h-20 sm:h-24 md:h-28 text-gray-800">
                       <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{category.image_url || '📦'}</div>
-                      <div className="font-medium text-center text-sm sm:text-base leading-tight">{category.name}</div>
+                      <div className="font-medium text-center text-xs sm:text-sm md:text-base leading-tight">{category.name}</div>
                     </div>
                   </button>
                 ))
@@ -180,12 +172,12 @@ export default function ProduitsPage() {
                 {productsData.map((product: Product) => (
                   <div 
                     key={product.id} 
-                    className="group overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+                    className="group overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full bg-white"
                   >
                     {/* Partie supérieure avec fond blanc */}
                     <div className="bg-white">
                       <Link href={`/product/${product.id}`} className="block">
-                        <div className="relative overflow-hidden p-4 sm:p-6 flex justify-center items-center h-40 sm:h-52">
+                        <div className="relative overflow-hidden p-2 sm:p-4 md:p-6 flex justify-center items-center h-32 sm:h-40 md:h-52">
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black bg-opacity-10 transition-opacity duration-300"></div>
                           <div className="transform transition-transform duration-500 group-hover:scale-110">
                             <Image 
@@ -208,10 +200,10 @@ export default function ProduitsPage() {
                     </div>
                     
                     {/* Partie inférieure avec couleur de catégorie */}
-                    <div className={`bg-gradient-to-b from-amber-50 to-amber-100 p-4 sm:p-5 flex-grow`}>
+                    <div className={`bg-gradient-to-b from-amber-50 to-amber-100 p-3 sm:p-5 flex-grow`}>
                       <Link href={`/product/${product.id}`} className="block">
-                        <h3 className="font-bold text-base sm:text-lg mb-1 group-hover:text-gray-800 transition-colors duration-200 line-clamp-1">{product.name}</h3>
-                        <p className="text-gray-700 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{product.description}</p>
+                        <h3 className="font-bold text-xs sm:text-sm md:text-lg mb-1 group-hover:text-gray-800 transition-colors duration-200 line-clamp-1">{product.name}</h3>
+                        <p className="text-gray-700 text-xs mb-2 sm:mb-3 line-clamp-1 sm:line-clamp-2">{product.description}</p>
                         <div className="flex justify-between items-center mb-3 sm:mb-4">
                           <div>
                             <div className="font-bold text-lg text-gray-800">{`${formatPrice(product.price)} XAF`}</div>
@@ -222,15 +214,15 @@ export default function ProduitsPage() {
                         </div>
                       </Link>
                       <Button 
-                        className="w-full bg-white hover:bg-gray-50 text-black hover:bg-gray-100 transform transition-transform hover:scale-105 shadow-md font-semibold"
+                        className="w-full bg-white hover:bg-gray-50 text-black hover:bg-gray-100 transform transition-transform hover:scale-105 shadow-md font-semibold text-[10px] xs:text-xs sm:text-sm py-1 xs:py-2 sm:py-3 h-auto touch-manipulation"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handleAddToCart(product);
                         }}
                       >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Ajouter au panier
+                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <span className="whitespace-nowrap">Ajouter au panier</span>
                       </Button>
                     </div>
                   </div>

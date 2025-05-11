@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { LocationMap } from '../../components/ui/location-map';
 import { useAppContext } from '../../context/AppContext';
 import { formatPrice } from '../../lib/utils/formatters';
+import { useOrders } from '../../hooks/supabase/useOrders';
 
 // Types pour la page de checkout
 interface CheckoutCartItem {
@@ -42,32 +43,53 @@ const paymentMethods = [
   { id: 'card', name: 'Carte bancaire', description: 'Visa, Mastercard, etc.' },
 ];
 
+// Définir les types pour la logique du panier
+interface ProductItem {
+  id: number;
+  name: string;
+  price: number;
+  imageUrl: string;
+  description?: string;
+  currency?: string;
+  categorySlug?: string;
+  stock?: number;
+  discount?: number;
+  isPromo?: boolean;
+}
+
+interface CartItem {
+  product: ProductItem;
+  quantity: number;
+}
+
+// Fonction utilitaire pour extraire le prénom et le nom
+const getFirstAndLastName = (fullName: string): { firstName: string, lastName: string } => {
+  const nameParts = fullName.trim().split(/\s+/);
+  if (nameParts.length === 1) return { firstName: nameParts[0], lastName: '' };
+  const firstName = nameParts[0];
+  const lastName = nameParts.slice(1).join(' ');
+  return { firstName, lastName };
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { state, getCartTotal, clearCart, dispatch } = useAppContext();
-  const [cartItems, setCartItems] = useState<CheckoutCartItem[]>([]);
+  const cartItems = state.cart.items as CartItem[];
+  const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   
+  // Récupérer les fonctions du hook useOrders
+  const { createOrder, loading: orderLoading } = useOrders();
+
   // Rediriger vers la page panier si le panier est vide
   useEffect(() => {
     if (state.cart.items.length === 0) {
       router.push('/cart');
-    } else {
-      // Convertir les articles du panier au format attendu par cette page
-      const formattedItems = state.cart.items.map(item => ({
-        id: Number(item.product.id),
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        imageUrl: item.product.imageUrl || 'https://picsum.photos/seed/product/100/100',
-        isPromo: item.product.discount ? true : false,
-        discount: item.product.discount
-      }));
-      setCartItems(formattedItems);
     }
   }, [state.cart.items, router]);
 
   // Form state
-  const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
   const [deliveryInfo, setDeliveryInfo] = useState({
     fullName: '',
     phone: '',
@@ -89,6 +111,7 @@ export default function CheckoutPage() {
     expiryDate: '',
     cvv: '',
     mobileNumber: '',
+    email: '',
   });
 
   // Vérifier si c'est la nuit (après 22h30)
@@ -192,19 +215,67 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would send the order to the backend
-    setOrderNumber(`AK${Math.floor(100000 + Math.random() * 900000)}`);
-    setOrderPlaced(true);
-    setFormStep('confirmation');
+    setIsSubmitting(true);
+    setOrderError(null);
     
-    // Vider le panier après confirmation de la commande
-    setTimeout(() => {
-      clearCart();
-    }, 2000);
-    
-    window.scrollTo(0, 0);
+    try {
+      // Extraire le prénom et le nom du nom complet
+      const { firstName, lastName } = getFirstAndLastName(deliveryInfo.fullName);
+      
+      // Préparer les données de commande
+      const orderData = {
+        customerInfo: {
+          email: paymentInfo.email || `client_${deliveryInfo.phone.replace(/[^0-9]/g, '')}@akandaapero.com`,
+          first_name: firstName,
+          last_name: lastName,
+          phone: deliveryInfo.phone
+        },
+        deliveryInfo: {
+          address: deliveryInfo.address,
+          city: deliveryInfo.city,
+          additionalInfo: deliveryInfo.additionalInfo,
+          location: deliveryInfo.location,
+          deliveryOption: deliveryInfo.deliveryOption
+        },
+        paymentInfo: paymentInfo,
+        items: cartItems.map(item => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          imageUrl: item.product.imageUrl
+        })),
+        totalAmount: total,
+        subtotal: subtotal,
+        deliveryCost: deliveryFee,
+        discount: discountAmount
+      };
+      
+      // Créer la commande et enregistrer le client
+      const { success, orderNumber: newOrderNumber, error } = await createOrder(orderData);
+      
+      if (success) {
+        setOrderNumber(newOrderNumber);
+        setOrderPlaced(true);
+        setFormStep('confirmation');
+        
+        // Vider le panier après confirmation de la commande
+        setTimeout(() => {
+          clearCart();
+        }, 2000);
+        
+        window.scrollTo(0, 0);
+      } else {
+        setOrderError(error?.message || 'Une erreur est survenue lors de la création de la commande');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la soumission de la commande:', error);
+      setOrderError('Une erreur inattendue est survenue. Veuillez réessayer.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Render cart summary
@@ -218,32 +289,32 @@ export default function CheckoutPage() {
           {/* Cart Items */}
           <div className="space-y-4 mt-6">
             {cartItems.map((item) => {
-              const itemPrice = item.isPromo && item.discount 
-                ? item.price * (1 - item.discount / 100) 
-                : item.price;
+              const itemPrice = item.product.isPromo && item.product.discount 
+                ? item.product.price * (1 - item.product.discount / 100) 
+                : item.product.price;
               
               return (
-                <div key={item.id} className="flex items-start space-x-4">
+                <div key={item.product.id} className="flex items-start space-x-4">
                   <div className="relative w-16 h-16 rounded overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image 
-                      src={item.imageUrl}
-                      alt={item.name}
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-medium">{item.name}</h4>
+                    <h4 className="text-sm font-medium">{item.product.name}</h4>
                     <div className="text-sm text-gray-500">
                       Quantité: {item.quantity}
                     </div>
-                    {item.isPromo && item.discount && (
+                    {item.product.isPromo && item.product.discount && (
                       <div className="flex items-center">
                         <span className="text-sm text-gray-500 line-through mr-2">
-                          {formatPriceLocal(item.price)}
+                          {formatPriceLocal(item.product.price)}
                         </span>
                         <span className="text-xs bg-green-100 text-green-800 px-1 rounded">
-                          -{item.discount}%
+                          -{item.product.discount}%
                         </span>
                       </div>
                     )}
@@ -310,6 +381,7 @@ export default function CheckoutPage() {
                   onChange={handleDeliveryInfoChange} 
                   placeholder="Votre nom complet" 
                   required 
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -321,6 +393,9 @@ export default function CheckoutPage() {
                   onChange={handleDeliveryInfoChange} 
                   placeholder="Ex: 077123456" 
                   required 
+                  type="tel"
+                  inputMode="tel"
+                  className="h-11"
                 />
               </div>
             </div>
@@ -333,8 +408,8 @@ export default function CheckoutPage() {
               />
               
               {deliveryInfo.location.hasLocation && (
-                <div className="text-xs bg-green-50 border border-green-200 text-green-700 p-2 rounded">
-                  <div className="font-semibold">Position GPS enregistrée</div>
+                <div className="text-xs bg-green-50 border border-green-200 text-green-700 p-3 rounded">
+                  <div className="font-semibold text-sm mb-1">Position GPS enregistrée</div>
                   <div>
                     Lat: {typeof deliveryInfo.location.lat === 'number' ? deliveryInfo.location.lat.toFixed(6) : '0.000000'}, 
                     Lng: {typeof deliveryInfo.location.lng === 'number' ? deliveryInfo.location.lng.toFixed(6) : '0.000000'}
@@ -351,71 +426,61 @@ export default function CheckoutPage() {
                   name="city" 
                   value={deliveryInfo.city} 
                   onChange={handleDeliveryInfoChange} 
-                  disabled 
+                  placeholder="Votre ville"
+                  required
+                  className="h-11"
                 />
-                <p className="text-xs text-gray-500">Actuellement, nous livrons uniquement à Libreville</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="additionalInfo">Informations supplémentaires (optionnel)</Label>
-                <Textarea 
+                <Label htmlFor="district">Quartier</Label>
+                <Input 
                   id="additionalInfo" 
                   name="additionalInfo" 
-                  value={deliveryInfo.additionalInfo} 
+                  value={deliveryInfo.additionalInfo || ''} 
                   onChange={handleDeliveryInfoChange} 
-                  placeholder="Instructions de livraison, points de repère, etc." 
+                  placeholder="Informations additionnelles"
+                  className="h-11"
                 />
               </div>
             </div>
             
-            <div className="space-y-3 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="additionalInfo">Informations supplémentaires (optionnel)</Label>
+              <Textarea 
+                id="additionalInfo" 
+                name="additionalInfo" 
+                value={deliveryInfo.additionalInfo} 
+                onChange={handleDeliveryInfoChange} 
+                placeholder="Instructions de livraison, points de repère, etc." 
+              />
+            </div>
+            
+            <div className="space-y-2">
               <Label>Option de livraison</Label>
-              <RadioGroup 
-                value={deliveryInfo.deliveryOption} 
-                onValueChange={handleDeliveryOptionChange}
-              >
-                {deliveryOptions.map((option) => {
-                  // Déterminer si l'option est disponible en fonction de l'heure
-                  const isNightOption = option.id === 'night';
-                  const isDisabled = (isNightTime && !isNightOption) || (!isNightTime && isNightOption);
-                  
-                  return (
-                    <div 
-                      key={option.id}
-                      className={`flex items-center justify-between p-3 border rounded-md ${
-                        deliveryInfo.deliveryOption === option.id ? 'border-primary bg-primary/5' : 'border-gray-200'
-                      } ${
-                        isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-                      }`}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {deliveryOptions.map(option => (
+                  <div key={option.id} className="relative">
+                    <RadioGroupItem 
+                      value={option.id} 
+                      id={option.id} 
+                      className="peer sr-only"
+                      checked={deliveryInfo.deliveryOption === option.id}
+                      onChange={() => handleDeliveryOptionChange(option.id)}
+                    />
+                    <Label 
+                      htmlFor={option.id}
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer touch-manipulation"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem 
-                          value={option.id} 
-                          id={option.id} 
-                          disabled={isDisabled} 
-                        />
-                        <div>
-                          <Label 
-                            htmlFor={option.id} 
-                            className={`font-medium ${isDisabled ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer'}`}
-                          >
-                            {option.name}
-                            {isDisabled && isNightOption && (
-                              <span className="ml-2 text-xs text-yellow-600 font-normal">Disponible après 22h30</span>
-                            )}
-                            {isDisabled && !isNightOption && (
-                              <span className="ml-2 text-xs text-yellow-600 font-normal">Indisponible après 22h30</span>
-                            )}
-                          </Label>
-                          <p className="text-sm text-gray-500">{option.description}</p>
-                        </div>
+                      <div className="mb-3 text-2xl">
+                        {option.id === 'standard' ? '🚚' : '⚡️'}
                       </div>
-                      <span className={`font-medium ${isDisabled ? 'text-gray-400' : ''}`}>
-                        {formatPriceLocal(option.price)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </RadioGroup>
+                      <div className="font-semibold">{option.name}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{option.description}</div>
+                      <div className="font-semibold mt-2">{formatPrice(option.price)} XAF</div>
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
           <CardFooter>
@@ -445,6 +510,20 @@ export default function CheckoutPage() {
             <CardTitle>Méthode de paiement</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2 mb-4">
+              <Label htmlFor="email">Adresse e-mail (pour confirmation et suivi)</Label>
+              <Input 
+                id="email" 
+                name="email" 
+                type="email"
+                value={paymentInfo.email} 
+                onChange={handlePaymentInfoChange} 
+                placeholder="exemple@email.com" 
+                className="h-11"
+              />
+              <p className="text-xs text-gray-500">Une adresse e-mail vous permettra de recevoir vos confirmations de commande</p>
+            </div>
+            
             <RadioGroup 
               value={paymentInfo.method} 
               onValueChange={handlePaymentMethodChange}
@@ -616,20 +695,32 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Finaliser votre commande</h1>
+    <div className="container mx-auto py-6 sm:py-8 px-4">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8">Passer une commande</h1>
       
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="w-full lg:w-2/3">
-          {formStep === 'delivery' && renderDeliveryForm()}
-          {formStep === 'payment' && renderPaymentForm()}
-          {formStep === 'confirmation' && renderConfirmation()}
+      {/* Si le panier est vide, afficher un message et un lien pour retourner aux produits */}
+      {state.cart.items.length === 0 ? (
+        <div className="text-center">
+          <p>Votre panier est vide.</p>
+          <Link href="/">
+            <Button variant="outline">
+              Retourner aux produits
+            </Button>
+          </Link>
         </div>
-        
-        <div className="w-full lg:w-1/3">
-          {formStep !== 'confirmation' && renderCartSummary()}
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="w-full lg:w-2/3">
+            {formStep === 'delivery' && renderDeliveryForm()}
+            {formStep === 'payment' && renderPaymentForm()}
+            {formStep === 'confirmation' && renderConfirmation()}
+          </div>
+          
+          <div className="lg:w-[360px]">
+            {formStep !== 'confirmation' && renderCartSummary()}
+          </div>
         </div>
-      </div>
-    </main>
+      )}
+    </div>
   );
 }

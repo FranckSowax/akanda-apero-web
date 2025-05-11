@@ -6,20 +6,20 @@ import Image from 'next/image';
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-white py-8 sm:py-12">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-          <div className="col-span-2 sm:col-span-2 md:col-span-1 mb-4 sm:mb-6 md:mb-0">
+    <footer className="bg-gray-900 text-white py-6 xs:py-8 sm:py-12">
+      <div className="container mx-auto px-3 xs:px-4 sm:px-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+          <div className="col-span-1 xs:col-span-2 sm:col-span-2 md:col-span-1 mb-4 sm:mb-6 md:mb-0">
             <Image 
               src="https://i.imgur.com/qIBlF8u.png"
               alt="Akanda Apéro Logo"
-              width={120}
-              height={48}
-              className="mb-3 sm:mb-4"
+              width={100}
+              height={40}
+              className="mb-3 sm:mb-4 max-w-[100px] xs:max-w-[120px]"
               priority
             />
-            <p className="text-gray-400 text-sm sm:text-base mb-3 sm:mb-4">L'apéro comme vous l'aimez, livré directement chez vous.</p>
-            <div className="flex space-x-4">
+            <p className="text-gray-400 text-xs xs:text-sm sm:text-base mb-3 sm:mb-4">L'apéro comme vous l'aimez, livré directement chez vous.</p>
+            <div className="flex space-x-3 xs:space-x-4">
               <a href="#" className="text-gray-400 hover:text-white">
                 <span className="sr-only">Facebook</span>
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -71,15 +71,15 @@ const Footer = () => {
           </div>
         </div>
         
-        <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8 md:flex md:items-center md:justify-between">
-          <p className="text-gray-400 text-xs sm:text-sm text-center md:text-left">
+        <div className="border-t border-gray-800 mt-5 xs:mt-6 sm:mt-8 pt-5 xs:pt-6 sm:pt-8 md:flex md:items-center md:justify-between">
+          <p className="text-gray-400 text-[10px] xs:text-xs sm:text-sm text-center md:text-left">
             © {new Date().getFullYear()} Akanda Apero. Tous droits réservés.
           </p>
-          <div className="mt-4 md:mt-0">
-            <ul className="flex flex-wrap justify-center md:justify-end gap-4 sm:gap-6">
-              <li><Link href="#" className="text-gray-400 hover:text-white text-xs sm:text-sm transition-colors duration-200">Mentions légales</Link></li>
-              <li><Link href="#" className="text-gray-400 hover:text-white text-xs sm:text-sm transition-colors duration-200">CGV</Link></li>
-              <li><Link href="#" className="text-gray-400 hover:text-white text-xs sm:text-sm transition-colors duration-200">Politique de confidentialité</Link></li>
+          <div className="mt-3 xs:mt-4 md:mt-0">
+            <ul className="flex flex-wrap justify-center md:justify-end gap-2 xs:gap-3 sm:gap-6">
+              <li><Link href="#" className="text-gray-400 hover:text-white text-[10px] xs:text-xs sm:text-sm transition-colors duration-200">Mentions légales</Link></li>
+              <li><Link href="#" className="text-gray-400 hover:text-white text-[10px] xs:text-xs sm:text-sm transition-colors duration-200">CGV</Link></li>
+              <li><Link href="#" className="text-gray-400 hover:text-white text-[10px] xs:text-xs sm:text-sm transition-colors duration-200">Politique de confidentialité</Link></li>
             </ul>
           </div>
         </div>

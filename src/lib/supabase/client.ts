@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Product, Category, Order, Customer, ProductImage, OrderItem } from '../../types/supabase';
+import { Product, Category, Order } from '../../types/supabase';
 
 export type Database = {
   public: {
@@ -19,7 +19,7 @@ export type Database = {
         Insert: Omit<Order, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Order, 'id' | 'created_at' | 'updated_at'>>;
       };
-      // Ajoutez d'autres tables selon vos besoins
+      // Autres tables disponibles dans la base de données
     };
   };
 };
@@ -27,8 +27,7 @@ export type Database = {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
 
-console.log('Client setup - URL Supabase:', supabaseUrl);
-console.log('Client setup - Clé Supabase disponible:', !!supabaseAnonKey);
+
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {

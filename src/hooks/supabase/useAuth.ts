@@ -8,9 +8,8 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Récupérer la session active
     const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -18,7 +17,6 @@ export function useAuth() {
 
     getSession();
 
-    // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -33,33 +31,21 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    console.log('useAuth: Tentative de connexion avec:', email);
-    
     try {
-      // Tentative de connexion avec l'email et le mot de passe
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password 
       });
       
-      console.log('useAuth: Réponse de Supabase:', { 
-        user: data?.user ? 'User exists' : 'No user', 
-        error: error ? error.message : 'No error' 
-      });
-      
       if (error) {
-        console.error('useAuth: Erreur d\'authentification:', error);
         throw error;
       }
       
-      // Vérifier explicitement la session après la connexion
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('useAuth: Session après connexion:', 
-        sessionData?.session ? 'Session active' : 'Pas de session');
+      // Récupérer la session mise à jour
+      await supabase.auth.getSession();
       
       return data;
     } catch (err) {
-      console.error('useAuth: Exception lors de la connexion:', err);
       throw err;
     }
   };
