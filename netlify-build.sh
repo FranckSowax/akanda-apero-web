@@ -50,6 +50,13 @@ EOF
 
 # Définir variables d'environnement pour Netlify
 echo "🔨 Configuration optimisée pour Netlify activée"
+
+# Variables d'environnement Supabase requises pour le build
+echo "🔑 Configuration des variables Supabase"
+export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://ufnfvfpdbacylxsmwbdv.supabase.co}"
+export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbmZ2ZnBkYmFjeWx4c213YmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTEzODQwMDksImV4cCI6MjAyNjk2MDAwOX0.E2PoFsQVLXl3A9HtKZgUGvnjL7s6gYLXSGqQsyeULQA}"
+
+# Autres variables d'environnement
 export NODE_OPTIONS="--max-old-space-size=4096"
 export NEXT_DISABLE_TS_ERROR=1
 export NEXT_TELEMETRY_DISABLED=1
