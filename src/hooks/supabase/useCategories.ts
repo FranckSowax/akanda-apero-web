@@ -49,7 +49,7 @@ export function useCategories() {
   const createCategory = useMutation({
     mutationFn: async (category: Omit<Category, 'id' | 'created_at' | 'updated_at'>) => {
       try {
-        const result = await mcp.create('categories').mutateAsync(category);
+        const result = await mcp.create('categories', category);
         return result;
       } catch (error) {
         console.error('Erreur lors de la création de la catégorie:', error);
@@ -66,7 +66,7 @@ export function useCategories() {
     mutationFn: async (params: { id: string; category: Partial<Category> }) => {
       try {
         const { id, category } = params;
-        const result = await mcp.update('categories', id).mutateAsync(category);
+        const result = await mcp.update('categories', id, category);
         return result;
       } catch (error) {
         console.error('Erreur lors de la mise à jour de la catégorie:', error);
@@ -82,7 +82,7 @@ export function useCategories() {
   const deleteCategory = useMutation({
     mutationFn: async (id: string) => {
       try {
-        await mcp.delete('categories', id).mutateAsync();
+        await mcp.delete('categories', id);
         return id;
       } catch (error) {
         console.error(`Erreur lors de la suppression de la catégorie ${id}:`, error);

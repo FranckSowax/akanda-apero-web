@@ -65,7 +65,7 @@ export function useCocktailKits() {
   // Créer un nouveau kit cocktail
   const createCocktailKit = useMutation({
     mutationFn: async (kitData: CocktailKitFormData) => {
-      return mcp.create('cocktail-kits').mutateAsync(kitData);
+      return mcp.create('cocktail-kits', kitData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cocktail-kits'] });
@@ -76,8 +76,8 @@ export function useCocktailKits() {
   const updateCocktailKit = useMutation({
     mutationFn: async ({ id, formData }: { id: string; formData: CocktailKitFormData }) => {
       try {
-        // Fournir l'id en tant que second argument pour la fonction update
-        const result = await mcp.update('cocktail-kits', id).mutateAsync(formData);
+        // Utiliser la nouvelle API avec 3 arguments
+        const result = await mcp.update('cocktail-kits', id, formData);
         return result;
       } catch (error) {
         console.error(`Erreur lors de la mise à jour du kit cocktail ${id}:`, error);
@@ -93,8 +93,8 @@ export function useCocktailKits() {
   const deleteCocktailKit = useMutation({
     mutationFn: async (id: string) => {
       try {
-        // Fournir l'id en tant que second argument pour la fonction delete
-        await mcp.delete('cocktail-kits', id).mutateAsync();
+        // Appel direct avec la nouvelle API
+        await mcp.delete('cocktail-kits', id);
         // Retourner simplement l'ID pour maintenir la compatibilité avec les types attendus
         return id;
       } catch (error) {

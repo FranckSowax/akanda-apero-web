@@ -46,7 +46,7 @@ export function useProducts() {
 
   const createProduct = useMutation({
     mutationFn: async (productData: ProductFormData) => {
-      return mcp.create('products').mutateAsync(productData);
+      return mcp.create('products', productData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -57,8 +57,8 @@ export function useProducts() {
   const updateProduct = useMutation({
     mutationFn: async ({ id, formData }: { id: string; formData: ProductFormData }) => {
       try {
-        // Fournir l'id en tant que second argument pour la fonction update
-        const result = await mcp.update('products', id).mutateAsync(formData);
+        // Mettre à jour avec la nouvelle API qui prend 3 arguments
+        const result = await mcp.update('products', id, formData);
         return result;
       } catch (error) {
         console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
@@ -74,8 +74,8 @@ export function useProducts() {
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
       try {
-        // Fournir l'id en tant que second argument pour la fonction delete
-        await mcp.delete('products', id).mutateAsync();
+        // Appel direct avec la nouvelle API 
+        await mcp.delete('products', id);
         return id;
       } catch (error) {
         console.error(`Erreur lors de la suppression du produit ${id}:`, error);
