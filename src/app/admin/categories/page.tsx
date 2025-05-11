@@ -60,6 +60,7 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import { useCategories } from "../../../hooks/supabase/useCategories";
+import { CategoryInitializer } from '../../../components/admin/CategoryInitializer';
 import { Category } from "../../../types/supabase";
 
 // Type étendu pour l'affichage des catégories
@@ -299,6 +300,18 @@ export default function CategoriesPage() {
             </Button>
           </div>
         </div>
+        
+        {/* Section Initialisation des Catégories */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 mt-6">
+          <div className="flex items-center mb-3">
+            <h2 className="text-lg font-medium text-gray-800">Initialisation des Catégories</h2>
+          </div>
+          <p className="text-gray-600 mb-4 text-sm">Ce module permet d'initialiser ou de mettre à jour les catégories standard pour l'application. Vous pouvez l'utiliser pour restaurer les catégories par défaut.</p>
+          <CategoryInitializer />
+          <div className="border-t mt-4 pt-4">
+            <p className="text-xs text-gray-500">Note: Cette action n'effacera pas les catégories personnalisées que vous avez créées.</p>
+          </div>
+        </div>
 
         {/* Messages de statut */}
         {error && (
@@ -315,20 +328,7 @@ export default function CategoriesPage() {
           </div>
         )}
 
-        {/* Lien vers l'initialisation des catégories */}
         <div className="border rounded-lg p-3">
-          <div className="mb-4">
-            <Button 
-              variant="outline" 
-              className="w-full flex items-center justify-center gap-2 text-base py-3 border-dashed border-gray-400"
-              asChild
-            >
-              <a href="/init-categories" target="_blank">
-                <Star className="h-5 w-5 text-[#f5a623]" />
-                Initialiser toutes les catégories prédéfinies
-              </a>
-            </Button>
-          </div>
           
           {/* Statut de chargement */}
           {isLoading ? (
