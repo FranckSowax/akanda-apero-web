@@ -34,11 +34,14 @@ const formatDateString = (dateString: string) => {
 export default function LoyaltyPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { getLoyaltyPoints, getLoyaltyTransactions, redeemPoints } = useLoyalty();
+  const { 
+    loyaltyData, 
+    isLoading: pointsLoading, 
+    transactions, 
+    transactionsLoading, 
+    redeemPoints 
+  } = useLoyalty();
   const { toast } = useToast();
-  
-  const { data: loyaltyData, isLoading: pointsLoading } = getLoyaltyPoints;
-  const { data: transactions, isLoading: transactionsLoading } = getLoyaltyTransactions;
   
   const loading = authLoading || pointsLoading;
   
@@ -95,8 +98,9 @@ export default function LoyaltyPage() {
         return;
       }
       
-      await redeemPoints.mutateAsync({
-        pointsToRedeem: pointsCost,
+      // Utiliser redeemPoints comme fonction directement, pas comme objet avec mutateAsync
+      redeemPoints({
+        points: pointsCost,
         description: `Points utilisés pour ${reward}`
       });
       
