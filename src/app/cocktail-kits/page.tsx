@@ -116,16 +116,19 @@ type CocktailCategory = 'Tous' | 'Rhum' | 'Whisky' | 'Vodka' | 'Gin' | 'Tequila'
 type DifficultyLevel = 'Tous' | 'Facile' | 'Moyen' | 'Difficile';
 type SortOption = 'prix-asc' | 'prix-desc' | 'difficulte-asc' | 'difficulte-desc' | 'nom-asc' | 'nom-desc';
 
+import { supabase } from '../../lib/supabase/client';
+import { CocktailKit, CocktailKitIngredient } from '../../types/supabase';
+
 interface Cocktail {
-  id: number;
+  id: string;
   name: string;
   image: string;
   description: string;
   ingredients: string[];
-  difficulty: 'Facile' | 'Moyen' | 'Difficile';
+  difficulty: string;
   basePrice: number;
   perPersonPrice: number;
-  category: CocktailCategory;
+  category: string;
   isNew?: boolean;
   isPopular?: boolean;
 }
@@ -133,95 +136,84 @@ interface Cocktail {
 // Composant de présentation des cocktails
 const CocktailShowcase = () => {
   const { addToCart } = useAppContext();
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [categoryFilter, setCategoryFilter] = useState<CocktailCategory>('Tous');
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel>('Tous');
   const [sortOption, setSortOption] = useState<SortOption>('prix-asc');
   const [searchTerm, setSearchTerm] = useState('');
-
-  const cocktails: Cocktail[] = [
-    {
-      id: 1,
-      name: "Kit Mojito Royal",
-      image: "https://imgur.com/7tXcRY2.jpg",
-      description: "Un cocktail rafraîchissant à base de rhum blanc, menthe fraîche, citron vert et sucre de canne, avec une touche de champagne pour l'élégance.",
-      ingredients: ["Rhum blanc", "Menthe fraîche", "Citron vert", "Sucre de canne", "Champagne"],
-      difficulty: "Facile",
-      basePrice: 9800,  // Prix de base pour 2 personnes en XAF
-      perPersonPrice: 4500, // Prix par personne supplémentaire
-      category: "Rhum",
-      isPopular: true
-    },
-    {
-      id: 2,
-      name: "Kit Old Fashioned",
-      image: "https://imgur.com/hr8w6tp.jpg",
-      description: "Ce cocktail classique combine whisky bourbon, sucre, angostura bitters et zeste d'orange pour une expérience riche et complexe.",
-      ingredients: ["Bourbon", "Sucre", "Angostura bitters", "Zeste d'orange"],
-      difficulty: "Moyen",
-      basePrice: 12500, // Prix de base pour 2 personnes en XAF
-      perPersonPrice: 5800, // Prix par personne supplémentaire
-      category: "Whisky",
-      isPopular: true
-    },
-    {
-      id: 3,
-      name: "Kit Gin Tonic Deluxe",
-      image: "https://imgur.com/DmkfqHC.jpg",
-      description: "Une version élaborée du Gin Tonic classique avec des botaniques premium, baies de genévrier, zestes d'agrumes et tonic artisanal.",
-      ingredients: ["Gin premium", "Tonic artisanal", "Baies de genévrier", "Zestes d'agrumes", "Concombre"],
-      difficulty: "Facile",
-      basePrice: 10500,
-      perPersonPrice: 4800,
-      category: "Gin",
-      isNew: true
-    },
-    {
-      id: 4,
-      name: "Kit Margarita Passion",
-      image: "https://imgur.com/nLqbdNf.jpg",
-      description: "Une version exotique de la Margarita classique, enrichie de fruits de la passion pour une expérience gustative unique.",
-      ingredients: ["Tequila silver", "Triple sec", "Fruits de la passion", "Citron vert", "Sel fin"],
-      difficulty: "Moyen",
-      basePrice: 11800,
-      perPersonPrice: 5200,
-      category: "Tequila"
-    },
-    {
-      id: 5,
-      name: "Kit Moscow Mule Premium",
-      image: "https://imgur.com/EoM9zRi.jpg",
-      description: "Un cocktail vif et épicé qui mélange vodka, ginger beer artisanal et citron vert frais pour une explosion de saveurs.",
-      ingredients: ["Vodka premium", "Ginger beer artisanal", "Citron vert", "Menthe fraîche", "Sirop de gingembre"],
-      difficulty: "Facile",
-      basePrice: 9500,
-      perPersonPrice: 4200,
-      category: "Vodka"
-    },
-    {
-      id: 6,
-      name: "Kit Virgin Colada",
-      image: "https://imgur.com/k7MbdX9.jpg",
-      description: "Version sans alcool de la Piña Colada, parfaite pour toute la famille. Goûtez aux saveurs tropicales de l'ananas et de la noix de coco.",
-      ingredients: ["Jus d'ananas", "Lait de coco", "Sirop de sucre de canne", "Ananas frais", "Glace pilée"],
-      difficulty: "Facile",
-      basePrice: 7500,
-      perPersonPrice: 3500,
-      category: "Sans alcool",
-      isNew: true
+  const [cocktails, setCocktails] = useState<Cocktail[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // Track which cocktails have expanded ingredients
+  const [expandedIngredients, setExpandedIngredients] = useState<Record<string, boolean>>({});
+  
+  // Charger les cocktail kits depuis Supabase
+  useEffect(() => {
+    const loadCocktailKits = async () => {
+      try {
+        setLoading(true);
+        
+        // Récupérer tous les kits de cocktail
+        const { data: kitsData, error: kitsError } = await supabase
+          .from('cocktail_kits')
+          .select('*');
+          
+        if (kitsError) throw kitsError;
+        
+        // Pour chaque kit, récupérer ses ingrédients
+        const kitsWithIngredients = await Promise.all(kitsData.map(async (kit) => {
+          const { data: ingredientsData, error: ingredientsError } = await supabase
+            .from('cocktail_kit_ingredients')
+            .select('*')
+            .eq('cocktail_kit_id', kit.id);
+            
+          if (ingredientsError) throw ingredientsError;
+          
+          // Convertir le format de Supabase vers notre format d'affichage
+          return {
+            id: kit.id,
+            name: kit.name,
+            image: kit.image_url,
+            description: kit.description,
+            ingredients: ingredientsData.map((ing: CocktailKitIngredient) => ing.name),
+            difficulty: kit.difficulty || 'Facile',
+            basePrice: kit.price,
+            perPersonPrice: kit.additional_person_price || 0,
+            category: kit.category_id || 'Rhum', // À améliorer avec une vraie catégorisation
+            isNew: kit.is_new || false,
+            isPopular: kit.is_popular || false
+          };
+        }));
+        
+        setCocktails(kitsWithIngredients);
+      } catch (err: any) {
+        console.error('Erreur lors du chargement des kits:', err);
+        setError(err.message || 'Une erreur est survenue lors du chargement des kits de cocktails');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    
+    loadCocktailKits();
+  }, []);
 
   // Initialiser les quantités à 2 personnes par défaut
   useEffect(() => {
-    const initialQuantities: Record<number, number> = {};
-    cocktails.forEach(cocktail => {
-      initialQuantities[cocktail.id] = 2; // 2 personnes par défaut
-    });
-    setQuantities(initialQuantities);
-  }, []);
+    if (cocktails.length > 0) {
+      const initialQuantities: Record<string, number> = {};
+      const initialExpandState: Record<string, boolean> = {};
+      
+      cocktails.forEach(cocktail => {
+        initialQuantities[cocktail.id] = 2; // 2 personnes par défaut
+        initialExpandState[cocktail.id] = false; // Ingrédients non développés par défaut
+      });
+      
+      setQuantities(initialQuantities);
+      setExpandedIngredients(initialExpandState);
+    }
+  }, [cocktails]);
 
-  const handleQuantityChange = (cocktailId: number, quantity: number) => {
+  const handleQuantityChange = (cocktailId: string, quantity: number) => {
     setQuantities(prev => ({
       ...prev,
       [cocktailId]: quantity
@@ -238,19 +230,27 @@ const CocktailShowcase = () => {
 
   const handleAddToCart = (cocktail: Cocktail, quantity: number) => {
     const price = calculatePrice(cocktail.basePrice, cocktail.perPersonPrice, quantity);
-    const productToAdd = {
-      id: cocktail.id,
+    // Convertir l'ID de string à number pour correspondre au type Product
+    const numericId = parseInt(cocktail.id, 10) || Math.floor(Math.random() * 1000000);
+    
+    const productToAdd: any = {
+      id: numericId,
       name: `${cocktail.name} (${quantity} personnes)`,
       description: cocktail.description,
-      price: price,
+      price: price, // Prix calculé en fonction du nombre de personnes
       imageUrl: cocktail.image,
       currency: "XAF",
       categorySlug: "cocktail-kits",
-      stock: 100
+      stock: 100,
+      metadata: {
+        numberOfPersons: quantity,
+        ingredients: cocktail.ingredients,
+        cocktailKit: true
+      }
     };
     
     addToCart(productToAdd, 1);
-    alert(`${cocktail.name} pour ${quantity} personnes ajouté au panier.`);
+    // La notification est gérée dans le contexte
   };
 
   // Filtrage des cocktails
@@ -297,7 +297,7 @@ const CocktailShowcase = () => {
   const difficulties: DifficultyLevel[] = ['Tous', 'Facile', 'Moyen', 'Difficile'];
 
   return (
-    <section className="py-20 bg-gradient-to-b from-black to-gray-900">
+    <div className="py-20 bg-gradient-to-b from-black to-gray-900">
       <div className="container mx-auto px-4">
         <h2 className="text-4xl font-bold text-center mb-10 text-white">Nos kits cocktails signatures</h2>
         
@@ -327,7 +327,7 @@ const CocktailShowcase = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Filtre par catégorie */}
             <div>
               <label htmlFor="category" className="block text-sm font-medium text-white mb-1">Catégorie</label>
@@ -358,8 +358,8 @@ const CocktailShowcase = () => {
               </select>
             </div>
             
-            {/* Options de tri */}
-            <div className="sm:col-span-2 md:col-span-1 mt-3 sm:mt-0">
+            {/* Tri des produits */}
+            <div className="sm:col-span-2 lg:col-span-1">
               <label htmlFor="sort" className="block text-sm font-medium text-white mb-1">Trier par</label>
               <select
                 id="sort"
@@ -369,17 +369,17 @@ const CocktailShowcase = () => {
               >
                 <option value="prix-asc">Prix croissant</option>
                 <option value="prix-desc">Prix décroissant</option>
-                <option value="difficulte-asc">Difficulté: du plus facile</option>
-                <option value="difficulte-desc">Difficulté: du plus difficile</option>
-                <option value="nom-asc">Nom A-Z</option>
-                <option value="nom-desc">Nom Z-A</option>
+                <option value="difficulte-asc">Difficulté (facile à difficile)</option>
+                <option value="difficulte-desc">Difficulté (difficile à facile)</option>
+                <option value="nom-asc">Nom (A-Z)</option>
+                <option value="nom-desc">Nom (Z-A)</option>
               </select>
             </div>
-            
-            {/* Bouton réinitialiser - toujours visible */}
-            <div className="mt-3 sm:mt-0 pt-0 sm:pt-6 flex items-end">
+
+            {/* Bouton de réinitialisation des filtres pour mobile et tablette */}
+            <div className="mt-2 sm:col-span-2 lg:col-span-1 flex items-end">
               <button
-                className="w-full p-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition duration-150 text-sm"
+                className="w-full py-2 px-4 bg-white text-[#f5a623] font-medium rounded hover:bg-gray-100 transition-colors"
                 onClick={() => {
                   setCategoryFilter('Tous');
                   setDifficultyFilter('Tous');
@@ -390,12 +390,13 @@ const CocktailShowcase = () => {
                 Réinitialiser les filtres
               </button>
             </div>
-          </div>
+          </div>  
         </div>
+      </div>
 
-        {sortedCocktails.length === 0 ? (
-          <div className="bg-white p-8 rounded-lg text-center">
-            <h3 className="text-2xl font-bold mb-4">Aucun kit cocktail trouvé</h3>
+      {sortedCocktails.length === 0 ? (
+          <div className="bg-white p-4 sm:p-8 rounded-lg text-center">
+            <h3 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">Aucun kit cocktail trouvé</h3>
             <p className="text-gray-600 mb-4">Aucun kit ne correspond à vos critères de recherche.</p>
             <Button 
               className="bg-[#f5a623] hover:bg-[#e09000] text-white"
@@ -403,13 +404,14 @@ const CocktailShowcase = () => {
                 setCategoryFilter('Tous');
                 setDifficultyFilter('Tous');
                 setSearchTerm('');
+                setSortOption('prix-asc');
               }}
             >
               Réinitialiser les filtres
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {sortedCocktails.map(cocktail => (
               <div key={cocktail.id} className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 relative">
                 {/* Badges Nouveau et Populaire */}
@@ -452,21 +454,44 @@ const CocktailShowcase = () => {
                   
                   {/* Description avec nombre de lignes limité */}
                   <p className="text-gray-600 mb-3 text-sm line-clamp-3">{cocktail.description}</p>
-                  
-                  {/* Ingrédients limités */}
+                                    {/* Ingrédients avec affichage dynamique */}
                   <div className="mb-3">
                     <div className="flex items-center">
                       <h4 className="font-bold text-gray-900 text-xs sm:text-sm">Ingrédients:</h4>
                       <span className="text-gray-500 text-xs ml-1 italic">{cocktail.ingredients.length} éléments</span>
                     </div>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {cocktail.ingredients.slice(0, 3).map((ingredient, index) => (
-                        <span key={index} className="bg-gray-50 text-xs px-1.5 py-0.5 rounded border border-gray-100">
-                          {ingredient}
-                        </span>
-                      ))}
-                      {cocktail.ingredients.length > 3 && (
-                        <span className="bg-gray-50 text-xs px-1.5 py-0.5 rounded border border-gray-100">+{cocktail.ingredients.length - 3}</span>
+                    
+                    <div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {expandedIngredients[cocktail.id] 
+                          ? cocktail.ingredients.map((ingredient, index) => (
+                            <span key={index} className="bg-gray-50 text-xs px-1.5 py-0.5 rounded border border-gray-100">
+                              {ingredient}
+                            </span>
+                          ))
+                          : cocktail.ingredients.slice(0, 3).map((ingredient, index) => (
+                            <span key={index} className="bg-gray-50 text-xs px-1.5 py-0.5 rounded border border-gray-100">
+                              {ingredient}
+                            </span>
+                          ))
+                        }
+                        {!expandedIngredients[cocktail.id] && cocktail.ingredients.length > 3 && (
+                          <button
+                            onClick={() => setExpandedIngredients(prev => ({...prev, [cocktail.id]: true}))}
+                            className="bg-gray-50 text-xs px-1.5 py-0.5 rounded border border-gray-100 hover:bg-gray-100 cursor-pointer"
+                            aria-label="Afficher tous les ingrédients"
+                          >
+                            +{cocktail.ingredients.length - 3}
+                          </button>
+                        )}
+                      </div>
+                      {expandedIngredients[cocktail.id] && (
+                        <button
+                          onClick={() => setExpandedIngredients(prev => ({...prev, [cocktail.id]: false}))}
+                          className="text-xs text-gray-500 mt-1 hover:text-gray-700"
+                        >
+                          Voir moins
+                        </button>
                       )}
                     </div>
                   </div>
@@ -486,9 +511,9 @@ const CocktailShowcase = () => {
                       </span>
                     </div>
                     
-                    <div className="flex flex-row justify-between items-center gap-2">
-                      <div className="w-1/3">
-                        <label htmlFor={`quantity-${cocktail.id}`} className="sr-only">Personnes</label>
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                      <div className="w-full sm:w-1/3 mb-2 sm:mb-0">
+                        <label htmlFor={`quantity-${cocktail.id}`} className="block sm:sr-only text-xs text-gray-500 mb-1">Personnes:</label>
                         <select
                           id={`quantity-${cocktail.id}`}
                           value={quantities[cocktail.id] || 2}
@@ -503,7 +528,7 @@ const CocktailShowcase = () => {
                       </div>
                       
                       <Button 
-                        className="bg-[#f5a623] hover:bg-[#e09000] text-white w-2/3 text-sm py-1.5 rounded-md"
+                        className="bg-[#f5a623] hover:bg-[#e09000] text-white w-full sm:w-2/3 text-sm py-1.5 rounded-md"
                         onClick={() => handleAddToCart(cocktail, quantities[cocktail.id] || 2)}
                       >
                         Ajouter au panier
@@ -516,7 +541,7 @@ const CocktailShowcase = () => {
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 };
 

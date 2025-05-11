@@ -121,13 +121,13 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="container mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-primary">Tableau de Bord</h1>
+    <div className="container mx-auto py-6 sm:py-10 px-2 sm:px-4">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8 text-primary">Tableau de Bord</h1>
 
       <Tabs defaultValue="products">
-        <TabsList className="mb-6">
-          <TabsTrigger value="products">Gestion des Produits</TabsTrigger>
-          <TabsTrigger value="categories">Gestion des Catégories</TabsTrigger>
+        <TabsList className="mb-4 sm:mb-6 w-full">
+          <TabsTrigger className="text-xs sm:text-sm flex-1" value="products">Gestion des Produits</TabsTrigger>
+          <TabsTrigger className="text-xs sm:text-sm flex-1" value="categories">Gestion des Catégories</TabsTrigger>
         </TabsList>
 
         {/* Products Tab */}
@@ -208,41 +208,82 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">Image</TableHead>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead className="text-right">Prix</TableHead>
-                    <TableHead className="text-right">Stock</TableHead>
-                    <TableHead className="text-center">Promo</TableHead>
-                    <TableHead className="w-[100px] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded" data-ai-hint="product image small"/>
-                      </TableCell>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{categories.find(c => c.name.toLowerCase() === product.category)?.name || product.category}</TableCell>
-                      <TableCell className="text-right">{product.price.toLocaleString()} XAF</TableCell>
-                      <TableCell className="text-right">{product.stock}</TableCell>
-                      <TableCell className="text-center">{product.isPromo ? 'Oui' : 'Non'}</TableCell>
-                      <TableCell className="text-right">
-                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(product)}>
-                            <Edit className="h-4 w-4" />
-                         </Button>
-                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteProduct(product.id)}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              {/* Table pour écrans moyens et grands */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[80px]">Image</TableHead>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Catégorie</TableHead>
+                      <TableHead className="text-right">Prix</TableHead>
+                      <TableHead className="text-right">Stock</TableHead>
+                      <TableHead className="text-center">Promo</TableHead>
+                      <TableHead className="w-[100px] text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded" data-ai-hint="product image small"/>
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{categories.find(c => c.name.toLowerCase() === product.category)?.name || product.category}</TableCell>
+                        <TableCell className="text-right">{product.price.toLocaleString()} XAF</TableCell>
+                        <TableCell className="text-right">{product.stock}</TableCell>
+                        <TableCell className="text-center">{product.isPromo ? 'Oui' : 'Non'}</TableCell>
+                        <TableCell className="text-right">
+                           <Button variant="ghost" size="icon" onClick={() => openEditDialog(product)}>
+                              <Edit className="h-4 w-4" />
+                           </Button>
+                           <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteProduct(product.id)}>
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Version carte pour mobile et petits écrans */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {products.map((product) => (
+                  <div key={product.id} className="bg-white border rounded-lg shadow-sm p-4">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded" data-ai-hint="product image small"/>
+                      <div className="flex-1">
+                        <h3 className="font-medium">{product.name}</h3>
+                        <p className="text-xs text-gray-500">{categories.find(c => c.name.toLowerCase() === product.category)?.name || product.category}</p>
+                      </div>
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(product)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteProduct(product.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <span className="block text-gray-500 text-xs">Prix</span>
+                        <span>{product.price.toLocaleString()} XAF</span>
+                      </div>
+                      <div>
+                        <span className="block text-gray-500 text-xs">Stock</span>
+                        <span>{product.stock}</span>
+                      </div>
+                      <div>
+                        <span className="block text-gray-500 text-xs">Promo</span>
+                        <span>{product.isPromo ? 'Oui' : 'Non'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -289,27 +330,42 @@ export default function DashboardPage() {
                </div>
             </CardHeader>
             <CardContent>
-               <Table>
-                 <TableHeader>
-                   <TableRow>
-                     <TableHead>Nom</TableHead>
-                     <TableHead className="w-[100px] text-right">Actions</TableHead>
-                   </TableRow>
-                 </TableHeader>
-                 <TableBody>
-                   {categories.map((category) => (
-                     <TableRow key={category.id}>
-                       <TableCell className="font-medium">{category.name}</TableCell>
-                       <TableCell className="text-right">
-                         {/* Add Edit Category button if needed */}
-                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteCategory(category.id)}>
-                           <Trash2 className="h-4 w-4" />
-                         </Button>
-                       </TableCell>
+               {/* Table pour écrans moyens et grands */}
+               <div className="hidden md:block overflow-x-auto">
+                 <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>Nom</TableHead>
+                       <TableHead className="w-[100px] text-right">Actions</TableHead>
                      </TableRow>
-                   ))}
-                 </TableBody>
-               </Table>
+                   </TableHeader>
+                   <TableBody>
+                     {categories.map((category) => (
+                       <TableRow key={category.id}>
+                         <TableCell className="font-medium">{category.name}</TableCell>
+                         <TableCell className="text-right">
+                           {/* Add Edit Category button if needed */}
+                           <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteCategory(category.id)}>
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               </div>
+
+               {/* Version carte pour mobile et petits écrans */}
+               <div className="grid grid-cols-1 gap-2 md:hidden">
+                 {categories.map((category) => (
+                   <div key={category.id} className="flex items-center justify-between p-3 bg-white border rounded-md shadow-sm">
+                     <span className="font-medium">{category.name}</span>
+                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteCategory(category.id)}>
+                       <Trash2 className="h-4 w-4" />
+                     </Button>
+                   </div>
+                 ))}
+               </div>
             </CardContent>
           </Card>
         </TabsContent>
