@@ -53,8 +53,8 @@ echo "🔨 Configuration optimisée pour Netlify activée"
 
 # Variables d'environnement Supabase requises pour le build
 echo "🔑 Configuration des variables Supabase"
-export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://ufnfvfpdbacylxsmwbdv.supabase.co}"
-export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbmZ2ZnBkYmFjeWx4c213YmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTEzODQwMDksImV4cCI6MjAyNjk2MDAwOX0.E2PoFsQVLXl3A9HtKZgUGvnjL7s6gYLXSGqQsyeULQA}"
+export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://mcdpzoisorbnhkjhljaj.supabase.co}"
+export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA}"
 
 # Autres variables d'environnement
 export NODE_OPTIONS="--max-old-space-size=4096"

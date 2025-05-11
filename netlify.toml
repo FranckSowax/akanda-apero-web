@@ -17,5 +17,5 @@
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    Content-Security-Policy = "default-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co https://ufnfvfpdbacylxsmwbdv.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://* blob:; font-src 'self' data:; frame-src 'self'; object-src 'none'"
+    Content-Security-Policy = "default-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co https://mcdpzoisorbnhkjhljaj.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://* blob:; font-src 'self' data:; frame-src 'self'; object-src 'none'"
     X-DNS-Prefetch-Control = "on"
