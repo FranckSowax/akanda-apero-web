@@ -75,7 +75,14 @@ export function useCocktailKits() {
   // Mettre à jour un kit cocktail
   const updateCocktailKit = useMutation({
     mutationFn: async ({ id, formData }: { id: string; formData: CocktailKitFormData }) => {
-      return mcp.update('cocktail-kits').mutateAsync({ id, ...formData });
+      try {
+        // Fournir l'id en tant que second argument pour la fonction update
+        const result = await mcp.update('cocktail-kits', id).mutateAsync(formData);
+        return result;
+      } catch (error) {
+        console.error(`Erreur lors de la mise à jour du kit cocktail ${id}:`, error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cocktail-kits'] });
@@ -85,9 +92,15 @@ export function useCocktailKits() {
   // Supprimer un kit cocktail
   const deleteCocktailKit = useMutation({
     mutationFn: async (id: string) => {
-      await mcp.delete('cocktail-kits').mutateAsync(id);
-      // Retourner simplement l'ID pour maintenir la compatibilité avec les types attendus
-      return id;
+      try {
+        // Fournir l'id en tant que second argument pour la fonction delete
+        await mcp.delete('cocktail-kits', id).mutateAsync();
+        // Retourner simplement l'ID pour maintenir la compatibilité avec les types attendus
+        return id;
+      } catch (error) {
+        console.error(`Erreur lors de la suppression du kit cocktail ${id}:`, error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cocktail-kits'] });
