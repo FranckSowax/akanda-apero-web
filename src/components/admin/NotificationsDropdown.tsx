@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Bell, Check, ShoppingCart, Package, CreditCard, Truck, AlertCircle, X } from 'lucide-react';
@@ -50,16 +50,23 @@ const getPriorityColor = (priority: NotificationItem['priority']) => {
 };
 
 const NotificationsDropdown: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, loading, refreshNotifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleMarkAllAsRead = () => {
-    markAllAsRead();
+  // Rafraîchir les notifications lorsque le menu est ouvert
+  useEffect(() => {
+    if (isOpen) {
+      refreshNotifications();
+    }
+  }, [isOpen, refreshNotifications]);
+
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
   };
 
-  const handleNotificationClick = (notification: NotificationItem) => {
+  const handleNotificationClick = async (notification: NotificationItem) => {
     if (!notification.read) {
-      markAsRead(notification.id);
+      await markAsRead(notification.id);
     }
     setIsOpen(false);
   };
@@ -95,7 +102,12 @@ const NotificationsDropdown: React.FC = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup className="max-h-[500px] overflow-y-auto">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="py-6 text-center text-gray-500">
+              <div className="animate-spin h-8 w-8 mx-auto border-2 border-gray-300 border-t-blue-600 rounded-full mb-2" />
+              <p>Chargement des notifications...</p>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="py-6 text-center text-gray-500">
               <Bell className="h-8 w-8 mx-auto text-gray-300 mb-2" />
               <p>Vous n'avez pas de notifications</p>

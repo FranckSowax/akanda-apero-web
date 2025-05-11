@@ -1,6 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from '../hooks/supabase/useAuth';
+import { NotificationService, NotificationData } from '../services/notification-service';
+import { toast } from '../components/ui/use-toast';
 
 // Types pour les notifications
 export type NotificationPriority = 'low' | 'medium' | 'high';
@@ -21,11 +24,13 @@ export interface NotificationItem {
 interface NotificationsContextType {
   notifications: NotificationItem[];
   unreadCount: number;
-  addNotification: (notification: Omit<NotificationItem, 'id' | 'createdAt' | 'read'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  deleteNotification: (id: string) => void;
+  loading: boolean;
+  addNotification: (notification: NotificationData) => Promise<NotificationItem | null>;
+  markAsRead: (id: string) => Promise<boolean>;
+  markAllAsRead: () => Promise<boolean>;
+  deleteNotification: (id: string) => Promise<boolean>;
   clearAll: () => void;
+  refreshNotifications: () => Promise<void>;
 }
 
 // Création du contexte avec une valeur par défaut
@@ -40,110 +45,188 @@ export const useNotifications = () => {
   return context;
 };
 
-// Simuler un service de notification (remplacer par une vraie API dans un environnement de production)
-const STORAGE_KEY = 'akanda_apero_admin_notifications';
+// Configuration du son de notification
+const NOTIFICATION_SOUND_URL = '/sounds/notification.mp3';
+let notificationSound: HTMLAudioElement | null = null;
+
+if (typeof window !== 'undefined') {
+  notificationSound = new Audio(NOTIFICATION_SOUND_URL);
+  // Préchargement silencieux
+  notificationSound.load();
+  notificationSound.volume = 0.5;
+}
 
 // Provider du contexte
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { session } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Calculer le nombre de notifications non lues
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Charger les notifications depuis le stockage local au démarrage
-  useEffect(() => {
-    const storedNotifications = localStorage.getItem(STORAGE_KEY);
-    if (storedNotifications) {
-      try {
-        // Convertir les chaînes de date en objets Date
-        const parsedNotifications = JSON.parse(storedNotifications);
-        setNotifications(
-          parsedNotifications.map((n: any) => ({
-            ...n,
-            createdAt: new Date(n.createdAt)
-          }))
-        );
-      } catch (error) {
-        console.error('Erreur lors du chargement des notifications:', error);
-        setNotifications([]);
-      }
+  // Rafraîchir les notifications depuis Supabase
+  const refreshNotifications = async () => {
+    setLoading(true);
+    try {
+      const userId = session?.user?.id;
+      const notificationsData = await NotificationService.getNotifications(userId);
+      setNotifications(notificationsData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des notifications:', error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
 
-  // Sauvegarder les notifications dans le stockage local à chaque changement
+  // Charger les notifications au démarrage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-  }, [notifications]);
+    refreshNotifications();
+  }, [session?.user?.id]);
 
   // Ajouter une nouvelle notification
-  const addNotification = (notification: Omit<NotificationItem, 'id' | 'createdAt' | 'read'>) => {
-    const newNotification: NotificationItem = {
-      ...notification,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      read: false,
-    };
-    
-    setNotifications(prev => [newNotification, ...prev]);
-    
-    // Jouer un son si c'est une notification à haute priorité
-    if (notification.priority === 'high' && typeof window !== 'undefined') {
-      // On pourrait ajouter un son ici
-      // new Audio('/sounds/notification.mp3').play().catch(e => console.log(e));
+  const addNotification = async (notification: NotificationData): Promise<NotificationItem | null> => {
+    try {
+      const userId = session?.user?.id;
+      const newNotification = await NotificationService.createNotification({
+        ...notification,
+        userId
+      });
+      
+      if (newNotification) {
+        setNotifications(prev => [newNotification, ...prev]);
+        
+        // Jouer un son pour les notifications de haute priorité
+        if (notification.priority === 'high' && notificationSound) {
+          notificationSound.play().catch(e => console.warn('Impossible de jouer le son de notification:', e));
+        }
+        
+        // Afficher un toast pour les notifications de haute priorité
+        if (notification.priority === 'high') {
+          toast({
+            title: notification.title,
+            description: notification.message,
+            variant: 'destructive',
+          });
+        }
+        
+        return newNotification;
+      }
+      return null;
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la notification:', error);
+      return null;
     }
   };
 
   // Marquer une notification comme lue
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+  const markAsRead = async (id: string): Promise<boolean> => {
+    try {
+      const success = await NotificationService.markAsRead(id);
+      if (success) {
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === id 
+              ? { ...notification, read: true } 
+              : notification
+          )
+        );
+      }
+      return success;
+    } catch (error) {
+      console.error('Erreur lors du marquage de la notification comme lue:', error);
+      return false;
+    }
   };
 
   // Marquer toutes les notifications comme lues
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+  const markAllAsRead = async (): Promise<boolean> => {
+    try {
+      const userId = session?.user?.id;
+      const success = await NotificationService.markAllAsRead(userId);
+      if (success) {
+        setNotifications(prev => 
+          prev.map(notification => ({ ...notification, read: true }))
+        );
+      }
+      return success;
+    } catch (error) {
+      console.error('Erreur lors du marquage de toutes les notifications comme lues:', error);
+      return false;
+    }
   };
 
   // Supprimer une notification
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  const deleteNotification = async (id: string): Promise<boolean> => {
+    try {
+      const success = await NotificationService.deleteNotification(id);
+      if (success) {
+        setNotifications(prev => prev.filter(notification => notification.id !== id));
+      }
+      return success;
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la notification:', error);
+      return false;
+    }
   };
 
-  // Supprimer toutes les notifications
+  // Supprimer toutes les notifications (localement uniquement)
   const clearAll = () => {
     setNotifications([]);
   };
 
-  // Vérifier périodiquement les nouvelles notifications (simulé ici)
+  // S'abonner aux événements en temps réel
   useEffect(() => {
-    // Dans un environnement réel, cela pourrait être une connexion WebSocket ou une requête périodique
-    const checkForNewNotifications = () => {
-      // Cette fonction serait remplacée par un appel à l'API réelle
-    };
-
-    // Vérifier toutes les 30 secondes
-    const interval = setInterval(checkForNewNotifications, 30000);
+    if (!session?.user) return;
     
-    return () => clearInterval(interval);
-  }, []);
+    // Gérer l'ajout d'une nouvelle notification en temps réel
+    const handleNewNotification = (notification: NotificationItem) => {
+      setNotifications(prev => [notification, ...prev]);
+      
+      // Jouer un son pour les notifications de haute priorité
+      if (notification.priority === 'high' && notificationSound) {
+        notificationSound.play().catch(e => console.warn('Impossible de jouer le son de notification:', e));
+      }
+      
+      // Afficher un toast pour les notifications de haute priorité
+      if (notification.priority === 'high') {
+        toast({
+          title: notification.title,
+          description: notification.message,
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    // S'abonner aux changements de stock
+    const stockSubscription = NotificationService.subscribeToStockChanges(handleNewNotification);
+    
+    // S'abonner aux nouvelles commandes
+    const orderSubscription = NotificationService.subscribeToNewOrders(handleNewNotification);
+    
+    // S'abonner aux paiements
+    const paymentSubscription = NotificationService.subscribeToPayments(handleNewNotification);
+    
+    // Nettoyage des abonnements
+    return () => {
+      stockSubscription.unsubscribe();
+      orderSubscription.unsubscribe();
+      paymentSubscription.unsubscribe();
+    };
+  }, [session?.user]);
 
   return (
     <NotificationsContext.Provider
       value={{
         notifications,
         unreadCount,
+        loading,
         addNotification,
         markAsRead,
         markAllAsRead,
         deleteNotification,
         clearAll,
+        refreshNotifications
       }}
     >
       {children}

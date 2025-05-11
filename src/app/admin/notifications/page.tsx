@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
@@ -28,9 +28,22 @@ import { useNotifications, NotificationItem, NotificationType } from '../../../c
 type AlertTab = 'all' | 'unread' | NotificationType;
 
 const NotificationsPage = () => {
-  const { notifications, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, clearAll, loading, refreshNotifications } = useNotifications();
   const [activeTab, setActiveTab] = useState<AlertTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Fonction pour rafraîchir les données
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshNotifications();
+    setRefreshing(false);
+  };
+  
+  // Charger les notifications au montage
+  useEffect(() => {
+    refreshNotifications();
+  }, [refreshNotifications]);
 
   // Filtrer les notifications selon l'onglet actif et la recherche
   const filteredNotifications = notifications
@@ -111,22 +124,43 @@ const NotificationsPage = () => {
     <ClientOnly>
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">Centre de notifications</h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold">Notifications</h1>
+          <div className="flex space-x-2">
             <Button 
               variant="outline" 
-              onClick={markAllAsRead} 
-              disabled={!counts.unread}
-              className="text-sm"
+              onClick={handleRefresh}
+              disabled={loading || refreshing}
+              className="text-blue-500 hover:text-blue-700"
+            >
+              <span className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}>
+                {refreshing ? (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <polyline points="23 20 23 14 17 14"></polyline>
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                  </svg>
+                )}
+              </span>
+              Rafraîchir
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => markAllAsRead()}
+              disabled={counts.unread === 0 || loading}
             >
               <CheckCheck className="mr-2 h-4 w-4" />
               Tout marquer comme lu
             </Button>
             <Button 
               variant="outline" 
-              className="text-sm text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" 
-              onClick={clearAll}
-              disabled={!notifications.length}
+              onClick={() => clearAll()}
+              disabled={counts.all === 0 || loading}
+              className="text-red-500 hover:text-red-700"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Tout effacer
@@ -188,15 +222,18 @@ const NotificationsPage = () => {
 
           {/* Contenu de l'onglet actif */}
           <TabsContent value={activeTab} className="mt-6">
-            {filteredNotifications.length === 0 ? (
-              <div className="bg-gray-50 rounded-lg p-8 text-center">
-                <Bell className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Aucune notification trouvée</h3>
+            {loading && !refreshing ? (
+              <div className="text-center py-10">
+                <div className="w-12 h-12 border-4 border-blue-400 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+                <h3 className="text-xl font-medium text-gray-600 mb-1">Chargement des notifications</h3>
+                <p className="text-gray-500">Veuillez patienter...</p>
+              </div>
+            ) : filteredNotifications.length === 0 ? (
+              <div className="text-center py-10">
+                <Bell className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="text-xl font-medium text-gray-600 mb-1">Aucune notification trouvée</h3>
                 <p className="text-gray-500">
-                  {searchQuery 
-                    ? 'Essayez de modifier vos critères de recherche.' 
-                    : 'Vous n\'avez pas de notifications dans cette catégorie.'
-                  }
+                  {searchQuery ? 'Essayez une autre recherche' : activeTab !== 'all' ? 'Essayez un autre filtre' : 'Vous n\'avez aucune notification'}
                 </p>
               </div>
             ) : (

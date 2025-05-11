@@ -34,5 +34,12 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     storageKey: 'akanda-supabase-auth',
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'Akanda Apero App'
+    },
   },
 });
