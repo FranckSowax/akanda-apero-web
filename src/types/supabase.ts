@@ -77,4 +77,44 @@ export type Customer = {
   updated_at: string;
 };
 
+export type CocktailKit = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image_url: string;
+  price: number;
+  is_available: boolean;
+  stock_status?: string;
+  category_id?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CocktailKitIngredient = {
+  id: string;
+  cocktail_kit_id: string;
+  name: string;
+  quantity: string;
+  unit: string;
+  is_alcoholic: boolean;
+  is_optional: boolean;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CocktailIngredient = {
+  id: string;
+  cocktail_kit_id: string;
+  name: string;
+  quantity: string;
+  unit: string;
+  is_alcoholic: boolean;
+  is_optional: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // Ajoutez d'autres types selon vos besoins

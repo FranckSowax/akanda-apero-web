@@ -20,12 +20,10 @@ interface Cocktail {
   image: string;
   description: string;
   ingredients: string[];
-  difficulty: string;
-  basePrice: number;
-  perPersonPrice: number;
-  category: string;
-  isNew?: boolean;
-  isPopular?: boolean;
+  price: number;
+  is_available: boolean;
+  stock_status?: string;
+  category_id?: string;
 }
 
 // Composant de slider pleine page
@@ -175,12 +173,10 @@ const CocktailShowcase = () => {
             image: kit.image_url || 'https://i.imgur.com/cZ5PBHI.jpg', // image par défaut
             description: kit.description,
             ingredients: kitIngredients,
-            difficulty: kit.difficulty_level,
-            basePrice: kit.base_price,
-            perPersonPrice: kit.per_person_price,
-            category: kit.category,
-            isNew: kit.is_new,
-            isPopular: kit.is_popular
+            price: kit.price,
+            is_available: kit.is_available,
+            stock_status: kit.stock_status,
+            category_id: kit.category_id
           };
         });
         
@@ -219,67 +215,62 @@ const CocktailShowcase = () => {
     }
   };
 
-  const calculatePrice = (basePrice: number, perPersonPrice: number, quantity: number) => {
-    if (quantity <= 2) {
-      return basePrice;
-    }
-    return basePrice + (quantity - 2) * perPersonPrice;
+  // Prix fixe par cocktail, sans supplément par personne
+  const calculatePrice = (price: number, quantity: number) => {
+    return price * quantity;
   };
 
   const handleAddToCart = (cocktail: Cocktail, quantity: number) => {
-    const calculatedPrice = calculatePrice(cocktail.basePrice, cocktail.perPersonPrice, quantity);
+    const calculatedPrice = calculatePrice(cocktail.price, quantity);
     
     addToCart({
-      id: cocktail.id,
+      id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000), // Conversion de l'ID en nombre
       name: `Kit Cocktail ${cocktail.name} (${quantity} pers.)`,
       price: calculatedPrice,
-      image: cocktail.image,
-      category: 'kit-cocktail'
+      imageUrl: cocktail.image, // Utilisé imageUrl au lieu de image
+      description: cocktail.description || '',
+      currency: 'XAF',
+      categorySlug: 'kit-cocktail',
+      stock: 10
     }, 1);
   };
 
-  const getDifficultyValue = (difficulty: string): number => {
-    switch(difficulty) {
-      case 'Facile': return 1;
-      case 'Moyen': return 2;
-      case 'Difficile': return 3;
+  // Simplification puisque nous n'avons plus de propriété difficulty
+  const getStockStatusValue = (status?: string): number => {
+    switch(status) {
+      case 'En stock': return 3;
+      case 'Stock limité': return 2;
+      case 'Épuisé': return 1;
       default: return 0;
     }
   }
 
-  const categories: CocktailCategory[] = ['Tous', 'Rhum', 'Whisky', 'Vodka', 'Gin', 'Tequila', 'Sans alcool'];
-  const difficulties: DifficultyLevel[] = ['Tous', 'Facile', 'Moyen', 'Difficile'];
-
-  // Filtrage et tri des cocktails
+  // Filtrage simplié des cocktails (sans filtrage par difficulté ou catégorie spécifique)
   const filteredCocktails = cocktails.filter(cocktail => {
     const matchesSearch = !searchTerm || 
       cocktail.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       cocktail.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = categoryFilter === 'Tous' || 
-      cocktail.category.toLowerCase() === categoryFilter.toLowerCase();
-    
-    const matchesDifficulty = difficultyFilter === 'Tous' || 
-      cocktail.difficulty === difficultyFilter;
-    
-    return matchesSearch && matchesCategory && matchesDifficulty;
+    // Nous n'avons plus les propriétés category et difficulty, donc nous filtrons seulement par la recherche
+    return matchesSearch;
   });
 
-  // Tri des cocktails
+  // Tri des cocktails filtrés (simplifié pour les propriétés disponibles)
   const sortedCocktails = [...filteredCocktails].sort((a, b) => {
-    switch(sortOption) {
+    switch (sortOption) {
       case 'prix-asc':
-        return a.basePrice - b.basePrice;
+        return a.price - b.price;
       case 'prix-desc':
-        return b.basePrice - a.basePrice;
-      case 'difficulte-asc':
-        return getDifficultyValue(a.difficulty) - getDifficultyValue(b.difficulty);
-      case 'difficulte-desc':
-        return getDifficultyValue(b.difficulty) - getDifficultyValue(a.difficulty);
+        return b.price - a.price;
       case 'nom-asc':
         return a.name.localeCompare(b.name);
       case 'nom-desc':
         return b.name.localeCompare(a.name);
+      // Nous utilisons le stock_status pour les options de tri qui utilisaient la difficulté
+      case 'difficulte-asc':
+        return getStockStatusValue(a.stock_status) - getStockStatusValue(b.stock_status);
+      case 'difficulte-desc':
+        return getStockStatusValue(b.stock_status) - getStockStatusValue(a.stock_status);
       default:
         return 0;
     }
@@ -317,36 +308,6 @@ const CocktailShowcase = () => {
           
           {/* Filtres et tri - en colonnes sur desktop, en pile sur mobile */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Filtre par catégorie */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-white mb-1">Catégorie</label>
-              <select
-                id="category"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as CocktailCategory)}
-                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Filtre par difficulté */}
-            <div>
-              <label htmlFor="difficulty" className="block text-sm font-medium text-white mb-1">Difficulté</label>
-              <select
-                id="difficulty"
-                value={difficultyFilter}
-                onChange={(e) => setDifficultyFilter(e.target.value as DifficultyLevel)}
-                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
-              >
-                {difficulties.map(diff => (
-                  <option key={diff} value={diff}>{diff}</option>
-                ))}
-              </select>
-            </div>
-            
             {/* Tri des produits */}
             <div className="sm:col-span-2 lg:col-span-1">
               <label htmlFor="sort" className="block text-sm font-medium text-white mb-1">Trier par</label>
@@ -358,8 +319,8 @@ const CocktailShowcase = () => {
               >
                 <option value="prix-asc">Prix croissant</option>
                 <option value="prix-desc">Prix décroissant</option>
-                <option value="difficulte-asc">Difficulté (facile à difficile)</option>
-                <option value="difficulte-desc">Difficulté (difficile à facile)</option>
+                <option value="difficulte-asc">Disponibilité (plus disponible)</option>
+                <option value="difficulte-desc">Disponibilité (moins disponible)</option>
                 <option value="nom-asc">Nom (A-Z)</option>
                 <option value="nom-desc">Nom (Z-A)</option>
               </select>
@@ -370,8 +331,6 @@ const CocktailShowcase = () => {
               <button
                 className="w-full py-2 px-4 bg-white text-[#f5a623] font-medium rounded hover:bg-gray-100 transition-colors"
                 onClick={() => {
-                  setCategoryFilter('Tous');
-                  setDifficultyFilter('Tous');
                   setSearchTerm('');
                   setSortOption('prix-asc');
                 }}
@@ -390,8 +349,6 @@ const CocktailShowcase = () => {
           <Button 
             className="bg-[#f5a623] hover:bg-[#e09000] text-white"
             onClick={() => {
-              setCategoryFilter('Tous');
-              setDifficultyFilter('Tous');
               setSearchTerm('');
               setSortOption('prix-asc');
             }}
@@ -405,20 +362,17 @@ const CocktailShowcase = () => {
             <div key={cocktail.id} className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 relative">
               {/* Badges Nouveau et Populaire */}
               <div className="absolute top-0 left-0 w-full flex justify-between px-2 pt-2 z-10">
-                <div>
-                  {cocktail.isPopular && (
-                    <div className="bg-red-600 text-white py-1 px-2 rounded-full text-xs font-bold">
-                      Populaire
-                    </div>
-                  )}
-                </div>
-                <div>
-                  {cocktail.isNew && (
-                    <div className="bg-blue-600 text-white py-1 px-2 rounded-full text-xs font-bold">
-                      Nouveau
-                    </div>
-                  )}
-                </div>
+                {/* Badge de disponibilité */}
+                {cocktail.is_available && (
+                  <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-1 rounded-md">
+                    Disponible
+                  </div>
+                )}
+                {cocktail.stock_status === 'Stock limité' && (
+                  <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md">
+                    Stock limité
+                  </div>
+                )}
               </div>
               
               {/* Image */}
@@ -436,12 +390,11 @@ const CocktailShowcase = () => {
               <div className="p-4 sm:p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-xl font-bold text-gray-900">{cocktail.name}</h3>
-                  <div className="flex items-center text-gray-500 text-sm">
-                    <span className={`inline-block h-3 w-3 rounded-full mr-1 ${
-                      cocktail.difficulty === 'Facile' ? 'bg-green-500' :
-                      cocktail.difficulty === 'Moyen' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}></span>
-                    {cocktail.difficulty}
+                  <div className="flex items-center text-gray-500">
+                    {/* Statut du stock */}
+                    <span className="text-xs text-gray-600">
+                      {cocktail.stock_status || (cocktail.is_available ? 'En stock' : 'Épuisé')}
+                    </span>
                   </div>
                 </div>
                 
@@ -501,9 +454,9 @@ const CocktailShowcase = () => {
                       <Clock className="h-4 w-4 mr-1" />
                       <span>Prêt en 15 minutes</span>
                     </div>
-                    <div className="text-xl font-bold text-[#f5a623]">
-                      {calculatePrice(cocktail.basePrice, cocktail.perPersonPrice, quantities[cocktail.id] || 2).toLocaleString()} XAF
-                    </div>
+                    <span className="text-2xl font-bold">
+                      {calculatePrice(cocktail.price, quantities[cocktail.id] || 2).toLocaleString()} XAF
+                    </span>
                   </div>
                 </div>
                 
