@@ -1,14 +1,32 @@
 // Ce fichier fournit une implémentation simplifiée du client MCP pour éviter les erreurs avec les modules Node.js
 
 import { supabase } from './supabase/client';
+import { Product, ProductImage, Category, CocktailKit, CocktailKitIngredient } from '../types/supabase';
 
-import { Product, ProductImage, Category } from '../types/supabase';
+// Fonction utilitaire pour créer des slugs
+function slugify(text: string): string {
+  return text
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Remplacer les espaces par des tirets
+    .replace(/[^\w-]+/g, '') // Supprimer les caractères non alphanumériques
+    .replace(/--+/g, '-'); // Supprimer les tirets multiples
+}
 
 // Type pour les données de création de produit avec images et catégories
 type CreateProductData = {
   product: Omit<Product, 'id' | 'created_at' | 'updated_at'>;
   images?: { image_url: string; alt_text?: string }[];
   categories?: string[];
+};
+
+// Type pour les données de création de kit de cocktail avec ingrédients
+type CreateCocktailKitData = {
+  kit: Omit<CocktailKit, 'id' | 'created_at' | 'updated_at'>;
+  ingredients?: Omit<CocktailKitIngredient, 'id' | 'cocktail_kit_id' | 'created_at' | 'updated_at'>[];
 };
 
 // Client MCP simplifié qui utilise directement Supabase au lieu de passer par @genkit-ai/next
@@ -19,76 +37,202 @@ export function useMcpPolyfill(serverName: string) {
     // Fonction pour lire les produits
     async read(resourceName: string) {
       if (resourceName === 'products') {
-        const { data, error } = await supabase
-          .from('products')
-          .select(`
-            *, 
-            product_images(*), 
-            product_categories!inner(category_id, categories:category_id(id, name))
-          `);
-        
-        if (error) throw new Error(error.message);
-        
-        // Transformer les données pour s'assurer que l'interface est cohérente
-        const processedData = data.map(product => {
-          // S'assurer que product_images est toujours un tableau
-          const images = product.product_images || [];
+        try {
+          const { data, error } = await supabase
+            .from('products')
+            .select(`
+              *, 
+              product_images(*), 
+              product_categories!inner(category_id, categories:category_id(id, name))
+            `);
           
-          // Extraire les catégories associées au produit
-          const categories = (product.product_categories || []).map((pc: {categories: any}) => pc.categories);
+          if (error) {
+            console.error("Erreur lors de la récupération des produits:", error);
+            return [];
+          }
           
-          return {
-            ...product,
-            product_images: images,
-            categories: categories,
-            main_image: images.length > 0 ? images[0].image_url : null
-          };
-        });
-        
-        return processedData;
+          // Transformer les données pour s'assurer que l'interface est cohérente
+          return data.map(product => {
+            // Extraire les catégories
+            const categories = product.product_categories
+              ? product.product_categories.map((pc: any) => pc.categories).filter(Boolean)
+              : [];
+            
+            return {
+              ...product,
+              categories
+            };
+          });
+        } catch (error) {
+          console.error("Exception lors de la récupération des produits:", error);
+          return [];
+        }
       }
       
       if (resourceName === 'categories') {
-        // Récupérer les catégories avec le nombre de produits dans chaque catégorie
-        const { data: categories, error } = await supabase
-          .from('categories')
-          .select('id, name, slug, description, image_url, color, icon, parent_id, created_at, updated_at');
-        
-        if (error) throw new Error(error.message);
-        
-        // Récupérer les relations produit-catégorie pour calculer le nombre de produits
-        const { data: productCategoriesData, error: pcError } = await supabase
-          .from('product_categories')
-          .select('category_id');
-        
-        if (pcError) throw new Error(pcError.message);
-        
-        // Calculer le nombre de produits par catégorie
-        const categoryCounts: Record<string, number> = {};
-        productCategoriesData.forEach((pc: { category_id: string }) => {
-          categoryCounts[pc.category_id] = (categoryCounts[pc.category_id] || 0) + 1;
-        });
-        
-        // Ajouter le nombre de produits et les propriétés manquantes à chaque catégorie
-        return categories.map(category => ({
-          ...category,
-          color: category.color || '#868e96', // Couleur grise par défaut si non définie
-          icon: category.icon || 'Package',   // Icône par défaut si non définie
-          product_count: categoryCounts[category.id] || 0
-        }));
+        try {
+          const { data, error } = await supabase
+            .from('categories')
+            .select('*');
+          
+          if (error) {
+            console.error("Erreur lors de la récupération des catégories:", error);
+            return [];
+          }
+          
+          return data;
+        } catch (error) {
+          console.error("Exception lors de la récupération des catégories:", error);
+          return [];
+        }
       }
       
       if (resourceName === 'orders') {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*');
-        
-        if (error) throw new Error(error.message);
-        return data;
+        try {
+          const { data, error } = await supabase
+            .from('orders')
+            .select('*');
+          
+          if (error) {
+            console.error("Erreur lors de la récupération des commandes:", error);
+            return [];
+          }
+          
+          return data;
+        } catch (error) {
+          console.error("Exception lors de la récupération des commandes:", error);
+          return [];
+        }
       }
       
-      throw new Error(`Resource "${resourceName}" not implemented in MCP polyfill`);
+      if (resourceName === 'cocktail-kits') {
+        try {
+          console.log('Début de la récupération des kits de cocktail');
+          
+          // 1. D'abord, récupérer les kits de cocktail sans les ingrédients
+          const { data: kitsData, error: kitsError } = await supabase
+            .from('cocktail_kits')
+            .select('*');
+          
+          if (kitsError) {
+            console.error('Erreur lors de la récupération des kits:', kitsError);
+            // Pour éviter de bloquer l'application, retournons un tableau vide
+            return [];
+          }
+          
+          if (!kitsData || kitsData.length === 0) {
+            console.log('Aucun kit de cocktail trouvé');
+            return [];
+          }
+          
+          // 2. Récupérer les ingrédients séparément pour chaque kit
+          const processedData = await Promise.all(kitsData.map(async (kit) => {
+            try {
+              // Vérifier si la table d'ingrédients existe
+              const { data: ingredientsData, error: ingredientsError } = await supabase
+                .from('cocktail_kit_ingredients')
+                .select('*')
+                .eq('cocktail_kit_id', kit.id);
+              
+              if (ingredientsError) {
+                console.error(`Erreur lors de la récupération des ingrédients pour le kit ${kit.id}:`, ingredientsError);
+                // Continuer avec un tableau vide d'ingrédients
+                return {
+                  ...kit,
+                  ingredients: []
+                };
+              }
+              
+              // S'assurer que les ingrédients sont bien formatés
+              return {
+                ...kit,
+                ingredients: Array.isArray(ingredientsData) ? ingredientsData : []
+              };
+            } catch (err) {
+              console.error(`Exception lors de la récupération des ingrédients pour le kit ${kit.id}:`, err);
+              // Continuer avec les données du kit, même en cas d'erreur sur les ingrédients
+              return {
+                ...kit,
+                ingredients: []
+              };
+            }
+          }));
+          
+          return processedData;
+        } catch (error) {
+          console.error('Erreur lors de la récupération des kits de cocktail:', error);
+          // Pour éviter de bloquer l'application, retournons un tableau vide
+          return [];
+        }
+      }
+      
+      console.warn(`Resource "${resourceName}" not implemented in MCP polyfill`);
+      return [];
     },
+    
+    // Fonction pour obtenir une ressource par son ID
+    getById: (resourceName: string, id: string) => ({
+      queryKey: [resourceName, id],
+      queryFn: async () => {
+        if (resourceName === 'products') {
+          try {
+            const { data, error } = await supabase
+              .from('products')
+              .select(`
+                *, 
+                product_images(*), 
+                product_categories!inner(category_id, categories:category_id(id, name))
+              `)
+              .eq('id', id)
+              .single();
+            
+            if (error) throw new Error(error.message);
+            
+            // Transformer les données pour s'assurer que l'interface est cohérente
+            const categories = data.product_categories
+              ? data.product_categories.map((pc: any) => pc.categories).filter(Boolean)
+              : [];
+            
+            return {
+              ...data,
+              categories
+            };
+          } catch (error) {
+            console.error(`Erreur lors de la récupération du produit ${id}:`, error);
+            return null;
+          }
+        }
+        
+        if (resourceName === 'cocktail-kits') {
+          try {
+            const { data: kit, error: kitError } = await supabase
+              .from('cocktail_kits')
+              .select('*')
+              .eq('id', id)
+              .single();
+            
+            if (kitError) throw new Error(kitError.message);
+            
+            const { data: ingredients, error: ingredientsError } = await supabase
+              .from('cocktail_kit_ingredients')
+              .select('*')
+              .eq('cocktail_kit_id', id);
+            
+            if (ingredientsError) throw new Error(ingredientsError.message);
+            
+            return {
+              ...kit,
+              ingredients: ingredients || []
+            };
+          } catch (error) {
+            console.error(`Erreur lors de la récupération du kit ${id}:`, error);
+            return null;
+          }
+        }
+        
+        throw new Error(`Resource "${resourceName}" not implemented in MCP polyfill`);
+      }
+    }),
     
     // Fonction pour créer une ressource
     create: (resourceName: string) => ({
@@ -97,186 +241,134 @@ export function useMcpPolyfill(serverName: string) {
           // Si le body contient des champs spécifiques pour les images et catégories
           if (body.product && (body.images || body.categories)) {
             // Début de la transaction
-            // 1. Créer le produit
-            const { data: product, error: productError } = await supabase
-              .from('products')
-              .insert(body.product)
-              .select();
-            
-            if (productError) throw new Error(`Erreur lors de la création du produit: ${productError.message}`);
-            const productId = product[0].id;
-            
-            // 2. Ajouter les images si présentes
-            if (body.images && body.images.length > 0) {
-              const productImages = body.images.map((img: any, index: number) => ({
-                product_id: productId,
-                image_url: img.image_url,
-                alt_text: img.alt_text || null,
-                position: index + 1
-              }));
+            try {
+              const { product, images, categories } = body as CreateProductData;
               
-              const { error: imagesError } = await supabase
-                .from('product_images')
-                .insert(productImages);
-                
-              if (imagesError) throw new Error(`Erreur lors de l'ajout des images: ${imagesError.message}`);
-            }
-            
-            // 3. Ajouter les catégories si présentes
-            if (body.categories && body.categories.length > 0) {
-              const productCategories = body.categories.map((categoryId: string) => ({
-                product_id: productId,
-                category_id: categoryId
-              }));
-              
-              const { error: categoriesError } = await supabase
-                .from('product_categories')
-                .insert(productCategories);
-                
-              if (categoriesError) throw new Error(`Erreur lors de l'ajout des catégories: ${categoriesError.message}`);
-            }
-            
-            // Récupérer le produit complet avec ses relations
-            const { data: fullProduct, error: fetchError } = await supabase
-              .from('products')
-              .select('*, product_images(*), product_categories(category_id)')
-              .eq('id', productId)
-              .single();
-              
-            if (fetchError) throw new Error(`Erreur lors de la récupération du produit complet: ${fetchError.message}`);
-            return fullProduct;
-          } else {
-            // Comportement standard si pas de structure spécifique
-            const { data, error } = await supabase
-              .from('products')
-              .insert(body)
-              .select();
-            
-            if (error) throw new Error(error.message);
-            return data[0];
-          }
-        }
-        
-        // Création de catégorie
-        if (resourceName === 'categories') {
-          // Filtrer les propriétés qui n'existent pas dans la table
-          const { color, icon, ...validCategoryData } = body;
-          
-          const { data, error } = await supabase
-            .from('categories')
-            .insert(validCategoryData)
-            .select('id, name, slug, description, image_url, parent_id, created_at, updated_at');
-          
-          if (error) throw new Error(error.message);
-          
-          // Ajouter les propriétés manquantes au résultat
-          return {
-            ...data[0],
-            color: color || '#868e96', // Utiliser la couleur fournie ou une valeur par défaut
-            icon: icon || 'tag' // Utiliser l'icône fournie ou une valeur par défaut
-          };
-        }
-        
-        throw new Error(`Create for resource "${resourceName}" not implemented in MCP polyfill`);
-      }
-    }),
-    
-    // Récupérer un produit par ID
-    getById: (resourceName: string, id: string) => {
-      if (resourceName === 'products') {
-        return supabase
-          .from('products')
-          .select('*, product_images(*), product_categories(category_id)')
-          .eq('id', id)
-          .single()
-          .then(({ data, error }) => {
-            if (error) throw new Error(error.message);
-            return data;
-          });
-      }
-      
-      throw new Error(`getById for resource "${resourceName}" not implemented in MCP polyfill`);
-    },
-    
-    // Fonction pour mettre à jour une ressource
-    update: (resourceName: string) => ({
-      mutateAsync: async ({ id, ...body }: any) => {
-        if (resourceName === 'products') {
-          // Si le body contient des données structurées avec images et catégories
-          if (body.product || body.images || body.categories) {
-            // 1. Mettre à jour le produit si nécessaire
-            if (body.product) {
-              const { error: updateError } = await supabase
+              // 1. Insérer d'abord le produit
+              const { data: newProduct, error: productError } = await supabase
                 .from('products')
-                .update(body.product)
-                .eq('id', id);
-                
-              if (updateError) throw new Error(`Erreur lors de la mise à jour du produit: ${updateError.message}`);
-            }
-            
-            // 2. Gérer les images si spécifiées
-            if (body.images) {
-              // Supprimer toutes les images existantes
-              const { error: deleteImagesError } = await supabase
-                .from('product_images')
-                .delete()
-                .eq('product_id', id);
-                
-              if (deleteImagesError) throw new Error(`Erreur lors de la suppression des images: ${deleteImagesError.message}`);
+                .insert(product)
+                .select()
+                .single();
               
-              // Ajouter les nouvelles images si présentes
-              if (body.images.length > 0) {
-                const productImages = body.images.map((img: any, index: number) => ({
-                  product_id: id,
+              if (productError) throw new Error(productError.message);
+              
+              // 2. Si nous avons des images, les associer au produit
+              if (images && images.length > 0) {
+                const productImages = images.map((img, index) => ({
+                  product_id: newProduct.id,
                   image_url: img.image_url,
-                  alt_text: img.alt_text || null,
-                  position: index + 1
+                  alt_text: img.alt_text || `Image ${index + 1} for ${product.name}`,
+                  position: index
                 }));
                 
                 const { error: imagesError } = await supabase
                   .from('product_images')
                   .insert(productImages);
-                  
-                if (imagesError) throw new Error(`Erreur lors de l'ajout des nouvelles images: ${imagesError.message}`);
-              }
-            }
-            
-            // 3. Gérer les catégories si spécifiées
-            if (body.categories) {
-              // Supprimer toutes les catégories existantes
-              const { error: deleteCategoriesError } = await supabase
-                .from('product_categories')
-                .delete()
-                .eq('product_id', id);
                 
-              if (deleteCategoriesError) throw new Error(`Erreur lors de la suppression des catégories: ${deleteCategoriesError.message}`);
+                if (imagesError) throw new Error(imagesError.message);
+              }
               
-              // Ajouter les nouvelles catégories si présentes
-              if (body.categories.length > 0) {
-                const productCategories = body.categories.map((categoryId: string) => ({
-                  product_id: id,
+              // 3. Si nous avons des catégories, créer les associations
+              if (categories && categories.length > 0) {
+                const productCategories = categories.map(categoryId => ({
+                  product_id: newProduct.id,
                   category_id: categoryId
                 }));
                 
                 const { error: categoriesError } = await supabase
                   .from('product_categories')
                   .insert(productCategories);
-                  
-                if (categoriesError) throw new Error(`Erreur lors de l'ajout des nouvelles catégories: ${categoriesError.message}`);
+                
+                if (categoriesError) throw new Error(categoriesError.message);
               }
-            }
-            
-            // Récupérer le produit complet avec ses relations
-            const { data: fullProduct, error: fetchError } = await supabase
-              .from('products')
-              .select('*, product_images(*), product_categories(category_id)')
-              .eq('id', id)
-              .single();
               
-            if (fetchError) throw new Error(`Erreur lors de la récupération du produit complet: ${fetchError.message}`);
-            return fullProduct;
+              // Tout s'est bien passé, retourner le produit créé
+              return newProduct;
+            } catch (error) {
+              console.error('Erreur lors de la création du produit:', error);
+              throw error;
+            }
           } else {
-            // Comportement standard pour la mise à jour simple
+            // Cas simple : juste insérer le produit sans relations
+            const { data, error } = await supabase
+              .from('products')
+              .insert(body)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          }
+        }
+        
+        if (resourceName === 'categories') {
+          const { data, error } = await supabase
+            .from('categories')
+            .insert(body)
+            .select();
+          
+          if (error) throw new Error(error.message);
+          return data;
+        }
+        
+        if (resourceName === 'cocktail-kits') {
+          if (body.kit && body.ingredients) {
+            try {
+              const { kit, ingredients } = body as CreateCocktailKitData;
+              
+              // 1. Insérer le kit de cocktail
+              const { data: newKit, error: kitError } = await supabase
+                .from('cocktail_kits')
+                .insert(kit)
+                .select()
+                .single();
+              
+              if (kitError) throw new Error(kitError.message);
+              
+              // 2. Si nous avons des ingrédients, les associer au kit
+              if (ingredients && ingredients.length > 0) {
+                const kitIngredients = ingredients.map(ingredient => ({
+                  ...ingredient,
+                  cocktail_kit_id: newKit.id
+                }));
+                
+                const { error: ingredientsError } = await supabase
+                  .from('cocktail_kit_ingredients')
+                  .insert(kitIngredients);
+                
+                if (ingredientsError) throw new Error(ingredientsError.message);
+              }
+              
+              // Tout s'est bien passé, retourner le kit créé
+              return {
+                ...newKit,
+                ingredients: ingredients || []
+              };
+            } catch (error) {
+              console.error('Erreur lors de la création du kit:', error);
+              throw error;
+            }
+          } else {
+            // Cas simple : juste insérer le kit sans ingrédients
+            const { data, error } = await supabase
+              .from('cocktail_kits')
+              .insert(body)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          }
+        }
+        
+        throw new Error(`Resource "${resourceName}" not implemented in MCP polyfill`);
+      }
+    }),
+    
+    // Fonction pour mettre à jour une ressource
+    update: (resourceName: string, id: string) => ({
+      mutateAsync: async (body: any) => {
+        if (resourceName === 'products') {
+          try {
             const { data, error } = await supabase
               .from('products')
               .update(body)
@@ -284,74 +376,172 @@ export function useMcpPolyfill(serverName: string) {
               .select();
             
             if (error) throw new Error(error.message);
-            return data[0];
+            return data;
+          } catch (error) {
+            console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
+            throw error;
           }
         }
         
-        // Mise à jour de catégorie
         if (resourceName === 'categories') {
-          // Filtrer les propriétés qui n'existent pas dans la table
-          const { color, icon, ...validCategoryData } = body;
-          
-          const { data, error } = await supabase
-            .from('categories')
-            .update(validCategoryData)
-            .eq('id', id)
-            .select('id, name, slug, description, image_url, parent_id, created_at, updated_at');
-          
-          if (error) throw new Error(error.message);
-          
-          // Ajouter les propriétés manquantes au résultat
-          return {
-            ...data[0],
-            color: color || '#868e96', // Utiliser la couleur fournie ou une valeur par défaut
-            icon: icon || 'tag' // Utiliser l'icône fournie ou une valeur par défaut
-          };
+          try {
+            const { data, error } = await supabase
+              .from('categories')
+              .update(body)
+              .eq('id', id)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          } catch (error) {
+            console.error(`Erreur lors de la mise à jour de la catégorie ${id}:`, error);
+            throw error;
+          }
         }
         
-        throw new Error(`Update for resource "${resourceName}" not implemented in MCP polyfill`);
+        if (resourceName === 'cocktail-kits') {
+          try {
+            // Si body contient à la fois des données de kit et d'ingrédients
+            if (body.kit && body.ingredients) {
+              // 1. Mettre à jour le kit
+              const { data: updatedKit, error: kitError } = await supabase
+                .from('cocktail_kits')
+                .update(body.kit)
+                .eq('id', id)
+                .select();
+              
+              if (kitError) throw new Error(kitError.message);
+              
+              // 2. Supprimer les ingrédients existants
+              const { error: deleteError } = await supabase
+                .from('cocktail_kit_ingredients')
+                .delete()
+                .eq('cocktail_kit_id', id);
+              
+              if (deleteError) throw new Error(deleteError.message);
+              
+              // 3. Ajouter les nouveaux ingrédients
+              if (body.ingredients && body.ingredients.length > 0) {
+                const kitIngredients = body.ingredients.map((ingredient: any) => ({
+                  ...ingredient,
+                  cocktail_kit_id: id
+                }));
+                
+                const { error: ingredientsError } = await supabase
+                  .from('cocktail_kit_ingredients')
+                  .insert(kitIngredients);
+                
+                if (ingredientsError) throw new Error(ingredientsError.message);
+              }
+              
+              return {
+                ...updatedKit[0],
+                ingredients: body.ingredients
+              };
+            } else {
+              // Cas simple : juste mettre à jour le kit sans toucher aux ingrédients
+              const { data, error } = await supabase
+                .from('cocktail_kits')
+                .update(body)
+                .eq('id', id)
+                .select();
+              
+              if (error) throw new Error(error.message);
+              return data;
+            }
+          } catch (error) {
+            console.error(`Erreur lors de la mise à jour du kit ${id}:`, error);
+            throw error;
+          }
+        }
+        
+        throw new Error(`Resource "${resourceName}" not implemented in MCP polyfill`);
       }
     }),
     
     // Fonction pour supprimer une ressource
-    delete: (resourceName: string) => ({
-      mutateAsync: async (id: string) => {
+    delete: (resourceName: string, id: string) => ({
+      mutateAsync: async () => {
         if (resourceName === 'products') {
-          const { error } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', id);
-          
-          if (error) throw new Error(error.message);
-          // Retourner l'ID comme chaîne de caractères pour correspondre à ce qu'attend le hook
-          return id;
+          try {
+            // Supprimer d'abord les relations (images et catégories)
+            await supabase
+              .from('product_images')
+              .delete()
+              .eq('product_id', id);
+            
+            await supabase
+              .from('product_categories')
+              .delete()
+              .eq('product_id', id);
+            
+            // Puis supprimer le produit
+            const { data, error } = await supabase
+              .from('products')
+              .delete()
+              .eq('id', id)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          } catch (error) {
+            console.error(`Erreur lors de la suppression du produit ${id}:`, error);
+            throw error;
+          }
         }
         
         if (resourceName === 'categories') {
-          // Vérifier si des produits sont associés à cette catégorie
-          const { data: relatedProducts, error: checkError } = await supabase
-            .from('product_categories')
-            .select('*')
-            .eq('category_id', id);
+          try {
+            // Vérifier si la catégorie est utilisée par des produits
+            const { data: usedCategories, error: checkError } = await supabase
+              .from('product_categories')
+              .select('*')
+              .eq('category_id', id);
             
-          if (checkError) throw new Error(checkError.message);
-          
-          // Si des produits sont associés, ne pas autoriser la suppression
-          if (relatedProducts && relatedProducts.length > 0) {
-            throw new Error(`Impossible de supprimer la catégorie car ${relatedProducts.length} produit(s) y sont associés.`);
+            if (checkError) throw new Error(checkError.message);
+            
+            if (usedCategories && usedCategories.length > 0) {
+              throw new Error(`Cette catégorie est utilisée par ${usedCategories.length} produit(s) et ne peut pas être supprimée.`);
+            }
+            
+            const { data, error } = await supabase
+              .from('categories')
+              .delete()
+              .eq('id', id)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          } catch (error) {
+            console.error(`Erreur lors de la suppression de la catégorie ${id}:`, error);
+            throw error;
           }
-          
-          // Sinon, supprimer la catégorie
-          const { error } = await supabase
-            .from('categories')
-            .delete()
-            .eq('id', id);
-          
-          if (error) throw new Error(error.message);
-          return id;
         }
         
-        throw new Error(`Delete for resource "${resourceName}" not implemented in MCP polyfill`);
+        if (resourceName === 'cocktail-kits') {
+          try {
+            // Supprimer d'abord les ingrédients
+            await supabase
+              .from('cocktail_kit_ingredients')
+              .delete()
+              .eq('cocktail_kit_id', id);
+            
+            // Puis supprimer le kit
+            const { data, error } = await supabase
+              .from('cocktail_kits')
+              .delete()
+              .eq('id', id)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          } catch (error) {
+            console.error(`Erreur lors de la suppression du kit ${id}:`, error);
+            throw error;
+          }
+        }
+        
+        throw new Error(`Resource "${resourceName}" not implemented in MCP polyfill`);
       }
     })
   };

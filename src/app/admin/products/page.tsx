@@ -13,19 +13,24 @@ import { PackageOpen, Plus, Filter, Search, Edit, Trash2, Upload, X, Camera } fr
 
 // Fonction utilitaire pour obtenir une URL d'image fiable
 const getProductImageUrl = (product: any): string => {
-  if (product?.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
-    const imageUrl = product.product_images[0].image_url;
-    
-    // Vérifier si l'URL est un blob local (ne fonctionnera pas pour le rendu)
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('blob:')) {
-      // Renvoyer une URL d'image aléatoire pour le développement
-      return `https://source.unsplash.com/random/800x600?sig=${product.id}`;
+  try {
+    if (product?.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
+      const imageUrl = product.product_images[0].image_url;
+      
+      // Vérifier si l'URL est un blob local (ne fonctionnera pas pour le rendu)
+      if (imageUrl && typeof imageUrl === 'string') {
+        if (imageUrl.startsWith('blob:')) {
+          // Renvoyer une URL d'image aléatoire pour le développement
+          return `https://picsum.photos/seed/${product.id}/600/600`;
+        }
+        return imageUrl;
+      }
     }
-    
-    return imageUrl;
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'URL de l\'image:', error);
   }
   
-  // Image par défaut si aucune image n'est disponible
+  // Image par défaut si aucune image n'est disponible ou en cas d'erreur
   return 'https://picsum.photos/seed/default/600/600';
 };
 
