@@ -18,7 +18,9 @@ import {
   X,
   Bell,
   Wine,
-  GlassWater
+  GlassWater,
+  Home,
+  ExternalLink
 } from 'lucide-react';
 import { NotificationsProvider } from '../../context/NotificationsContext';
 import NotificationsDropdown from '../../components/admin/NotificationsDropdown';
@@ -103,24 +105,34 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen bg-gray-100">
       {/* Sidebar Mobile Toggle */}
-      <div className="lg:hidden fixed top-0 left-0 z-40 w-full bg-white shadow-sm p-4 flex justify-between items-center">
+      <div className="lg:hidden fixed top-0 left-0 z-40 w-full bg-white shadow-sm p-3 flex justify-between items-center">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+          className="p-1.5 rounded-md text-gray-700 hover:bg-gray-100 flex items-center"
         >
-          {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <span className="ml-1.5 font-medium text-sm">Menu</span>
         </button>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <NotificationsDropdown />
-          <div className="w-8 h-8 rounded-full bg-[#f5a623] text-white flex items-center justify-center font-bold">
+          <div className="w-7 h-7 rounded-full bg-[#f5a623] text-white flex items-center justify-center font-bold text-sm">
             A
           </div>
         </div>
       </div>
+      
+      {/* Dark overlay when sidebar is open on mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-30 h-screen w-64 bg-gray-900 text-white transition-transform lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-30 h-screen w-[85vw] max-w-[280px] sm:max-w-[320px] bg-gray-900 text-white transition-transform duration-300 lg:w-64 lg:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -138,13 +150,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-4 px-3">
-            <ul className="space-y-2">
+          <div className="flex-1 overflow-y-auto py-3 px-2">
+            <ul className="space-y-1">
               {sidebarItems.map((item) => (
                 <li key={item.title}>
                   <Link
                     href={item.href}
-                    className={`flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${
+                    onClick={() => isSidebarOpen && window.innerWidth < 1024 ? setIsSidebarOpen(false) : null}
+                    className={`flex items-center justify-between p-2.5 rounded-lg text-sm font-medium transition-colors ${
                       pathname === item.href
                         ? 'bg-[#f5a623] text-white'
                         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -152,7 +165,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   >
                     <div className="flex items-center">
                       {item.icon}
-                      <span className="ml-3">{item.title}</span>
+                      <span className="ml-2.5">{item.title}</span>
                     </div>
                     {item.count !== null && (
                       <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-gray-700 text-xs font-medium text-white">
@@ -165,20 +178,31 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
 
-          <div className="p-4 border-t border-gray-800">
-            <button
-              onClick={handleSignOut}
-              className="flex items-center justify-center w-full p-2 text-sm font-medium rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-            >
-              <LogOut className="h-5 w-5 mr-2" />
-              <span>Déconnexion</span>
-            </button>
+          <div className="p-3 border-t border-gray-800 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Link 
+                href="/"
+                target="_blank"
+                className="flex items-center justify-center p-2 text-xs sm:text-sm font-medium rounded-lg text-white bg-[#f5a623] hover:bg-[#f39c12] transition-colors"
+              >
+                <Home className="h-4 w-4 mr-1.5" />
+                <span>Accueil</span>
+              </Link>
+              
+              <button
+                onClick={handleSignOut}
+                className="flex items-center justify-center p-2 text-xs sm:text-sm font-medium rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+              >
+                <LogOut className="h-4 w-4 mr-1.5" />
+                <span>Déconnexion</span>
+              </button>
+            </div>
           </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className={`lg:ml-64 transition-all duration-300 min-h-screen ${isSidebarOpen ? 'ml-64' : 'ml-0'} ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
+      <main className="lg:ml-64 transition-all duration-300 min-h-screen ml-0">
         {/* Header */}
         <header className="hidden lg:block bg-white shadow-sm p-4">
           <div className="flex justify-between items-center">
