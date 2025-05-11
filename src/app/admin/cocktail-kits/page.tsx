@@ -23,7 +23,7 @@ import { Card, CardContent } from '../../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useCocktailKits } from '../../../hooks/supabase/useCocktailKits';
 import { CocktailKit, CocktailKitIngredient } from '../../../types/supabase';
-import { toast } from 'sonner';
+import { toast } from '../../../components/ui/use-toast';
 import { formatPrice, slugify } from '../../../lib/utils/formatters';
 import { ClientOnly } from '../../../components/ui/client-only';
 
