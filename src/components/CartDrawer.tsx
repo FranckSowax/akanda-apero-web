@@ -47,18 +47,26 @@ const CartDrawer: React.FC = () => {
     return `${price.toLocaleString()} XAF`;
   };
 
+  // Composant interne pour le bouton du panier - uniformisé pour éviter les erreurs d'hydratation
+  const CartButton = () => (
+    <Button variant="ghost" className="relative p-2 h-auto touch-manipulation">
+      <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
+      {isClient && itemCount > 0 && (
+        <span 
+          className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white"
+          suppressHydrationWarning
+        >
+          {itemCount}
+        </span>
+      )}
+    </Button>
+  );
+
   if (cart.length === 0 || !cart.length) {
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" className="relative p-2 h-auto touch-manipulation">
-            <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
-            {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white">
-                {itemCount}
-              </span>
-            )}
-          </Button>
+          <CartButton />
         </SheetTrigger>
         <SheetContent className="w-full sm:max-w-md p-3 sm:p-6">
           <SheetHeader className="mb-6">
@@ -84,17 +92,7 @@ const CartDrawer: React.FC = () => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" className="relative p-0 h-auto">
-          <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
-          {isClient ? (
-            <span 
-              suppressHydrationWarning={true} 
-              className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white ${itemCount === 0 ? 'hidden' : ''}`}
-            >
-              {itemCount || 0}
-            </span>
-          ) : null}
-        </Button>
+        <CartButton />
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader className="mb-4">
