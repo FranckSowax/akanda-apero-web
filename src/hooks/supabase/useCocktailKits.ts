@@ -2,7 +2,21 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMcpPolyfill } from '../../lib/mcp-polyfill';
 import { CocktailKit, CocktailKitIngredient } from '../../types/supabase';
-import { slugify } from '../../lib/utils/formatters';
+
+// Implémentation locale de slugify pour éviter les problèmes d'importation sur Netlify
+function slugify(text: string): string {
+  return text
+    .toString()                           // Convert to string
+    .normalize('NFD')                     // Separate accented characters
+    .replace(/[\u0300-\u036f]/g, '')        // Remove diacritics
+    .toLowerCase()                        // Convert to lowercase
+    .trim()                               // Remove whitespace from ends
+    .replace(/\s+/g, '-')                 // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')             // Remove all non-word chars
+    .replace(/\-\-+/g, '-')               // Replace multiple - with single -
+    .replace(/^-+/, '')                   // Trim - from start of text
+    .replace(/-+$/, '');                  // Trim - from end of text
+}
 
 // Type pour la création et la modification de kit cocktail avec ingrédients
 type CocktailKitFormData = {
