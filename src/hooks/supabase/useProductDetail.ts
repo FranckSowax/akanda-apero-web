@@ -10,9 +10,20 @@ export function useProductDetail() {
     return useQuery({
       queryKey: ['product', id],
       queryFn: async () => {
-        const { data, error } = await mcp.getById('products', id);
-        if (error) throw error;
-        return data;
+        try {
+          // Utiliser read puis filtrer par ID pour éviter les problèmes de typage
+          const products = await mcp.read('products');
+          const product = products.find((p: Product) => p.id === id);
+          
+          if (!product) {
+            throw new Error(`Produit avec ID ${id} non trouvé`);
+          }
+          
+          return product;
+        } catch (error) {
+          console.error(`Erreur lors de la récupération du produit ${id}:`, error);
+          throw error;
+        }
       },
       enabled: !!id
     });
