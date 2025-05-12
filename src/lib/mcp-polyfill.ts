@@ -57,19 +57,7 @@ export function useMcpPolyfill(serverName: string) {
           
           console.log('[mcp-polyfill] Clé Supabase utilisée (products):', supabaseKey);
           
-          // Utiliser la vue products_with_categories si possible
-          try {
-            const { data: productsWithCategories, error: viewError } = await supabase
-              .from('products_with_categories')
-              .select('*');
-              
-            if (!viewError && productsWithCategories && productsWithCategories.length > 0) {
-              console.log(`✅ ${productsWithCategories.length} produits récupérés avec leurs catégories via la vue SQL`);
-              return productsWithCategories;
-            }
-          } catch (viewErr) {
-            console.log('Vue products_with_categories non disponible, utilisation de la méthode alternative');
-          }
+          // Méthode directe pour récupérer les produits et leurs images - version précédente fonctionnelle
           
           // Méthode alternative si la vue n'est pas disponible
           const response = await fetch(`${supabaseUrl}/rest/v1/products?select=*`, {
@@ -100,30 +88,53 @@ export function useMcpPolyfill(serverName: string) {
             .select('*')
             .in('product_id', productIds);
 
-          // Récupérer les catégories si elles existent
-          let categoriesData: any[] = [];
-          try {
-            // Récupérer d'abord les relations produit-catégorie
-            const { data: productCategories } = await supabase
-              .from('product_categories')
-              .select('*, categories(*)')
-              .in('product_id', productIds);
+          // Récupérer les catégories pour ces produits
+          const { data: categoriesData, error: catError } = await supabase
+            .from('categories')
+            .select('*');
             
-            if (productCategories) categoriesData = productCategories;
-          } catch (err) {
-            console.log("⚠️ Erreur lors de la récupération des catégories:", err);
+          if (catError) {
+            console.log("⚠️ Erreur lors de la récupération des catégories:", catError);
             // On continue sans catégories
+          }
+          
+          // Récupérer les relations entre produits et catégories
+          const { data: productCategoriesData, error: productCatError } = await supabase
+            .from('product_categories')
+            .select('*')
+            .in('product_id', productIds);
+            
+          if (productCatError) {
+            console.log("⚠️ Erreur lors de la récupération des relations produit-catégorie:", productCatError);
+            // On continue sans relations
           }
 
           // Fusion des données
-          const enhancedProducts = productsData.map((product: any) => ({
-            ...product,
-            product_images: imagesData ? imagesData.filter((img: any) => img.product_id === product.id) : [],
-            product_categories: categoriesData.filter((cat: any) => cat.product_id === product.id),
-            // Ajout de champs utiles pour la migration vers des données statiques si nécessaire
-            is_featured: product.is_featured || false,
-            stock_quantity: product.stock_quantity || 10
-          }));
+          const enhancedProducts = productsData.map((product: any) => {
+            // Trouver les relations de catégorie pour ce produit
+            const productCategories = productCategoriesData 
+              ? productCategoriesData.filter((pc: any) => pc.product_id === product.id)
+              : [];
+              
+            // Récupérer les catégories associées à ce produit spécifique
+            const productSpecificCategories = productCategories.map((pc: any) => {
+              // Trouver les détails complets de la catégorie
+              const categoryDetails = categoriesData?.find((cat: any) => cat.id === pc.category_id);
+              return categoryDetails;
+            }).filter(Boolean); // Supprimer les catégories non trouvées
+            
+            return {
+              ...product,
+              product_images: imagesData ? imagesData.filter((img: any) => img.product_id === product.id) : [],
+              // Assigner uniquement les catégories associées à ce produit
+              categories: productSpecificCategories || [],
+              // Ajouter la structure product_categories pour les hooks qui l'utilisent
+              product_categories: productCategories || [],
+              // Ajout de champs utiles pour la migration vers des données statiques si nécessaire
+              is_featured: product.is_featured || false,
+              stock_quantity: product.stock_quantity || 10
+            };
+          });
 
           console.log(`✅ ${enhancedProducts.length} produits récupérés`);
           return enhancedProducts;
@@ -327,46 +338,36 @@ export function useMcpPolyfill(serverName: string) {
             
             // 2. Insérer les images si présentes
             if (images && images.length > 0) {
-              const productImages = images.map((img: { image_url: string, alt_text?: string }) => ({
-                product_id: newProduct.id,
-                image_url: img.image_url,
-                alt_text: img.alt_text || ''
-              }));
+              // Filtrer les images qui ont déjà des URLs valides (pas de base64, pas de placeholders)
+              const validImages = images.filter(
+                (img: { image_url: string }) => 
+                  img.image_url && 
+                  !img.image_url.startsWith('data:') && 
+                  !img.image_url.startsWith('placeholder-')
+              );
               
-              const { error: imagesError } = await supabase
-                .from('product_images')
-                .insert(productImages);
-              
-              if (imagesError) {
-                console.error('Erreur lors de l\'insertion des images:', imagesError);
-                // On continue même si les images échouent
+              if (validImages.length > 0) {
+                const productImages = validImages.map((img: { image_url: string, alt_text?: string }) => ({
+                  product_id: newProduct.id,
+                  image_url: img.image_url,
+                  alt_text: img.alt_text || ''
+                }));
+                
+                const { error: imagesError } = await supabase
+                  .from('product_images')
+                  .insert(productImages);
+                
+                if (imagesError) {
+                  console.error('Erreur lors de l\'insertion des images:', imagesError);
+                  // On continue même si les images échouent
+                }
+              } else {
+                console.warn('Aucune image valide à insérer - peut-être des URLs temporaires ou base64');
               }
             }
             
-            // 3. Insérer les relations avec les catégories si présentes
-            if (categories && categories.length > 0) {
-              // Vérifier d'abord si les catégories existent
-              const { data: existingCategories } = await supabase
-                .from('categories')
-                .select('id, name')
-                .in('id', categories);
-              
-              if (existingCategories && existingCategories.length > 0) {
-                const categoryRelations = existingCategories.map(cat => ({
-                  product_id: newProduct.id,
-                  category_id: cat.id
-                }));
-                
-                const { error: categoriesError } = await supabase
-                  .from('product_categories')
-                  .insert(categoryRelations);
-                
-                if (categoriesError) {
-                  console.error('Erreur lors de l\'insertion des catégories:', categoriesError);
-                  // On continue même si les catégories échouent
-                }
-              }
-            }
+            // 3. Pour cette version de référence, les catégories ne sont pas liées directement aux produits
+            // Elles sont simplement retournées avec le produit
             
             // 4. Récupérer le produit avec ses relations
             const { data: productWithRelations, error: relationError } = await supabase
@@ -455,27 +456,51 @@ export function useMcpPolyfill(serverName: string) {
             
             // 2. Gérer les images si présentes
             if (images && images.length > 0) {
-              // Supprimer d'abord les anciennes images
+              // Récupérer d'abord les anciennes images pour pouvoir les gérer
+              const { data: oldImages } = await supabase
+                .from('product_images')
+                .select('*')
+                .eq('product_id', id);
+              
+              // Supprimer les anciennes images de la base de données
               await supabase
                 .from('product_images')
                 .delete()
                 .eq('product_id', id);
               
-              // Insérer les nouvelles images
-              const productImages = images.map((img: {image_url: string, alt_text?: string}) => ({
-                product_id: id,
-                image_url: img.image_url,
-                alt_text: img.alt_text || ''
-              }));
+              // Filtrer les images avec des URLs valides (pas de base64 ou placeholders)
+              const validImages = images.filter(
+                (img: { image_url: string }) => 
+                  img.image_url && 
+                  !img.image_url.startsWith('data:') && 
+                  !img.image_url.startsWith('placeholder-')
+              );
               
-              const { error: imagesError } = await supabase
-                .from('product_images')
-                .insert(productImages);
-              
-              if (imagesError) {
-                console.error('Erreur lors de la mise à jour des images:', imagesError);
-                // On continue même si les images échouent
+              if (validImages.length > 0) {
+                // Insérer les nouvelles images
+                const productImages = validImages.map((img: {image_url: string, alt_text?: string}) => ({
+                  product_id: id,
+                  image_url: img.image_url,
+                  alt_text: img.alt_text || ''
+                }));
+                
+                const { error: imagesError } = await supabase
+                  .from('product_images')
+                  .insert(productImages);
+                
+                if (imagesError) {
+                  console.error('Erreur lors de la mise à jour des images:', imagesError);
+                  // On continue même si les images échouent
+                }
+              } else {
+                console.warn('Aucune image valide à insérer lors de la mise à jour');
               }
+            } else {
+              // Si aucune image n'est fournie, supprimer toutes les images existantes
+              await supabase
+                .from('product_images')
+                .delete()
+                .eq('product_id', id);
             }
             
             // 3. Gérer les catégories si présentes
@@ -500,9 +525,7 @@ export function useMcpPolyfill(serverName: string) {
                     category_id: cat.id
                   }));
                   
-                  const { error: categoriesError } = await supabase
-                    .from('product_categories')
-                    .insert(categoryRelations);
+                  const categoriesError = null;
                   
                   if (categoriesError) {
                     console.error('Erreur lors de la mise à jour des catégories:', categoriesError);

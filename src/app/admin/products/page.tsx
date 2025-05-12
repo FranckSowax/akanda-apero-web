@@ -10,6 +10,7 @@ import { Label } from '../../../components/ui/label';
 import { Select } from '../../../components/ui/select';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { PackageOpen, Plus, Filter, Search, Edit, Trash2, Upload, X, Camera } from 'lucide-react';
+import { storageService } from '../../../lib/supabase/storage-service';
 
 // Fonction utilitaire pour obtenir une URL d'image fiable
 const getProductImageUrl = (product: any): string => {
@@ -115,8 +116,8 @@ export default function ProductsPage() {
     setFormData(prev => ({ ...prev, categories: selectedOptions }));
   };
   
-  // Gérer l'ajout d'images
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Gérer l'ajout d'images avec Supabase Storage
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       // Filtrer d'abord les fichiers non-images
       const validFiles = Array.from(e.target.files).filter(file => {
@@ -125,76 +126,119 @@ export default function ProductsPage() {
           alert(`Le fichier ${file.name} n'est pas une image valide.`);
           return false;
         }
+        // Vérifier la taille du fichier (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          alert(`Le fichier ${file.name} est trop volumineux. La taille maximale est de 5MB.`);
+          return false;
+        }
         return true;
       });
       
-      const newImages = validFiles.map(file => {
-
+      if (validFiles.length === 0) return;
+      
+      // Ajouter des placeholders dans le state pendant le téléchargement
+      const placeholders = validFiles.map(file => {
         // Créer une URL pour la prévisualisation
         const previewUrl = URL.createObjectURL(file);
         setImagePreview(prev => [...prev, previewUrl]);
         
-        // Avec une vraie application backend, on enverrait le fichier à un service comme Supabase Storage
-        // et on aurait une URL permanente. Pour cette démo, on simule ce comportement.
-
-        let imageUrl = '';
-
-        // Option 1: Convertir l'image en Data URL (base64) - FONCTIONNE POUR TOUTES LES IMAGES
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && event.target.result) {
-            // Mettre à jour l'image avec le data URL
-            // Cette action est asynchorne, donc on doit mettre à jour formData après que reader.onload soit exécuté
-            const dataUrl = event.target.result as string;
-            
-            // Mettre à jour l'URL dans les images du formulaire
-            setFormData(prev => {
-              const updatedImages = [...prev.images];
-              const indexToUpdate = updatedImages.findIndex(img => 
-                img.alt_text === file.name && img.image_url.startsWith('placeholder-'));
-              
-              if (indexToUpdate !== -1) {
-                updatedImages[indexToUpdate].image_url = dataUrl;
-              }
-              
-              return {
-                ...prev,
-                images: updatedImages
-              };
-            });
-          }
-        };
+        // Générer un ID unique pour ce placeholder
+        const placeholderId = `placeholder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         
-        // Démarrer la lecture du fichier en tant que Data URL
-        reader.readAsDataURL(file);
-        
-        // Créer un placeholder en attendant que le Data URL soit prêt
-        imageUrl = `placeholder-${Date.now()}-${file.name}`;
-        
+        // Créer un placeholder
         return {
-          image_url: imageUrl,
-          alt_text: file.name
+          id: placeholderId, // ID unique pour suivre ce placeholder
+          image_url: placeholderId,
+          alt_text: file.name,
+          file: file // Stocker temporairement la référence au fichier
         };
       });
       
-      // Les images sont maintenant toutes valides (pas de null)
+      // Ajouter les placeholders aux images existantes
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...prev.images, ...placeholders.map(p => ({ 
+          image_url: p.image_url, 
+          alt_text: p.alt_text 
+        }))]
       }));
+      
+      console.log('Début du téléchargement des images...');
+      
+      // Télécharger chaque image individuellement
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        const placeholder = placeholders[i];
+        
+        try {
+          console.log(`Téléchargement de ${file.name} vers Supabase Storage...`);
+          
+          // Télécharger l'image vers Supabase Storage
+          const { url, error } = await storageService.uploadFile(file, 'products');
+          
+          if (error) {
+            console.error(`Erreur lors du téléchargement de ${file.name}:`, error);
+            alert(`Erreur lors du téléchargement de ${file.name}: ${error.message}`);
+            continue;
+          }
+          
+          console.log(`Image téléchargée avec succès. URL: ${url}`);
+          
+          // Mettre à jour l'URL dans les images du formulaire
+          setFormData(prev => {
+            const updatedImages = [...prev.images];
+            const indexToUpdate = updatedImages.findIndex(img => 
+              img.image_url === placeholder.image_url);
+            
+            if (indexToUpdate !== -1) {
+              updatedImages[indexToUpdate] = {
+                image_url: url,
+                alt_text: file.name
+              };
+              console.log(`Image mise à jour dans le formulaire à l'index ${indexToUpdate}`);
+            } else {
+              console.warn(`Impossible de trouver le placeholder ${placeholder.image_url} dans les images`);
+            }
+            
+            return {
+              ...prev,
+              images: updatedImages
+            };
+          });
+        } catch (error) {
+          console.error(`Erreur lors du téléchargement de ${file.name}:`, error);
+          alert(`Erreur lors du téléchargement de ${file.name}`);
+        }
+      }
     }
   };
   
   // Retirer une image
-  const removeImage = (index: number) => {
+  const removeImage = async (index: number) => {
+    // Récupérer l'image à supprimer
+    const imageToRemove = formData.images[index];
+    
+    // Si l'image a une URL Supabase Storage (pas un placeholder), la supprimer du stockage
+    if (imageToRemove.image_url && !imageToRemove.image_url.startsWith('placeholder-') && !imageToRemove.image_url.startsWith('data:')) {
+      try {
+        await storageService.deleteFile(imageToRemove.image_url);
+      } catch (error) {
+        console.error('Erreur lors de la suppression de l\'image du stockage:', error);
+        // Continuer même en cas d'erreur pour que l'utilisateur puisse au moins la supprimer de l'interface
+      }
+    }
+    
+    // Mettre à jour le state du formulaire
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }));
     
-    // Libérer l'URL de prévisualisation
-    URL.revokeObjectURL(imagePreview[index]);
-    setImagePreview(prev => prev.filter((_, i) => i !== index));
+    // Libérer l'URL de prévisualisation si elle existe
+    if (index < imagePreview.length) {
+      URL.revokeObjectURL(imagePreview[index]);
+      setImagePreview(prev => prev.filter((_, i) => i !== index));
+    }
   };
   
   // Générer automatiquement un slug à partir du nom
@@ -287,6 +331,13 @@ export default function ProductsPage() {
   // Soumettre le formulaire (création ou mise à jour)
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Vérifier qu'au moins une catégorie est sélectionnée
+    if (formData.categories.length === 0) {
+      alert('Veuillez sélectionner au moins une catégorie pour ce produit.');
+      return;
+    }
+    
     try {
       if (isEditMode && currentProductId) {
         // Mode mise à jour
@@ -481,13 +532,15 @@ export default function ProductsPage() {
               
               {/* Sélection des catégories */}
               <div>
-                <Label htmlFor="product-categories" className="block text-sm font-medium mb-1">Catégories</Label>
+                <Label htmlFor="product-categories" className="block text-sm font-medium mb-1">
+                  Catégories <span className="text-red-500">*</span>
+                </Label>
                 <select
                   id="product-categories"
                   multiple
                   value={formData.categories}
                   onChange={handleCategoryChange}
-                  className="w-full rounded-md border p-2"
+                  className={`w-full rounded-md border p-2 ${formData.categories.length === 0 ? 'border-red-500' : ''}`}
                   size={3}
                 >
                   {!isCategoriesLoading && categories && categories.map((category: Category) => (
@@ -497,6 +550,9 @@ export default function ProductsPage() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">Maintenez Ctrl pour sélectionner plusieurs catégories</p>
+                {formData.categories.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">Veuillez sélectionner au moins une catégorie</p>
+                )}
               </div>
               
               {/* Gestionnaire d'images */}
