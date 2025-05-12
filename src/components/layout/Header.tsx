@@ -83,8 +83,8 @@ export const Header: React.FC = () => {
             </DropdownMenu>
           ) : (
             <Link href="/auth">
-              <Button variant="ghost" className="p-2">
-                <LogIn className="h-5 w-5 text-gray-700" />
+              <Button variant="ghost" className="p-2 flex items-center justify-center">
+                <User className="h-5 w-5 text-gray-700" />
               </Button>
             </Link>
           )}
@@ -120,7 +120,7 @@ export const Header: React.FC = () => {
             Kits Cocktails
           </Link>
           <Link 
-            href="#contact" 
+            href="/contact" 
             className="text-base font-medium text-gray-600 hover:text-gray-900 px-3 py-3 rounded-md hover:bg-gray-50 transition-colors duration-200 touch-manipulation"
             onClick={() => dispatch({ type: 'TOGGLE_MENU' })}
           >
