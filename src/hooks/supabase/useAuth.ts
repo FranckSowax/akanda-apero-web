@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthError } from '@supabase/supabase-js';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -38,7 +38,7 @@ export function useAuth() {
       });
       
       if (error) {
-        throw error;
+        throw translateAuthError(error);
       }
       
       // Récupérer la session mise à jour
@@ -46,23 +46,97 @@ export function useAuth() {
       
       return data;
     } catch (err) {
+      if (err instanceof AuthError) {
+        throw translateAuthError(err);
+      }
       throw err;
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw translateAuthError(error);
+    } catch (err) {
+      console.error("Erreur lors de la déconnexion:", err);
+      throw err;
+    }
   };
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
-      password 
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password 
+      });
+      
+      if (error) throw translateAuthError(error);
+      return data;
+    } catch (err) {
+      if (err instanceof AuthError) {
+        throw translateAuthError(err);
+      }
+      throw err;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      
+      if (error) throw translateAuthError(error);
+      return true;
+    } catch (err) {
+      if (err instanceof AuthError) {
+        throw translateAuthError(err);
+      }
+      throw err;
+    }
+  };
+  
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw translateAuthError(error);
+      return true;
+    } catch (err) {
+      if (err instanceof AuthError) {
+        throw translateAuthError(err);
+      }
+      throw err;
+    }
+  };
+  
+  // Fonction pour traduire les erreurs d'authentification en français
+  const translateAuthError = (error: AuthError): Error => {
+    const errorMap: Record<string, string> = {
+      'Invalid login credentials': 'Identifiants de connexion invalides.',
+      'Email not confirmed': 'Email non confirmé. Veuillez vérifier votre boîte de réception.',
+      'Invalid email or password': 'Email ou mot de passe invalide.',
+      'User already registered': 'Cet email est déjà utilisé.',
+      'Password should be at least 6 characters': 'Le mot de passe doit contenir au moins 6 caractères.',
+      'Email rate limit exceeded': 'Trop de tentatives, veuillez réessayer plus tard.',
+      'For security purposes, you can only request this once every 60 seconds': 'Pour des raisons de sécurité, vous ne pouvez faire cette demande qu\'une fois toutes les 60 secondes.',
+    };
     
-    if (error) throw error;
-    return data;
+    const translatedMessage = errorMap[error.message] || error.message;
+    return new Error(translatedMessage);
+  };
+
+  // Fonction pour vérifier si l'utilisateur est toujours connecté
+  const checkAuth = async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      return data.session !== null;
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'authentification:", error);
+      return false;
+    }
   };
 
   return {
@@ -71,6 +145,9 @@ export function useAuth() {
     loading,
     signIn,
     signOut,
-    signUp
+    signUp,
+    resetPassword,
+    updatePassword,
+    checkAuth
   };
 }

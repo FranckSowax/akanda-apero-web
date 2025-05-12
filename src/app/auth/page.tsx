@@ -8,15 +8,18 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useToast } from '../../components/ui/use-toast';
+import { AlertCircle, Key, User, Mail, EyeOff, Eye } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, resetPassword, user } = useAuth();
   const { toast } = useToast();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   
   // Extraire le paramètre de redirection de l'URL
   const [redirectTo, setRedirectTo] = React.useState('/');
@@ -54,6 +57,32 @@ export default function AuthPage() {
       toast({
         title: "Erreur de connexion",
         description: error.message || "Une erreur s'est produite lors de la connexion.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      if (!email) {
+        throw new Error("Veuillez entrer votre adresse e-mail.");
+      }
+      
+      await resetPassword(email);
+      toast({
+        title: "Email envoyé",
+        description: "Si un compte existe avec cette adresse, vous recevrez un e-mail avec les instructions pour réinitialiser votre mot de passe.",
+      });
+      setForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur s'est produite lors de l'envoi de l'e-mail.",
         variant: "destructive",
       });
     } finally {
@@ -114,73 +143,169 @@ export default function AuthPage() {
             </TabsList>
             
             <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Adresse e-mail"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+              {!forgotPassword ? (
+                <form onSubmit={handleSignIn} className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Mail className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        type="email"
+                        placeholder="Adresse e-mail"
+                        value={email}
+                        className="pl-10"
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Key className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Mot de passe"
+                        value={password}
+                        className="pl-10 pr-10"
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button 
+                        type="button"
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500 touch-manipulation"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                    <div className="text-right">
+                      <button 
+                        type="button" 
+                        onClick={() => setForgotPassword(true)}
+                        className="text-sm text-[#f5a623] hover:text-[#e09000] touch-manipulation"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
+                  </div>
+                  {/* Bouton optimisé pour les appareils tactiles avec plus de surface cliquable et meilleure réponse */}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
+                    disabled={loading}
+                    onClick={(e) => {
+                      if (loading) e.preventDefault(); // Éviter les soumissions multiples
+                    }}
+                    role="button"
+                    aria-label="Se connecter"
+                  >
+                    {loading ? "Chargement..." : "Se connecter"}
+                  </Button>
+                </form>
+              ) : (
+                <div className="mt-4">
+                  <div className="flex items-center bg-blue-50 p-4 rounded-md mb-4">
+                    <AlertCircle className="h-5 w-5 text-blue-400 mr-2" />
+                    <p className="text-sm text-blue-600">Nous vous enverrons un lien pour réinitialiser votre mot de passe.</p>
+                  </div>
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <Mail className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <Input
+                          type="email"
+                          placeholder="Adresse e-mail"
+                          value={email}
+                          className="pl-10"
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        className="flex-1 py-3 touch-manipulation"
+                        onClick={() => setForgotPassword(false)}
+                      >
+                        Retour
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        className="flex-1 bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
+                        disabled={loading}
+                      >
+                        {loading ? "Envoi..." : "Envoyer le lien"}
+                      </Button>
+                    </div>
+                  </form>
                 </div>
-                <div className="space-y-2">
-                  <Input
-                    type="password"
-                    placeholder="Mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                {/* Bouton optimisé pour les appareils tactiles avec plus de surface cliquable et meilleure réponse */}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
-                  disabled={loading}
-                  onClick={(e) => {
-                    if (loading) e.preventDefault(); // Éviter les soumissions multiples
-                  }}
-                  role="button"
-                  aria-label="Se connecter"
-                >
-                  {loading ? "Chargement..." : "Se connecter"}
-                </Button>
-              </form>
+              )}
             </TabsContent>
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Adresse e-mail"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      type="email"
+                      placeholder="Adresse e-mail"
+                      value={email}
+                      className="pl-10"
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Input
-                    type="password"
-                    placeholder="Mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Mot de passe (min. 6 caractères)"
+                      value={password}
+                      className="pl-10 pr-10"
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                    <button 
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500 touch-manipulation"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
-                  disabled={loading}
-                  onClick={(e) => {
-                    if (loading) e.preventDefault(); // Éviter les soumissions multiples
-                  }}
-                  role="button"
-                  aria-label="S'inscrire"
-                >
-                  {loading ? "Chargement..." : "Créer un compte"}
-                </Button>
+                <div className="pt-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
+                    disabled={loading}
+                    onClick={(e) => {
+                      if (loading) e.preventDefault();
+                    }}
+                    role="button"
+                    aria-label="S'inscrire"
+                  >
+                    {loading ? "Chargement..." : "S'inscrire"}
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500 text-center pt-2">
+                  En vous inscrivant, vous acceptez nos <a href="/conditions" className="text-[#f5a623] hover:text-[#e09000] underline">Conditions d'utilisation</a> et notre <a href="/confidentialite" className="text-[#f5a623] hover:text-[#e09000] underline">Politique de confidentialité</a>.
+                </div>
               </form>
             </TabsContent>
           </Tabs>
