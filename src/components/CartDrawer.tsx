@@ -49,7 +49,12 @@ const CartDrawer: React.FC = () => {
 
   // Composant interne pour le bouton du panier - uniformisé pour éviter les erreurs d'hydratation
   const CartButton = () => (
-    <Button variant="ghost" className="relative p-2 h-auto touch-manipulation">
+    <Button 
+      variant="ghost" 
+      className="relative p-2 h-auto touch-manipulation" 
+      aria-label="Open cart" 
+      id="cart-drawer-trigger"
+    >
       <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
       {isClient && itemCount > 0 && (
         <span 

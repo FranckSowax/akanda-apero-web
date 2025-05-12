@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, User, LogIn } from 'lucide-react';
+import { Menu, User, LogIn, ShoppingBag } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import CartDrawer from '../CartDrawer';
@@ -143,6 +143,27 @@ export const Header: React.FC = () => {
               COMMANDER
             </Button>
           </Link>
+
+          {/* Bouton Panier dans le menu mobile */}
+          <div className="flex w-full mt-2">
+            <Button 
+              className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 py-3 font-medium"
+              onClick={() => {
+                // Fermer le menu mobile
+                dispatch({ type: 'TOGGLE_MENU' });
+                
+                // Ouvrir le tiroir du panier en ciblant le bouton par son ID
+                const cartButton = document.getElementById('cart-drawer-trigger');
+                if (cartButton) {
+                  // Simuler un clic sur le bouton du panier
+                  cartButton.click();
+                }
+              }}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              <span>Voir le panier</span>
+            </Button>
+          </div>
         </nav>
       </div>
     </header>
