@@ -114,8 +114,21 @@ export default function AuthPage() {
   };
   
   return (
-    <div className="container mx-auto max-w-md py-12">
-      <Card>
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden py-12 px-4">
+      {/* Arrière-plan avec effet fondu */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 to-black/60 z-10" />
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-80"
+          style={{
+            backgroundImage: `url('https://i.imgur.com/mLt5IU3.jpeg')`,
+            filter: 'blur(2px) saturate(110%) brightness(60%)',
+          }}
+        />
+      </div>
+      
+      <div className="container mx-auto max-w-md relative z-10">
+      <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">Bienvenue chez Akanda Apéro</CardTitle>
           <CardDescription className="text-center">
@@ -316,6 +329,7 @@ export default function AuthPage() {
           </p>
         </CardFooter>
       </Card>
+      </div>
     </div>
   );
 }
