@@ -39,11 +39,23 @@ export function useMcpPolyfill(serverName: string) {
       // Gestion des produits
       if (resourceName === 'products') {
         try {
-          console.log('🔍 Récupération des produits...');
+          console.log('🔍 Récupération des produits... [mcp-polyfill]');
           
-          // Utilisation de fetch directement avec l'apikey
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
-          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
+          console.log('[mcp-polyfill] typeof process:', typeof process);
+          console.log('[mcp-polyfill] typeof process.env:', typeof process?.env);
+
+          console.log('[mcp-polyfill] Attempting to read NEXT_PUBLIC_SUPABASE_URL...');
+          const supabaseUrlFromEnv = process?.env?.NEXT_PUBLIC_SUPABASE_URL;
+          console.log('[mcp-polyfill] NEXT_PUBLIC_SUPABASE_URL from env:', supabaseUrlFromEnv);
+          const supabaseUrl = supabaseUrlFromEnv || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
+          console.log('[mcp-polyfill] Final supabaseUrl:', supabaseUrl);
+
+          console.log('[mcp-polyfill] Attempting to read NEXT_PUBLIC_SUPABASE_ANON_KEY...');
+          const supabaseKeyFromEnv = process?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+          console.log('[mcp-polyfill] NEXT_PUBLIC_SUPABASE_ANON_KEY from env:', supabaseKeyFromEnv);
+          const supabaseKey = supabaseKeyFromEnv || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
+          
+          console.log('[mcp-polyfill] Clé Supabase utilisée (products):', supabaseKey);
           
           const response = await fetch(`${supabaseUrl}/rest/v1/products?select=*`, {
             method: 'GET',
@@ -109,18 +121,30 @@ export function useMcpPolyfill(serverName: string) {
       // Gestion des catégories
       else if (resourceName === 'categories') {
         try {
-          console.log('🔍 Récupération des catégories...');
+          console.log('🔍 Récupération des catégories... [mcp-polyfill]');
           
-          // Utilisation de fetch directement avec l'apikey
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
-          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
+          console.log('[mcp-polyfill] typeof process (categories):', typeof process);
+          console.log('[mcp-polyfill] typeof process.env (categories):', typeof process?.env);
+
+          console.log('[mcp-polyfill] Attempting to read NEXT_PUBLIC_SUPABASE_URL (categories)...');
+          const supabaseUrlFromEnvCat = process?.env?.NEXT_PUBLIC_SUPABASE_URL;
+          console.log('[mcp-polyfill] NEXT_PUBLIC_SUPABASE_URL from env (categories):', supabaseUrlFromEnvCat);
+          const supabaseUrlCat = supabaseUrlFromEnvCat || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
+          console.log('[mcp-polyfill] Final supabaseUrl (categories):', supabaseUrlCat);
+
+          console.log('[mcp-polyfill] Attempting to read NEXT_PUBLIC_SUPABASE_ANON_KEY (categories)...');
+          const supabaseKeyFromEnvCat = process?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+          console.log('[mcp-polyfill] NEXT_PUBLIC_SUPABASE_ANON_KEY from env (categories):', supabaseKeyFromEnvCat);
+          const supabaseKeyCat = supabaseKeyFromEnvCat || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
           
-          const response = await fetch(`${supabaseUrl}/rest/v1/categories?select=*`, {
+          console.log('[mcp-polyfill] Clé Supabase utilisée (categories):', supabaseKeyCat);
+          
+          const response = await fetch(`${supabaseUrlCat}/rest/v1/categories?select=*`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
+              'apikey': supabaseKeyCat,
+              'Authorization': `Bearer ${supabaseKeyCat}`
             }
           });
           
