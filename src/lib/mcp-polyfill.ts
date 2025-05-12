@@ -287,13 +287,95 @@ export function useMcpPolyfill(serverName: string) {
     create: async (resourceName: string, body: any) => {
       if (resourceName === 'products') {
         try {
-          const { data, error } = await supabase
-            .from('products')
-            .insert(body)
-            .select();
-          
-          if (error) throw new Error(error.message);
-          return data;
+          // Vérifier si le body est structuré comme attendu pour le cas des produits
+          if (body.product) {
+            const { product, images = [], categories = [] } = body;
+            
+            // 1. Insérer d'abord le produit
+            const { data: newProduct, error: productError } = await supabase
+              .from('products')
+              .insert(product)
+              .select()
+              .single();
+            
+            if (productError) throw new Error(`Erreur d'insertion du produit: ${productError.message}`);
+            
+            if (!newProduct || !newProduct.id) {
+              throw new Error('Le produit a été inséré mais aucun ID n\'a été retourné');
+            }
+            
+            // 2. Insérer les images si présentes
+            if (images && images.length > 0) {
+              const productImages = images.map(img => ({
+                product_id: newProduct.id,
+                image_url: img.image_url,
+                alt_text: img.alt_text || ''
+              }));
+              
+              const { error: imagesError } = await supabase
+                .from('product_images')
+                .insert(productImages);
+              
+              if (imagesError) {
+                console.error('Erreur lors de l\'insertion des images:', imagesError);
+                // On continue même si les images échouent
+              }
+            }
+            
+            // 3. Insérer les relations avec les catégories si présentes
+            if (categories && categories.length > 0) {
+              // Vérifier d'abord si les catégories existent
+              const { data: existingCategories } = await supabase
+                .from('categories')
+                .select('id, name')
+                .in('id', categories);
+              
+              if (existingCategories && existingCategories.length > 0) {
+                const categoryRelations = existingCategories.map(cat => ({
+                  product_id: newProduct.id,
+                  category_id: cat.id
+                }));
+                
+                const { error: categoriesError } = await supabase
+                  .from('product_categories')
+                  .insert(categoryRelations);
+                
+                if (categoriesError) {
+                  console.error('Erreur lors de l\'insertion des catégories:', categoriesError);
+                  // On continue même si les catégories échouent
+                }
+              }
+            }
+            
+            // 4. Récupérer le produit avec ses relations
+            const { data: productWithRelations, error: relationError } = await supabase
+              .from('products')
+              .select(`
+                *,
+                product_images (*),
+                product_categories (*, categories (*))
+              `)
+              .eq('id', newProduct.id)
+              .single();
+            
+            if (relationError) {
+              console.error('Erreur lors de la récupération des relations:', relationError);
+              // Retourner juste le produit sans ses relations
+              return newProduct;
+            }
+            
+            return productWithRelations;
+          } else {
+            // Si le body n'est pas structuré comme attendu, on fait une insertion simple
+            console.warn('Format inattendu pour la création de produit. Utilisation de l\'insertion simple.');
+            const { data, error } = await supabase
+              .from('products')
+              .insert(body)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          }
         } catch (error) {
           console.error('Erreur lors de la création du produit:', error);
           throw error;
@@ -332,14 +414,113 @@ export function useMcpPolyfill(serverName: string) {
     update: async (resourceName: string, id: string, body: any) => {
       if (resourceName === 'products') {
         try {
-          const { data, error } = await supabase
-            .from('products')
-            .update(body)
-            .eq('id', id)
-            .select();
-          
-          if (error) throw new Error(error.message);
-          return data;
+          // Vérifier si le body est structuré comme attendu pour le cas des produits
+          if (body.product) {
+            const { product, images = [], categories = [] } = body;
+            
+            // 1. Mettre à jour le produit
+            const { data: updatedProduct, error: productError } = await supabase
+              .from('products')
+              .update(product)
+              .eq('id', id)
+              .select()
+              .single();
+            
+            if (productError) throw new Error(`Erreur de mise à jour du produit: ${productError.message}`);
+            
+            if (!updatedProduct) {
+              throw new Error(`Le produit avec l'ID ${id} n'existe pas`);
+            }
+            
+            // 2. Gérer les images si présentes
+            if (images && images.length > 0) {
+              // Supprimer d'abord les anciennes images
+              await supabase
+                .from('product_images')
+                .delete()
+                .eq('product_id', id);
+              
+              // Insérer les nouvelles images
+              const productImages = images.map((img: {image_url: string, alt_text?: string}) => ({
+                product_id: id,
+                image_url: img.image_url,
+                alt_text: img.alt_text || ''
+              }));
+              
+              const { error: imagesError } = await supabase
+                .from('product_images')
+                .insert(productImages);
+              
+              if (imagesError) {
+                console.error('Erreur lors de la mise à jour des images:', imagesError);
+                // On continue même si les images échouent
+              }
+            }
+            
+            // 3. Gérer les catégories si présentes
+            if (categories && categories.length >= 0) {
+              // Supprimer d'abord les anciennes relations
+              await supabase
+                .from('product_categories')
+                .delete()
+                .eq('product_id', id);
+              
+              // Insérer les nouvelles relations si elles existent
+              if (categories.length > 0) {
+                // Vérifier d'abord si les catégories existent
+                const { data: existingCategories } = await supabase
+                  .from('categories')
+                  .select('id, name')
+                  .in('id', categories);
+                
+                if (existingCategories && existingCategories.length > 0) {
+                  const categoryRelations = existingCategories.map(cat => ({
+                    product_id: id,
+                    category_id: cat.id
+                  }));
+                  
+                  const { error: categoriesError } = await supabase
+                    .from('product_categories')
+                    .insert(categoryRelations);
+                  
+                  if (categoriesError) {
+                    console.error('Erreur lors de la mise à jour des catégories:', categoriesError);
+                    // On continue même si les catégories échouent
+                  }
+                }
+              }
+            }
+            
+            // 4. Récupérer le produit mis à jour avec ses relations
+            const { data: productWithRelations, error: relationError } = await supabase
+              .from('products')
+              .select(`
+                *,
+                product_images (*),
+                product_categories (*, categories (*))
+              `)
+              .eq('id', id)
+              .single();
+            
+            if (relationError) {
+              console.error('Erreur lors de la récupération des relations:', relationError);
+              // Retourner juste le produit sans ses relations
+              return updatedProduct;
+            }
+            
+            return productWithRelations;
+          } else {
+            // Si le body n'est pas structuré comme attendu, on fait une mise à jour simple
+            console.warn('Format inattendu pour la mise à jour de produit. Utilisation de la mise à jour simple.');
+            const { data, error } = await supabase
+              .from('products')
+              .update(body)
+              .eq('id', id)
+              .select();
+            
+            if (error) throw new Error(error.message);
+            return data;
+          }
         } catch (error) {
           console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
           throw error;
