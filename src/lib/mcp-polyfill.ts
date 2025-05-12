@@ -57,6 +57,21 @@ export function useMcpPolyfill(serverName: string) {
           
           console.log('[mcp-polyfill] Clé Supabase utilisée (products):', supabaseKey);
           
+          // Utiliser la vue products_with_categories si possible
+          try {
+            const { data: productsWithCategories, error: viewError } = await supabase
+              .from('products_with_categories')
+              .select('*');
+              
+            if (!viewError && productsWithCategories && productsWithCategories.length > 0) {
+              console.log(`✅ ${productsWithCategories.length} produits récupérés avec leurs catégories via la vue SQL`);
+              return productsWithCategories;
+            }
+          } catch (viewErr) {
+            console.log('Vue products_with_categories non disponible, utilisation de la méthode alternative');
+          }
+          
+          // Méthode alternative si la vue n'est pas disponible
           const response = await fetch(`${supabaseUrl}/rest/v1/products?select=*`, {
             method: 'GET',
             headers: {
@@ -88,14 +103,15 @@ export function useMcpPolyfill(serverName: string) {
           // Récupérer les catégories si elles existent
           let categoriesData: any[] = [];
           try {
-            const { data: categories } = await supabase
+            // Récupérer d'abord les relations produit-catégorie
+            const { data: productCategories } = await supabase
               .from('product_categories')
-              .select('*')
+              .select('*, categories(*)')
               .in('product_id', productIds);
             
-            if (categories) categoriesData = categories;
+            if (productCategories) categoriesData = productCategories;
           } catch (err) {
-            console.log("⚠️ Erreur lors de la récupération des catégories");
+            console.log("⚠️ Erreur lors de la récupération des catégories:", err);
             // On continue sans catégories
           }
 
@@ -291,6 +307,8 @@ export function useMcpPolyfill(serverName: string) {
           if (body.product) {
             const { product, images = [], categories = [] } = body;
             
+            console.log('Création d\'un produit avec les catégories et images associées');
+            
             // 1. Insérer d'abord le produit
             const { data: newProduct, error: productError } = await supabase
               .from('products')
@@ -298,7 +316,10 @@ export function useMcpPolyfill(serverName: string) {
               .select()
               .single();
             
-            if (productError) throw new Error(`Erreur d'insertion du produit: ${productError.message}`);
+            if (productError) {
+              console.error(`Erreur d'insertion du produit:`, productError);
+              throw new Error(`Erreur d'insertion du produit: ${productError.message}`);
+            }
             
             if (!newProduct || !newProduct.id) {
               throw new Error('Le produit a été inséré mais aucun ID n\'a été retourné');
@@ -306,7 +327,7 @@ export function useMcpPolyfill(serverName: string) {
             
             // 2. Insérer les images si présentes
             if (images && images.length > 0) {
-              const productImages = images.map(img => ({
+              const productImages = images.map((img: { image_url: string, alt_text?: string }) => ({
                 product_id: newProduct.id,
                 image_url: img.image_url,
                 alt_text: img.alt_text || ''
