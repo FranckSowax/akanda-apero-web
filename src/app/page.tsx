@@ -6,7 +6,7 @@ import { ParallaxSection } from '../components/ui/parallax-section';
 import { Header } from '../components/layout/Header';
 import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { formatPrice } from '../lib/utils/formatters';
 import styles from './landing.module.css';
 import { Star, ArrowRight } from 'lucide-react';
@@ -15,8 +15,6 @@ import { useFeaturedProducts } from '../hooks/supabase/useFeaturedProducts';
 import { useCategories } from '../hooks/supabase/useCategories';
 import { Product, Category } from '../types/supabase';
 import { Footer } from '../components/layout/Footer';
-import { motion } from 'framer-motion';
-import { useInView } from 'framer-motion';
 
 
 const heroSlides: HeroSlideProps[] = [
@@ -105,31 +103,6 @@ const testimonials = [
     avatar: "https://i.imgur.com/s3JAOt2.png"
   }
 ];
-
-// Animation variants pour différents éléments
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 12 
-    }
-  }
-};
 
 export default function Home() {
   const { addToCart } = useAppContext();
@@ -286,13 +259,7 @@ export default function Home() {
           <div className="mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">Nos Catégories</h2>
             
-            <motion.div 
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8 sm:mb-10"
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-            >
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8 sm:mb-10">
               {categoriesLoading ? (
                 // Afficher des skeletons pendant le chargement
                 Array.from({ length: 5 }).map((_, i) => (
@@ -306,12 +273,10 @@ export default function Home() {
                 ))
               ) : (
                 categories.map(category => (
-                  <motion.button
+                  <button
                     key={category.id}
-                    className={`relative overflow-hidden rounded-xl transition-all duration-300 ${activeCategory === category.id ? 'ring-2 ring-offset-2 ring-black scale-105' : ''} shadow-md`}
+                    className={`relative overflow-hidden rounded-xl transition-all duration-300 ${activeCategory === category.id ? 'ring-2 ring-offset-2 ring-black scale-105' : 'hover:scale-105'} shadow-md`}
                     onClick={() => handleCategoryChange(category.id)}
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.05 }}
                   >
                     <div 
                       className="absolute inset-0 opacity-90"
@@ -323,7 +288,7 @@ export default function Home() {
                       <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{category.image_url || '📦'}</div>
                       <div className="font-medium text-center text-sm sm:text-base leading-tight">{category.name}</div>
                     </div>
-                  </motion.button>
+                  </button>
                 ))
               )}
             </div>
