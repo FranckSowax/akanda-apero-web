@@ -41,15 +41,25 @@ export function useMcpPolyfill(serverName: string) {
         try {
           console.log('🔍 Récupération des produits...');
           
-          // Approche simple mais efficace pour les appareils mobiles
-          const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('*');
+          // Utilisation de fetch directement avec l'apikey
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
           
-          if (productsError) {
-            console.error("❌ Erreur lors de la récupération des produits:", productsError);
+          const response = await fetch(`${supabaseUrl}/rest/v1/products?select=*`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            }
+          });
+          
+          if (!response.ok) {
+            console.error("❌ Erreur lors de la récupération des produits:", response.status, response.statusText);
             return [];
           }
+          
+          const productsData = await response.json();
 
           if (!productsData || productsData.length === 0) {
             console.log("ℹ️ Aucun produit trouvé dans la base de données");
@@ -97,20 +107,32 @@ export function useMcpPolyfill(serverName: string) {
       }
       
       // Gestion des catégories
-      if (resourceName === 'categories') {
+      else if (resourceName === 'categories') {
         try {
           console.log('🔍 Récupération des catégories...');
-          const { data, error } = await supabase
-            .from('categories')
-            .select('*');
           
-          if (error) {
-            console.error("❌ Erreur lors de la récupération des catégories:", error);
+          // Utilisation de fetch directement avec l'apikey
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
+          
+          const response = await fetch(`${supabaseUrl}/rest/v1/categories?select=*`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            }
+          });
+          
+          if (!response.ok) {
+            console.error("❌ Erreur lors de la récupération des catégories:", response.status, response.statusText);
             return [];
           }
           
-          console.log(`✅ ${data?.length || 0} catégories récupérées`);
-          return data || [];
+          const categoriesData = await response.json();
+          
+          console.log(`✅ ${categoriesData?.length || 0} catégories récupérées`);
+          return categoriesData || [];
         } catch (error) {
           console.error("💥 Erreur lors de la récupération des catégories:", error);
           return [];
