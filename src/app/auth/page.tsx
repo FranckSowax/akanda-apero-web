@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -130,6 +131,16 @@ export default function AuthPage() {
       <div className="container mx-auto max-w-md relative z-10">
       <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
         <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <Image 
+              src="https://i.imgur.com/qIBlF8u.png"
+              alt="Akanda Apéro Logo"
+              width={120}
+              height={120}
+              className="rounded-md"
+              priority
+            />
+          </div>
           <CardTitle className="text-2xl text-center">Bienvenue chez Akanda Apéro</CardTitle>
           <CardDescription className="text-center">
             Connectez-vous ou créez un compte pour profiter de nos services
@@ -141,14 +152,14 @@ export default function AuthPage() {
             <TabsList className="grid w-full grid-cols-2 mb-4 touch-manipulation">
               <TabsTrigger 
                 value="signin" 
-                className="py-3 px-4 text-base active:opacity-80 focus:outline-none touch-manipulation"
+                className="py-3 px-4 text-base active:opacity-80 focus:outline-none touch-manipulation data-[state=active]:bg-[#f5a623] data-[state=active]:text-white"
                 role="tab"
               >
                 Connexion
               </TabsTrigger>
               <TabsTrigger 
                 value="signup" 
-                className="py-3 px-4 text-base active:opacity-80 focus:outline-none touch-manipulation"
+                className="py-3 px-4 text-base active:opacity-80 focus:outline-none touch-manipulation data-[state=active]:bg-[#f5a623] data-[state=active]:text-white"
                 role="tab"
               >
                 Inscription
