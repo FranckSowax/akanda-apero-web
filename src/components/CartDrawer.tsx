@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../hooks/supabase/useAuth';
 import { 
   Sheet, 
   SheetContent, 
@@ -17,6 +18,7 @@ import {
 } from '../components/ui/sheet';
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Alert, AlertDescription } from '../components/ui/alert';
 
 const CartDrawer: React.FC = () => {
   const { 
@@ -27,6 +29,10 @@ const CartDrawer: React.FC = () => {
     clearCart,
     getCartItemsCount
   } = useAppContext();
+  
+  // Obtenir l'état d'authentification de l'utilisateur
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   
   const { items: cart } = state.cart;
   const { subtotal, deliveryCost, discount, total } = getCartTotal();
@@ -198,10 +204,19 @@ const CartDrawer: React.FC = () => {
         </div>
         
         <SheetFooter className="mt-6 mb-4 sticky bottom-0 bg-white pt-4 border-t border-gray-200">
+          {!isLoggedIn && (
+            <Alert className="mb-4 bg-blue-50 border-blue-200">
+              <AlertDescription className="flex items-center text-sm">
+                <LogIn className="h-4 w-4 mr-2 text-blue-500" />
+                Vous devez vous connecter pour finaliser votre commande
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <SheetClose asChild>
-            <Link href="/checkout">
+            <Link href={isLoggedIn ? "/checkout" : "/auth"}>
               <Button className="w-full bg-[#f5a623] hover:bg-[#e09000] text-white py-6 text-base font-medium touch-manipulation">
-                Passer à la caisse
+                {isLoggedIn ? "Passer à la caisse" : "Se connecter pour commander"}
               </Button>
             </Link>
           </SheetClose>

@@ -16,6 +16,8 @@ import { LocationMap } from '../../components/ui/location-map';
 import { useAppContext } from '../../context/AppContext';
 import { formatPrice } from '../../lib/utils/formatters';
 import { useOrders } from '../../hooks/supabase/useOrders';
+import { useAuth } from '../../hooks/supabase/useAuth';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 
 // Types pour la page de checkout
 interface CheckoutCartItem {
@@ -79,15 +81,21 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   
+  // Récupérer l'état d'authentification de l'utilisateur
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+  
   // Récupérer les fonctions du hook useOrders
   const { createOrder, loading: orderLoading } = useOrders();
 
-  // Rediriger vers la page panier si le panier est vide
+  // Rediriger vers la page panier si le panier est vide ou vers la page d'authentification si l'utilisateur n'est pas connecté
   useEffect(() => {
     if (state.cart.items.length === 0) {
       router.push('/cart');
+    } else if (!isLoggedIn) {
+      router.push('/auth');
     }
-  }, [state.cart.items, router]);
+  }, [state.cart.items, router, isLoggedIn]);
 
   // Form state
   const [deliveryInfo, setDeliveryInfo] = useState({
