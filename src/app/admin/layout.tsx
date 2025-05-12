@@ -150,52 +150,57 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-3 px-2">
-            <ul className="space-y-1">
-              {sidebarItems.map((item) => (
-                <li key={item.title}>
-                  <Link
-                    href={item.href}
-                    onClick={() => isSidebarOpen && window.innerWidth < 1024 ? setIsSidebarOpen(false) : null}
-                    className={`flex items-center justify-between p-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      pathname === item.href
-                        ? 'bg-[#f5a623] text-white'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      {item.icon}
-                      <span className="ml-2.5">{item.title}</span>
-                    </div>
-                    {item.count !== null && (
-                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-gray-700 text-xs font-medium text-white">
-                        {item.count}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Containers regroupés pour assurer une bonne disposition sur mobile */}
+          <div className="flex flex-col h-[calc(100%-80px)] justify-between">
+            {/* Menu items with overflow scroll */}
+            <div className="overflow-y-auto py-3 px-2">
+              <ul className="space-y-1">
+                {sidebarItems.map((item) => (
+                  <li key={item.title}>
+                    <Link
+                      href={item.href}
+                      onClick={() => isSidebarOpen && window.innerWidth < 1024 ? setIsSidebarOpen(false) : null}
+                      className={`flex items-center justify-between p-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        pathname === item.href
+                          ? 'bg-[#f5a623] text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {item.icon}
+                        <span className="ml-2.5">{item.title}</span>
+                      </div>
+                      {item.count !== null && (
+                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-gray-700 text-xs font-medium text-white">
+                          {item.count}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div className="p-3 border-t border-gray-800 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Link 
-                href="/"
-                target="_blank"
-                className="flex items-center justify-center p-2 text-xs sm:text-sm font-medium rounded-lg text-white bg-[#f5a623] hover:bg-[#f39c12] transition-colors"
-              >
-                <Home className="h-4 w-4 mr-1.5" />
-                <span>Accueil</span>
-              </Link>
-              
-              <button
-                onClick={handleSignOut}
-                className="flex items-center justify-center p-2 text-xs sm:text-sm font-medium rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-              >
-                <LogOut className="h-4 w-4 mr-1.5" />
-                <span>Déconnexion</span>
-              </button>
+            {/* Footer buttons always visible */}
+            <div className="p-3 border-t border-gray-800 mt-auto">
+              <div className="grid grid-cols-2 gap-2">
+                <Link 
+                  href="/"
+                  target="_blank"
+                  className="flex items-center justify-center p-2 text-xs sm:text-sm font-medium rounded-lg text-white bg-[#f5a623] hover:bg-[#f39c12] transition-colors"
+                >
+                  <Home className="h-4 w-4 mr-1.5" />
+                  <span>Accueil</span>
+                </Link>
+                
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center justify-center p-2 text-xs sm:text-sm font-medium rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                >
+                  <LogOut className="h-4 w-4 mr-1.5" />
+                  <span>Déconnexion</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

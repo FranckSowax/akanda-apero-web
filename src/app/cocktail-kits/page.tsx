@@ -293,7 +293,7 @@ const CocktailShowcase = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Nom ou ingrédient..."
-                className="w-full p-2 pl-3 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
+                className="w-full p-2 pl-3 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#f5a623] text-black placeholder:text-gray-400"
               />
               {searchTerm && (
                 <button 
