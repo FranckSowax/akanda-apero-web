@@ -39,7 +39,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'Akanda Apero App'
+      'X-Client-Info': 'Akanda Apero App',
+      'apikey': supabaseAnonKey
     },
   },
 });
