@@ -15,9 +15,9 @@ import { useAuth } from '../../hooks/supabase/useAuth';
 
 // Delivery options
 const deliveryOptions = [
-  { id: 'standard', name: 'Livraison Standard', price: 1000, description: '1-2 jours ouvrables', icon: Truck },
-  { id: 'express', name: 'Livraison Express', price: 2000, description: 'Même jour (avant 14h)', icon: Truck },
-  { id: 'night', name: 'Livraison de Nuit', price: 35000, description: 'Dès 22h30', icon: Truck },
+  { id: 'standard', name: 'Livraison Standard', price: 2000, description: 'Livraison en moins de 45 min', icon: Truck },
+  { id: 'express', name: 'Livraison Express', price: 3000, description: 'Livraison en moins de 25 min', icon: Truck },
+  { id: 'night', name: 'Livraison nuit', price: 3500, description: 'Après 22H30', icon: Truck },
 ];
 
 export default function CartPage() {

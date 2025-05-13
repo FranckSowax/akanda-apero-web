@@ -137,7 +137,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (state.cart.deliveryOption === 'express') {
       deliveryCost = 3000; // Express (3000 FCFA)
     } else if (state.cart.deliveryOption === 'night') {
-      deliveryCost = 3500; // Livraison de nuit (3500 FCFA)
+      deliveryCost = 3500; // Livraison de nuit après 22H30 (3500 FCFA)
     }
 
     // Réduction du code promo
