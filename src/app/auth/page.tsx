@@ -48,13 +48,22 @@ export default function AuthPage() {
     setLoading(true);
     
     try {
-      await signIn(email, password);
+      console.log('Tentative de connexion avec:', { email, redirectTo });
+      const result = await signIn(email, password);
+      console.log('Résultat de connexion:', result);
+      
       toast({
         title: "Connexion réussie",
         description: "Vous êtes maintenant connecté.",
       });
-      router.push(redirectTo);
+      
+      // Forcer un délai court avant la redirection pour s'assurer que les états sont correctement mis à jour
+      setTimeout(() => {
+        console.log('Redirection vers:', redirectTo);
+        router.push(redirectTo);
+      }, 300);
     } catch (error: any) {
+      console.error('Erreur de connexion:', error);
       toast({
         title: "Erreur de connexion",
         description: error.message || "Une erreur s'est produite lors de la connexion.",
@@ -221,7 +230,11 @@ export default function AuthPage() {
                     className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
                     disabled={loading}
                     onClick={(e) => {
-                      if (loading) e.preventDefault(); // Éviter les soumissions multiples
+                      e.preventDefault(); // Empêcher le comportement par défaut du formulaire
+                      if (!loading) {
+                        // Appel direct à la fonction de connexion
+                        handleSignIn(e);
+                      }
                     }}
                     role="button"
                     aria-label="Se connecter"

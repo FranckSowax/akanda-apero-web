@@ -32,20 +32,36 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Tentative de connexion avec Supabase:', email);
+      
+      // Vérifier d'abord la connexion à Supabase
+      try {
+        const { data: healthCheck } = await supabase.from('categories').select('count').limit(1).single();
+        console.log('Connexion Supabase OK:', healthCheck);
+      } catch (healthErr) {
+        console.error('Erreur lors de la vérification de la connexion Supabase:', healthErr);
+      }
+      
+      // Effectuer la connexion
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password 
       });
       
       if (error) {
+        console.error('Erreur Supabase lors de la connexion:', error);
         throw translateAuthError(error);
       }
       
+      console.log('Connexion réussie:', data);
+      
       // Récupérer la session mise à jour
-      await supabase.auth.getSession();
+      const sessionResult = await supabase.auth.getSession();
+      console.log('Session après connexion:', sessionResult);
       
       return data;
     } catch (err) {
+      console.error('Erreur dans signIn:', err);
       if (err instanceof AuthError) {
         throw translateAuthError(err);
       }
