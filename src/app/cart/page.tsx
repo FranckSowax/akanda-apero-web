@@ -45,9 +45,33 @@ export default function CartPage() {
   
   // État local pour gérer le rendu côté client uniquement
   const [isClient, setIsClient] = useState(false);
+  const [isNightDeliveryAvailable, setIsNightDeliveryAvailable] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
+    
+    // Fonction pour vérifier si l'heure actuelle est après 22h30 (heure d'Afrique centrale)
+    const checkNightDeliveryAvailability = () => {
+      // Obtenir l'heure locale actuelle
+      const now = new Date();
+      
+      // Heure en Afrique centrale (UTC+1)
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Vérifier si nous sommes après 22h30
+      const isAfter2230 = (currentHour > 22) || (currentHour === 22 && currentMinute >= 30);
+      setIsNightDeliveryAvailable(isAfter2230);
+    };
+    
+    // Vérifier immédiatement
+    checkNightDeliveryAvailability();
+    
+    // Vérifier toutes les minutes
+    const intervalId = setInterval(checkNightDeliveryAvailability, 60000);
+    
+    // Nettoyer l'intervalle lors du démontage
+    return () => clearInterval(intervalId);
   }, []);
 
   // Fonction pour changer la quantité d'un article
@@ -223,28 +247,47 @@ export default function CartPage() {
               {/* Delivery Options */}
               <div className="space-y-3">
                 <Label className="text-gray-600 font-medium">Options de livraison</Label>
-                {deliveryOptions.map((option) => (
-                  <div 
-                    key={option.id}
-                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
-                      selectedDelivery === option.id 
-                        ? 'border-primary bg-primary/5 shadow-sm' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    onClick={() => setSelectedDelivery(option.id)}
-                  >
-                    <div className="flex items-center w-full sm:w-auto">
-                      <div className={`p-2 rounded-full ${selectedDelivery === option.id ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'}`}>
-                        <option.icon className="h-5 w-5" />
+                {deliveryOptions.map((option) => {
+                  // Vérifier si cette option est la livraison de nuit et si elle est disponible
+                  const isNightOption = option.id === 'night';
+                  const isDisabled = isNightOption && !isNightDeliveryAvailable;
+                  
+                  return (
+                    <div 
+                      key={option.id}
+                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg transition-all duration-200 ${
+                        selectedDelivery === option.id 
+                          ? 'border-primary bg-primary/5 shadow-sm' 
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      } ${
+                        isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      }`}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setSelectedDelivery(option.id);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center w-full sm:w-auto">
+                        <div className={`p-2 rounded-full ${
+                          selectedDelivery === option.id ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <option.icon className="h-5 w-5" />
+                        </div>
+                        <div className="ml-3">
+                          <div className="font-medium">{option.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {option.description}
+                            {isNightOption && !isNightDeliveryAvailable && (
+                              <span className="text-amber-600 block">Disponible uniquement après 22h30</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="ml-3">
-                        <div className="font-medium">{option.name}</div>
-                        <div className="text-sm text-gray-500">{option.description}</div>
-                      </div>
+                      <span className="font-medium mt-2 sm:mt-0 ml-7 sm:ml-0">{formatPrice(option.price)}</span>
                     </div>
-                    <span className="font-medium mt-2 sm:mt-0 ml-7 sm:ml-0">{formatPrice(option.price)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {/* Promo Code */}
