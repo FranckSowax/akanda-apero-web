@@ -42,6 +42,13 @@ export default function CartPage() {
   
   // Récupérer les éléments du panier depuis le contexte
   const cartItems = state.cart.items;
+  
+  // État local pour gérer le rendu côté client uniquement
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fonction pour changer la quantité d'un article
   const handleQuantityChange = (productId: number, delta: number) => {
@@ -77,25 +84,26 @@ export default function CartPage() {
     }).format(price);
   };
 
-  if (!cartItems || cartItems.length === 0) {
-    return (
-      <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh]">
-        <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-        <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
-        <p className="mb-6 text-gray-600 text-center">Vous n'avez pas encore ajouté de produits à votre panier.</p>
-        <Link href="/category">
-          <Button>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Parcourir les produits
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
+  // Rendu de base pour tous les cas
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Breadcrumb */}
+      {/* Affichage conditionnel du contenu après hydratation */}
+      {isClient && (!cartItems || cartItems.length === 0) ? (
+        <div className="flex flex-col items-center justify-center py-16 min-h-[60vh]">
+          <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
+          <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
+          <p className="mb-6 text-gray-600 text-center">Vous n'avez pas encore ajouté de produits à votre panier.</p>
+          <Link href="/category">
+            <Button>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Parcourir les produits
+            </Button>
+          </Link>
+        </div>
+      ) : isClient && cartItems && cartItems.length > 0 ? (
+
+        <>
+          {/* Breadcrumb */}
       <div className="mb-6">
         <Link href="/category" className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -301,24 +309,35 @@ export default function CartPage() {
         </div>
       </div>
       
-      {/* Mobile Sticky Checkout Button - en dehors de la grille pour éviter les doublons */}
-      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/95 backdrop-blur-sm border-t shadow-lg md:hidden z-50 flex justify-center">
-        <div className="w-full max-w-md flex items-center justify-between">
-          <div className="mr-3">
-            <p className="font-semibold text-lg">{formatPrice(total)}</p>
-            <p className="text-xs text-gray-500">Total TTC</p>
+          {/* Mobile Sticky Checkout Button - en dehors de la grille pour éviter les doublons */}
+          <div className="fixed bottom-0 left-0 w-full p-4 bg-white/95 backdrop-blur-sm border-t shadow-lg md:hidden z-50 flex justify-center">
+            <div className="w-full max-w-md flex items-center justify-between">
+              <div className="mr-3">
+                <p className="font-semibold text-lg">{formatPrice(total)}</p>
+                <p className="text-xs text-gray-500">Total TTC</p>
+              </div>
+              <Link href={isLoggedIn ? "/checkout" : "/auth"} className="flex-1">
+                <Button className="w-full" size="lg">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  {isLoggedIn ? "Paiement" : "Se connecter"}
+                </Button>
+              </Link>
+            </div>
           </div>
-          <Link href={isLoggedIn ? "/checkout" : "/auth"} className="flex-1">
-            <Button className="w-full" size="lg">
-              <CreditCard className="mr-2 h-4 w-4" />
-              {isLoggedIn ? "Paiement" : "Se connecter"}
-            </Button>
-          </Link>
+          
+          {/* Ajouter un espace en bas pour éviter que le contenu soit caché par le bouton fixe sur mobile */}
+          <div className="h-24 md:h-0"></div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center py-16 min-h-[60vh]">
+          <div className="animate-pulse">
+            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-48 mb-4 mx-auto"></div>
+            <div className="h-3 bg-gray-200 rounded w-64 mb-6 mx-auto"></div>
+            <div className="h-10 bg-gray-200 rounded w-40 mx-auto"></div>
+          </div>
         </div>
-      </div>
-      
-      {/* Ajouter un espace en bas pour éviter que le contenu soit caché par le bouton fixe sur mobile */}
-      <div className="h-24 md:h-0"></div>
+      )}
     </div>
   );
 }
