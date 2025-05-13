@@ -7,6 +7,7 @@ import { Menu, User, LogIn, ShoppingBag } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import CartDrawer from '../CartDrawer';
+import MobileCartButton from '../MobileCartButton';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -89,7 +90,13 @@ export const Header: React.FC = () => {
             </Link>
           )}
           
-          <CartDrawer />
+          {/* CartDrawer sur desktop, MobileCartButton sur mobile */}
+          <div className="hidden md:block">
+            <CartDrawer />
+          </div>
+          <div className="block md:hidden">
+            <MobileCartButton />
+          </div>
           <button 
             className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors duration-200 touch-manipulation"
             onClick={toggleMenu}
