@@ -465,22 +465,20 @@ export default function CheckoutPage() {
             
             <div className="space-y-2">
               <Label>Option de livraison</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {deliveryOptions.map(option => (
                   <div key={option.id} className="relative">
                     <RadioGroupItem 
                       value={option.id} 
                       id={option.id} 
                       className="peer sr-only"
-                      checked={deliveryInfo.deliveryOption === option.id}
-                      onChange={() => handleDeliveryOptionChange(option.id)}
                     />
                     <Label 
                       htmlFor={option.id}
                       className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer touch-manipulation"
                     >
                       <div className="mb-3 text-2xl">
-                        {option.id === 'standard' ? '🚚' : '⚡️'}
+                        {option.id === 'standard' ? '🚚' : option.id === 'night' ? '🌙' : '⚡️'}
                       </div>
                       <div className="font-semibold">{option.name}</div>
                       <div className="text-sm text-muted-foreground mt-1">{option.description}</div>
@@ -488,7 +486,7 @@ export default function CheckoutPage() {
                     </Label>
                   </div>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
           </CardContent>
           <CardFooter>
