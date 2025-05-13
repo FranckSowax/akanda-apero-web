@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Plus, Minus, ShoppingBag, LogIn } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, LogIn, CreditCard } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAppContext } from '../context/AppContext';
@@ -55,26 +55,18 @@ const CartDrawer: React.FC = () => {
 
   // Composant interne pour le bouton du panier - uniformisé pour éviter les erreurs d'hydratation
   const CartButton = () => {
-    const handleClick = (e: React.MouseEvent) => {
-      // On mobile (touch screen), we force default behavior when the button is clicked
-      // This ensures the button works correctly on all platforms
-      if (window.innerWidth < 768) {
-        e.stopPropagation();
-      }
-    };
-
     return (
       <Button 
         variant="ghost" 
-        className="relative p-2 h-auto cursor-pointer" 
+        className="relative p-2 h-auto cursor-pointer transition-colors duration-200" 
         aria-label="Open cart" 
         id="cart-drawer-trigger"
-        onClick={handleClick}
+        type="button"
       >
         <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
         {isClient && itemCount > 0 && (
           <span 
-            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white"
+            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white animate-pulse"
             suppressHydrationWarning
           >
             {itemCount}
@@ -116,14 +108,14 @@ const CartDrawer: React.FC = () => {
       <SheetTrigger asChild>
         <CartButton />
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader className="mb-4">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="mb-4 sticky top-0 bg-white pb-2 z-10">
           <div className="flex justify-between items-center">
             <SheetTitle className="text-xl font-bold">Votre Panier ({itemCount})</SheetTitle>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-gray-500 hover:text-red-500 flex items-center gap-1 text-xs p-2 touch-manipulation"
+              className="text-gray-500 hover:text-red-500 flex items-center gap-1 text-xs p-2"
               onClick={clearCart}
             >
               <Trash2 className="h-4 w-4" />
@@ -141,9 +133,9 @@ const CartDrawer: React.FC = () => {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="flex gap-3 py-4 border-b border-gray-100"
+                className="flex gap-4 py-4 border-b border-gray-100 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-2"
               >
-                <div className="h-20 w-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-50">
+                <div className="h-20 w-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-50 shadow-sm border border-gray-200 group-hover:border-gray-300 transition-all duration-200">
                   <Image
                     src={item.product.imageUrl}
                     alt={item.product.name}
@@ -228,11 +220,15 @@ const CartDrawer: React.FC = () => {
           )}
           
           <SheetClose asChild>
-            <Link href={isLoggedIn ? "/checkout" : "/auth"}>
-              <Button className="w-full bg-[#f5a623] hover:bg-[#e09000] text-white py-6 text-base font-medium"
-                     style={{ touchAction: 'manipulation' }}>
-                {isLoggedIn ? "Passer à la caisse" : "Se connecter pour commander"}
-              </Button>
+            <Link href="/cart" className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 px-4 py-2 rounded-lg font-medium text-sm w-full flex justify-center items-center transition-colors duration-200">
+              <ShoppingBag className="h-4 w-4 mr-2" />
+              Voir le panier
+            </Link>
+          </SheetClose>
+          <SheetClose asChild>
+            <Link href={isLoggedIn ? "/checkout" : "/auth"} className="bg-[#f5a623] hover:bg-[#e09000] text-white px-4 py-2 rounded-lg font-medium text-sm w-full flex justify-center items-center transition-colors duration-200 shadow-sm">
+              <CreditCard className="h-4 w-4 mr-2" />
+              {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
             </Link>
           </SheetClose>
         </SheetFooter>

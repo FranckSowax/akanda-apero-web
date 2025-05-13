@@ -25,13 +25,13 @@ const MobileCartButton: React.FC = () => {
     <Link href="/cart" passHref className="block">
       <Button 
         variant="ghost" 
-        className="relative p-2 h-auto cursor-pointer" 
+        className="relative p-2 h-auto cursor-pointer transition-colors duration-200" 
         aria-label="Voir le panier"
       >
         <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
         {isClient && itemCount > 0 && (
           <span 
-            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white"
+            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white animate-pulse"
           >
             {itemCount}
           </span>

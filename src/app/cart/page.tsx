@@ -17,7 +17,7 @@ import { useAuth } from '../../hooks/supabase/useAuth';
 const deliveryOptions = [
   { id: 'standard', name: 'Livraison Standard', price: 1000, description: '1-2 jours ouvrables', icon: Truck },
   { id: 'express', name: 'Livraison Express', price: 2000, description: 'Même jour (avant 14h)', icon: Truck },
-  { id: 'night', name: 'Livraison de Nuit', price: 35000, description: '18h-22h', icon: Truck },
+  { id: 'night', name: 'Livraison de Nuit', price: 35000, description: 'Dès 22h30', icon: Truck },
 ];
 
 export default function CartPage() {
@@ -97,7 +97,7 @@ export default function CartPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <div className="mb-6">
-        <Link href="/category" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+        <Link href="/category" className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Continuer les achats
         </Link>
@@ -213,19 +213,23 @@ export default function CartPage() {
               </div>
               
               {/* Delivery Options */}
-              <div className="space-y-2">
-                <Label className="text-gray-600">Livraison</Label>
+              <div className="space-y-3">
+                <Label className="text-gray-600 font-medium">Options de livraison</Label>
                 {deliveryOptions.map((option) => (
                   <div 
                     key={option.id}
-                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-md cursor-pointer ${
-                      selectedDelivery === option.id ? 'border-primary bg-primary/5' : 'border-gray-200'
+                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedDelivery === option.id 
+                        ? 'border-primary bg-primary/5 shadow-sm' 
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                     onClick={() => setSelectedDelivery(option.id)}
                   >
                     <div className="flex items-center w-full sm:w-auto">
-                      <option.icon className="h-5 w-5 mr-2 text-gray-500" />
-                      <div>
+                      <div className={`p-2 rounded-full ${selectedDelivery === option.id ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'}`}>
+                        <option.icon className="h-5 w-5" />
+                      </div>
+                      <div className="ml-3">
                         <div className="font-medium">{option.name}</div>
                         <div className="text-sm text-gray-500">{option.description}</div>
                       </div>
@@ -236,31 +240,31 @@ export default function CartPage() {
               </div>
               
               {/* Promo Code */}
-              <div className="space-y-2">
-                <Label htmlFor="promo-code" className="text-gray-600">Code Promo</Label>
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <Label htmlFor="promo-code" className="text-gray-700 font-medium">Code Promo</Label>
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Input 
                     id="promo-code"
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                     placeholder="Entrez votre code"
-                    className="flex-grow"
+                    className="flex-grow bg-white"
                   />
                   <Button 
                     variant="outline" 
                     onClick={handleApplyPromo}
                     disabled={!promoCode}
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto bg-white hover:bg-gray-100"
                   >
                     Appliquer
                   </Button>
                 </div>
                 {promoApplied && (
-                  <div className="text-green-600 text-sm flex flex-wrap items-center">
+                  <div className="text-green-600 text-sm flex flex-wrap items-center mt-2 p-2 bg-green-50 rounded-md border border-green-100">
                     <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 mr-2 mb-1 sm:mb-0">
                       -{state.cart.promoDiscount}%
                     </Badge>
-                    Code promo appliqué
+                    Code promo appliqué avec succès
                   </div>
                 )}
               </div>
@@ -298,13 +302,19 @@ export default function CartPage() {
       </div>
       
       {/* Mobile Sticky Checkout Button - en dehors de la grille pour éviter les doublons */}
-      <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t shadow-lg md:hidden z-50 flex justify-center">
-        <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full max-w-md">
-          <Button className="w-full" size="lg">
-            <CreditCard className="mr-2 h-4 w-4" />
-            {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
-          </Button>
-        </Link>
+      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/95 backdrop-blur-sm border-t shadow-lg md:hidden z-50 flex justify-center">
+        <div className="w-full max-w-md flex items-center justify-between">
+          <div className="mr-3">
+            <p className="font-semibold text-lg">{formatPrice(total)}</p>
+            <p className="text-xs text-gray-500">Total TTC</p>
+          </div>
+          <Link href={isLoggedIn ? "/checkout" : "/auth"} className="flex-1">
+            <Button className="w-full" size="lg">
+              <CreditCard className="mr-2 h-4 w-4" />
+              {isLoggedIn ? "Paiement" : "Se connecter"}
+            </Button>
+          </Link>
+        </div>
       </div>
       
       {/* Ajouter un espace en bas pour éviter que le contenu soit caché par le bouton fixe sur mobile */}
