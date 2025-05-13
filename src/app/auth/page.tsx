@@ -1,30 +1,79 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { useToast } from '../../components/ui/use-toast';
-import { AlertCircle, Key, User, Mail, EyeOff, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client';
+import { Eye, EyeOff, Mail, Key, AlertCircle } from 'lucide-react';
+
+// Composants UI simplifiés pour éviter les problèmes d'importation
+const Card = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <div className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className || ''}`}>{children}</div>
+);
+
+const CardHeader = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <div className={`flex flex-col space-y-1.5 p-6 ${className || ''}`}>{children}</div>
+);
+
+const CardTitle = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className || ''}`}>{children}</h3>
+);
+
+const CardDescription = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <p className={`text-sm text-muted-foreground ${className || ''}`}>{children}</p>
+);
+
+const CardContent = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <div className={`p-6 pt-0 ${className || ''}`}>{children}</div>
+);
+
+const CardFooter = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <div className={`flex items-center p-6 pt-0 ${className || ''}`}>{children}</div>
+);
+
+const Input = ({ type, placeholder, value, className, onChange, required, minLength }: { type: string, placeholder?: string, value?: string, className?: string, onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, required?: boolean, minLength?: number }) => (
+  <input type={type} placeholder={placeholder} value={value} onChange={onChange} required={required} minLength={minLength} className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background ${className || ''}`} />
+);
+
+const Button = ({ type, className, disabled, onClick, children, variant, role, ...rest }: { type?: "button" | "submit" | "reset", className?: string, disabled?: boolean, onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void, children: React.ReactNode, variant?: string, role?: string, [key: string]: any }) => (
+  <button 
+    type={type} 
+    disabled={disabled} 
+    onClick={onClick} 
+    className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background ${className || ''}`}
+    role={role}
+    {...rest}
+  >
+    {children}
+  </button>
+);
+
+const Tabs = ({ defaultValue, className, children }: { defaultValue: string, className?: string, children: React.ReactNode }) => (
+  <div className={`flex flex-col ${className || ''}`} data-tabs-value={defaultValue}>{children}</div>
+);
+
+const TabsList = ({ className, children }: { className?: string, children: React.ReactNode }) => (
+  <div className={`inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground ${className || ''}`}>{children}</div>
+);
+
+const TabsTrigger = ({ value, className, role, children }: { value: string, className?: string, role?: string, children: React.ReactNode }) => (
+  <button data-value={value} role={role} className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm ${className || ''}`}>{children}</button>
+);
+
+const TabsContent = ({ value, children }: { value: string, children: React.ReactNode }) => (
+  <div data-value={value} className="mt-2">{children}</div>
+);
 
 export default function AuthPage() {
-  const router = useRouter();
-  const { toast } = useToast();
-  
-  // États pour le formulaire
+  // États basiques pour le formulaire
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
+  const [redirectTo, setRedirectTo] = useState('/');
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState('signin');
-  
-  // Extraire le paramètre de redirection de l'URL
-  const [redirectTo, setRedirectTo] = useState('/');
+  const [resetEmail, setResetEmail] = useState('');
   
   // Vérifier si un utilisateur est connecté et gérer la redirection
   useEffect(() => {
@@ -45,143 +94,104 @@ export default function AuthPage() {
       }
       checkSession();
     }
-  }, []);
+  }, [redirectTo]);
   
-  // Fonction de connexion simplifiée pour fonctionner sur tous les appareils
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      // Utiliser directement Supabase pour l'authentification
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Authentification réussie
-      toast({
-        title: "Connexion réussie",
-        description: "Vous êtes maintenant connecté.",
-      });
-      
-      // Redirection directe - approche universelle qui fonctionne sur tous les appareils
-      window.location.href = redirectTo;
-      
-    } catch (error: any) {
-      console.error('Erreur de connexion:', error);
-      toast({
-        title: "Erreur de connexion",
-        description: error.message || "Une erreur s'est produite lors de la connexion.",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
+  // Afficher un message à l'utilisateur
+  const showMessage = (text: string, error = false) => {
+    setMessage(text);
+    setIsError(error);
+    setTimeout(() => setMessage(''), 5000); // Efface le message après 5 secondes
   };
-  
-  // Fonction simplifiée pour réinitialiser le mot de passe
-  const handleResetPassword = async (e: React.FormEvent) => {
+
+  // Fonction de connexion simplifiée pour fonctionner sur tous les appareils
+  // Fonction de réinitialisation de mot de passe
+  const handleResetPassword = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
-    if (!email) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez entrer votre adresse e-mail.",
-        variant: "destructive",
-      });
+    if (!resetEmail) {
+      showMessage("Veuillez entrer votre adresse e-mail.", true);
       return;
     }
     
     setLoading(true);
     
     try {
-      // Utiliser directement l'API Supabase
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?redirect_to=${encodeURIComponent(redirectTo)}`,
       });
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      toast({
-        title: "Email envoyé",
-        description: "Si un compte existe avec cette adresse, vous recevrez un e-mail avec les instructions pour réinitialiser votre mot de passe.",
-      });
-      
+      showMessage("Un e-mail de réinitialisation a été envoyé à votre adresse.");
       setForgotPassword(false);
     } catch (error: any) {
-      console.error('Erreur réinitialisation:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur s'est produite lors de l'envoi de l'e-mail.",
-        variant: "destructive",
-      });
+      console.error('Erreur de réinitialisation:', error);
+      showMessage(error.message || "Une erreur s'est produite lors de la réinitialisation.", true);
     } finally {
       setLoading(false);
     }
   };
   
-  // Fonction simplifiée pour l'inscription
-  const handleSignUp = async (e: React.FormEvent) => {
+  // Fonction d'inscription simplifiée
+  const handleSignUp = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs.",
-        variant: "destructive",
-      });
+      showMessage("Veuillez remplir tous les champs.", true);
       return;
     }
     
     setLoading(true);
     
     try {
-      // Utiliser directement l'API Supabase
       const { error } = await supabase.auth.signUp({
-        email: email, 
+        email: email,
         password: password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth?redirect_to=${encodeURIComponent(redirectTo)}`
         }
       });
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      toast({
-        title: "Inscription réussie",
-        description: "Veuillez vérifier votre boîte de réception pour confirmer votre adresse e-mail.",
-      });
-      
-      // Rediriger vers la page de connexion
-      setTimeout(() => {
-        window.location.href = `/auth?tab=signin&redirect_to=${encodeURIComponent(redirectTo)}`;
-      }, 2000);
-      
+      showMessage("Inscription réussie! Veuillez vérifier votre e-mail pour confirmer votre compte.");
+      setEmail('');
+      setPassword('');
     } catch (error: any) {
       console.error('Erreur inscription:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur s'est produite lors de l'inscription.",
-        variant: "destructive",
+      showMessage(error.message || "Une erreur s'est produite lors de l'inscription.", true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleSignIn = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      showMessage("Veuillez remplir tous les champs.", true);
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
       });
+      
+      if (error) throw error;
+      
+      // Authentification réussie
+      showMessage("Connexion réussie");
+      
+      // Redirection directe - approche universelle
+      window.location.href = redirectTo;
+      
+    } catch (error: any) {
+      console.error('Erreur de connexion:', error);
+      showMessage(error.message || "Une erreur s'est produite lors de la connexion.", true);
     } finally {
       setLoading(false);
     }
