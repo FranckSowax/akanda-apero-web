@@ -104,7 +104,7 @@ export default function CartPage() {
       
       <h1 className="text-3xl font-bold mb-8">Votre Panier</h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
           <Card>
@@ -120,7 +120,7 @@ export default function CartPage() {
                 const itemTotal = itemPrice * item.quantity;
                 
                 return (
-                  <div key={item.product.id} className="flex items-start space-x-4 py-4 border-b last:border-0">
+                  <div key={item.product.id} className="flex flex-wrap md:flex-nowrap items-start space-x-2 md:space-x-4 py-4 border-b last:border-0">
                     {/* Product Image */}
                     <div className="flex-shrink-0">
                       <Link href={`/product/${item.product.id}`}>
@@ -160,7 +160,7 @@ export default function CartPage() {
                     </div>
                     
                     {/* Quantity Controls */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 mt-2 md:mt-0">
                       <button 
                         onClick={() => handleQuantityChange(item.product.id, -1)}
                         className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
@@ -179,7 +179,7 @@ export default function CartPage() {
                     </div>
                     
                     {/* Total & Remove */}
-                    <div className="text-right flex flex-col items-end">
+                    <div className="text-right flex flex-col items-end ml-auto mt-2 md:mt-0">
                       <span className="font-bold">
                         {formatPrice(itemTotal, item.product.currency)}
                       </span>
@@ -217,19 +217,19 @@ export default function CartPage() {
                 {deliveryOptions.map((option) => (
                   <div 
                     key={option.id}
-                    className={`flex items-center justify-between p-3 border rounded-md cursor-pointer ${
+                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-md cursor-pointer ${
                       selectedDelivery === option.id ? 'border-primary bg-primary/5' : 'border-gray-200'
                     }`}
                     onClick={() => setSelectedDelivery(option.id)}
                   >
-                    <div className="flex items-center">
+                    <div className="flex items-center w-full sm:w-auto">
                       <option.icon className="h-5 w-5 mr-2 text-gray-500" />
                       <div>
                         <div className="font-medium">{option.name}</div>
                         <div className="text-sm text-gray-500">{option.description}</div>
                       </div>
                     </div>
-                    <span className="font-medium">{formatPrice(option.price)}</span>
+                    <span className="font-medium mt-2 sm:mt-0 ml-7 sm:ml-0">{formatPrice(option.price)}</span>
                   </div>
                 ))}
               </div>
@@ -237,7 +237,7 @@ export default function CartPage() {
               {/* Promo Code */}
               <div className="space-y-2">
                 <Label htmlFor="promo-code" className="text-gray-600">Code Promo</Label>
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Input 
                     id="promo-code"
                     value={promoCode}
@@ -249,13 +249,14 @@ export default function CartPage() {
                     variant="outline" 
                     onClick={handleApplyPromo}
                     disabled={!promoCode}
+                    className="w-full sm:w-auto"
                   >
                     Appliquer
                   </Button>
                 </div>
                 {promoApplied && (
-                  <div className="text-green-600 text-sm flex items-center">
-                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 mr-2">
+                  <div className="text-green-600 text-sm flex flex-wrap items-center">
+                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 mr-2 mb-1 sm:mb-0">
                       -{state.cart.promoDiscount}%
                     </Badge>
                     Code promo appliqué
@@ -290,6 +291,16 @@ export default function CartPage() {
                   {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
                 </Button>
               </Link>
+              
+              {/* Mobile Sticky Checkout Button */}
+              <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t shadow-lg md:hidden z-50 flex justify-center">
+                <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full max-w-md">
+                  <Button className="w-full" size="lg">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
+                  </Button>
+                </Link>
+              </div>
             </CardFooter>
           </Card>
         </div>
