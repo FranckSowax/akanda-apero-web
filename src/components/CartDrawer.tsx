@@ -57,7 +57,8 @@ const CartDrawer: React.FC = () => {
   const CartButton = () => (
     <Button 
       variant="ghost" 
-      className="relative p-2 h-auto touch-manipulation" 
+      className="relative p-2 h-auto" 
+      style={{ touchAction: 'manipulation' }}
       aria-label="Open cart" 
       id="cart-drawer-trigger"
     >
@@ -152,7 +153,8 @@ const CartDrawer: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 rounded-none touch-manipulation"
+                        className="h-10 w-10 rounded-none"
+                        style={{ touchAction: 'manipulation' }}
                         onClick={() => updateCartItemQuantity(item.product.id, Math.max(1, item.quantity - 1))}
                       >
                         <Minus className="h-4 w-4" />
@@ -161,7 +163,8 @@ const CartDrawer: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 rounded-none touch-manipulation"
+                        className="h-10 w-10 rounded-none"
+                        style={{ touchAction: 'manipulation' }}
                         onClick={() => updateCartItemQuantity(item.product.id, item.quantity + 1)}
                       >
                         <Plus className="h-4 w-4" />
@@ -173,7 +176,8 @@ const CartDrawer: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => removeFromCart(item.product.id)}
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600 text-xs p-0 h-10 w-10 touch-manipulation"
+                  className="text-red-500 hover:bg-red-50 hover:text-red-600 text-xs p-0 h-10 w-10"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -215,7 +219,8 @@ const CartDrawer: React.FC = () => {
           
           <SheetClose asChild>
             <Link href={isLoggedIn ? "/checkout" : "/auth"}>
-              <Button className="w-full bg-[#f5a623] hover:bg-[#e09000] text-white py-6 text-base font-medium touch-manipulation">
+              <Button className="w-full bg-[#f5a623] hover:bg-[#e09000] text-white py-6 text-base font-medium"
+                     style={{ touchAction: 'manipulation' }}>
                 {isLoggedIn ? "Passer à la caisse" : "Se connecter pour commander"}
               </Button>
             </Link>
