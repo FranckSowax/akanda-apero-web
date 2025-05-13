@@ -10,26 +10,8 @@ import { Badge } from '../../components/ui/badge';
 import { Separator } from '../../components/ui/separator';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-
-// Types
-interface CartItem {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  currency: string;
-  quantity: number;
-  isPromo?: boolean;
-  discount?: number;
-}
-
-// Mock Cart Data (In a real app, this would come from a cart state/API)
-const initialCartItems: CartItem[] = [
-  { id: 1, name: 'Pack Tout-en-Un', description: '1 Boîte (12 Canettes)', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae1/100/100', currency: 'XAF', quantity: 1, isPromo: true, discount: 10 },
-  { id: 3, name: 'Gingembre Yuzu', description: '1 Boîte (12 Canettes)', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae3/100/100', currency: 'XAF', quantity: 2 },
-  { id: 7, name: 'Chips Sel Marin', description: 'Sachet 150g', price: 2.50, imageUrl: 'https://picsum.photos/seed/snack1/100/100', currency: 'XAF', quantity: 3 },
-];
+import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../hooks/supabase/useAuth';
 
 // Delivery options
 const deliveryOptions = [
@@ -38,59 +20,51 @@ const deliveryOptions = [
 ];
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [selectedDelivery, setSelectedDelivery] = useState(deliveryOptions[0].id);
+  // Utiliser le contexte du panier pour accéder aux articles et fonctions
+  const { 
+    state, 
+    removeFromCart, 
+    updateCartItemQuantity, 
+    clearCart,
+    applyPromoCode,
+    getCartTotal,
+    getCartItemsCount
+  } = useAppContext();
   
-  useEffect(() => {
-    // In a real app, this would fetch the cart from an API or local storage
-    setCartItems(initialCartItems);
-  }, []);
+  // Vérifier si l'utilisateur est connecté
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+  
+  // État local pour le code promo et la livraison
+  const [promoCode, setPromoCode] = useState('');
+  const [selectedDelivery, setSelectedDelivery] = useState('standard');
+  
+  // Récupérer les éléments du panier depuis le contexte
+  const cartItems = state.cart.items;
 
-  const handleQuantityChange = (id: number, delta: number) => {
-    setCartItems(prev => 
-      prev.map(item => 
-        item.id === id 
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) } 
-          : item
-      )
-    );
-  };
-
-  const handleRemoveItem = (id: number) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
-  };
-
-  const handleApplyPromo = () => {
-    // In a real app, this would validate the promo code with an API
-    if (promoCode.toLowerCase() === 'akanda10') {
-      setPromoApplied(true);
-      setPromoDiscount(10);
-    } else {
-      setPromoApplied(false);
-      setPromoDiscount(0);
-      alert('Code promo invalide');
+  // Fonction pour changer la quantité d'un article
+  const handleQuantityChange = (productId: number, delta: number) => {
+    const item = cartItems.find(item => item.product.id === productId);
+    if (item) {
+      updateCartItemQuantity(productId, Math.max(1, item.quantity + delta));
     }
   };
 
-  // Calculate subtotal
-  const subtotal = cartItems.reduce((total, item) => {
-    const itemPrice = item.isPromo && item.discount 
-      ? item.price * (1 - item.discount / 100) 
-      : item.price;
-    return total + (itemPrice * item.quantity);
-  }, 0);
+  // Fonction pour supprimer un article
+  const handleRemoveItem = (productId: number) => {
+    removeFromCart(productId);
+  };
 
-  // Get delivery cost
-  const deliveryCost = deliveryOptions.find(option => option.id === selectedDelivery)?.price || 0;
+  // Fonction pour appliquer un code promo
+  const handleApplyPromo = () => {
+    applyPromoCode(promoCode);
+  };
 
-  // Calculate discount amount
-  const discountAmount = promoApplied ? (subtotal * promoDiscount / 100) : 0;
-
-  // Calculate total
-  const total = subtotal + deliveryCost - discountAmount;
+  // Obtenir les totaux depuis le contexte
+  const { subtotal, deliveryCost, discount: discountAmount, total } = getCartTotal();
+  
+  // État pour savoir si un code promo est appliqué
+  const promoApplied = state.cart.promoCode !== '' && state.cart.promoDiscount > 0;
 
   // Format price
   const formatPrice = (price: number, currency: string = 'XAF') => {
@@ -102,7 +76,7 @@ export default function CartPage() {
     }).format(price);
   };
 
-  if (cartItems.length === 0) {
+  if (!cartItems || cartItems.length === 0) {
     return (
       <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh]">
         <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
@@ -135,23 +109,24 @@ export default function CartPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Articles ({cartItems.reduce((total, item) => total + item.quantity, 0)})</CardTitle>
+              <CardTitle>Articles ({getCartItemsCount()})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {cartItems.map((item) => {
-                const itemPrice = item.isPromo && item.discount 
-                  ? item.price * (1 - item.discount / 100) 
-                  : item.price;
+                const product = item.product;
+                const itemPrice = product.isPromo && product.discount 
+                  ? product.price * (1 - product.discount / 100) 
+                  : product.price;
                 const itemTotal = itemPrice * item.quantity;
                 
                 return (
-                  <div key={item.id} className="flex items-start space-x-4 py-4 border-b last:border-0">
+                  <div key={item.product.id} className="flex items-start space-x-4 py-4 border-b last:border-0">
                     {/* Product Image */}
                     <div className="flex-shrink-0">
-                      <Link href={`/product/${item.id}`}>
+                      <Link href={`/product/${item.product.id}`}>
                         <Image 
-                          src={item.imageUrl} 
-                          alt={item.name} 
+                          src={item.product.imageUrl} 
+                          alt={item.product.name} 
                           width={80} 
                           height={80} 
                           className="rounded-md object-cover"
@@ -161,25 +136,25 @@ export default function CartPage() {
                     
                     {/* Product Info */}
                     <div className="flex-grow">
-                      <Link href={`/product/${item.id}`} className="hover:underline">
-                        <h3 className="font-medium">{item.name}</h3>
+                      <Link href={`/product/${item.product.id}`} className="hover:underline">
+                        <h3 className="font-medium">{item.product.name}</h3>
                       </Link>
-                      <p className="text-sm text-gray-500">{item.description}</p>
+                      <p className="text-sm text-gray-500">{item.product.description}</p>
                       
                       {/* Price */}
                       <div className="mt-1">
-                        {item.isPromo && item.discount ? (
+                        {item.product.isPromo && item.product.discount ? (
                           <div className="flex items-center">
                             <span className="text-red-600 font-medium">
-                              {formatPrice(itemPrice, item.currency)}
+                              {formatPrice(itemPrice, item.product.currency)}
                             </span>
                             <span className="ml-2 text-sm text-gray-500 line-through">
-                              {formatPrice(item.price, item.currency)}
+                              {formatPrice(item.product.price, item.product.currency)}
                             </span>
                           </div>
                         ) : (
                           <span className="font-medium">
-                            {formatPrice(item.price, item.currency)}
+                            {formatPrice(item.product.price, item.product.currency)}
                           </span>
                         )}
                       </div>
@@ -188,7 +163,7 @@ export default function CartPage() {
                     {/* Quantity Controls */}
                     <div className="flex items-center space-x-2">
                       <button 
-                        onClick={() => handleQuantityChange(item.id, -1)}
+                        onClick={() => handleQuantityChange(item.product.id, -1)}
                         className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
                         aria-label="Diminuer la quantité"
                       >
@@ -196,7 +171,7 @@ export default function CartPage() {
                       </button>
                       <span className="w-8 text-center">{item.quantity}</span>
                       <button 
-                        onClick={() => handleQuantityChange(item.id, 1)}
+                        onClick={() => handleQuantityChange(item.product.id, 1)}
                         className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
                         aria-label="Augmenter la quantité"
                       >
@@ -207,10 +182,10 @@ export default function CartPage() {
                     {/* Total & Remove */}
                     <div className="text-right flex flex-col items-end">
                       <span className="font-bold">
-                        {formatPrice(itemTotal, item.currency)}
+                        {formatPrice(itemTotal, item.product.currency)}
                       </span>
                       <button 
-                        onClick={() => handleRemoveItem(item.id)}
+                        onClick={() => handleRemoveItem(item.product.id)}
                         className="text-gray-400 hover:text-red-500 mt-2"
                         aria-label="Supprimer l'article"
                       >
@@ -282,7 +257,7 @@ export default function CartPage() {
                 {promoApplied && (
                   <div className="text-green-600 text-sm flex items-center">
                     <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 mr-2">
-                      -{promoDiscount}%
+                      -{state.cart.promoDiscount}%
                     </Badge>
                     Code promo appliqué
                   </div>
@@ -310,10 +285,12 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" size="lg">
-                <CreditCard className="mr-2 h-4 w-4" />
-                Procéder au paiement
-              </Button>
+              <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full">
+                <Button className="w-full" size="lg">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
+                </Button>
+              </Link>
             </CardFooter>
           </Card>
         </div>
