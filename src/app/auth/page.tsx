@@ -177,7 +177,13 @@ export default function AuthPage() {
             
             <TabsContent value="signin">
               {!forgotPassword ? (
-                <form onSubmit={handleSignIn} className="space-y-4 mt-4">
+                <form 
+                  className="space-y-4" 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSignIn(e);
+                  }}
+                >
                   <div className="space-y-2">
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -248,7 +254,13 @@ export default function AuthPage() {
                     <AlertCircle className="h-5 w-5 text-blue-400 mr-2" />
                     <p className="text-sm text-blue-600">Nous vous enverrons un lien pour réinitialiser votre mot de passe.</p>
                   </div>
-                  <form onSubmit={handleResetPassword} className="space-y-4">
+                  <form 
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleResetPassword(e);
+                    }}
+                  >
                     <div className="space-y-2">
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -277,6 +289,12 @@ export default function AuthPage() {
                         type="submit" 
                         className="flex-1 bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
                         disabled={loading}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (!loading) {
+                            handleResetPassword(e);
+                          }
+                        }}
                       >
                         {loading ? "Envoi..." : "Envoyer le lien"}
                       </Button>
@@ -287,7 +305,13 @@ export default function AuthPage() {
             </TabsContent>
             
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4 mt-4">
+              <form 
+                className="space-y-4 mt-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSignUp(e);
+                }}
+              >
                 <div className="space-y-2">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -332,7 +356,10 @@ export default function AuthPage() {
                     className="w-full bg-[#f5a623] hover:bg-[#e09000] py-3 text-base rounded-md touch-manipulation active:opacity-80 focus:outline-none"
                     disabled={loading}
                     onClick={(e) => {
-                      if (loading) e.preventDefault();
+                      e.preventDefault();
+                      if (!loading) {
+                        handleSignUp(e);
+                      }
                     }}
                     role="button"
                     aria-label="S'inscrire"
