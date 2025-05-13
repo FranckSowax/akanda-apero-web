@@ -22,11 +22,10 @@ const MobileCartButton: React.FC = () => {
   }, []);
 
   return (
-    <Link href="/cart" passHref>
+    <Link href="/cart" passHref className="block">
       <Button 
         variant="ghost" 
-        className="relative p-2 h-auto" 
-        style={{ touchAction: 'manipulation' }}
+        className="relative p-2 h-auto cursor-pointer" 
         aria-label="Voir le panier"
       >
         <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />

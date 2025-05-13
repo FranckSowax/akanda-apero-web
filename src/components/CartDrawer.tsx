@@ -54,25 +54,35 @@ const CartDrawer: React.FC = () => {
   };
 
   // Composant interne pour le bouton du panier - uniformisé pour éviter les erreurs d'hydratation
-  const CartButton = () => (
-    <Button 
-      variant="ghost" 
-      className="relative p-2 h-auto" 
-      style={{ touchAction: 'manipulation' }}
-      aria-label="Open cart" 
-      id="cart-drawer-trigger"
-    >
-      <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
-      {isClient && itemCount > 0 && (
-        <span 
-          className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white"
-          suppressHydrationWarning
-        >
-          {itemCount}
-        </span>
-      )}
-    </Button>
-  );
+  const CartButton = () => {
+    const handleClick = (e: React.MouseEvent) => {
+      // On mobile (touch screen), we force default behavior when the button is clicked
+      // This ensures the button works correctly on all platforms
+      if (window.innerWidth < 768) {
+        e.stopPropagation();
+      }
+    };
+
+    return (
+      <Button 
+        variant="ghost" 
+        className="relative p-2 h-auto cursor-pointer" 
+        aria-label="Open cart" 
+        id="cart-drawer-trigger"
+        onClick={handleClick}
+      >
+        <ShoppingBag className="h-6 w-6 text-gray-700 hover:text-gray-900" />
+        {isClient && itemCount > 0 && (
+          <span 
+            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5a623] text-xs font-bold text-white"
+            suppressHydrationWarning
+          >
+            {itemCount}
+          </span>
+        )}
+      </Button>
+    );
+  };
 
   if (cart.length === 0 || !cart.length) {
     return (

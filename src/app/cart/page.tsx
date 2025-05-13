@@ -17,6 +17,7 @@ import { useAuth } from '../../hooks/supabase/useAuth';
 const deliveryOptions = [
   { id: 'standard', name: 'Livraison Standard', price: 1000, description: '1-2 jours ouvrables', icon: Truck },
   { id: 'express', name: 'Livraison Express', price: 2000, description: 'Même jour (avant 14h)', icon: Truck },
+  { id: 'night', name: 'Livraison de Nuit', price: 35000, description: '18h-22h', icon: Truck },
 ];
 
 export default function CartPage() {
@@ -284,27 +285,30 @@ export default function CartPage() {
                 Tous les prix incluent la TVA.
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="md:block hidden"> {/* Uniquement sur desktop */}
               <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full">
                 <Button className="w-full" size="lg">
                   <CreditCard className="mr-2 h-4 w-4" />
                   {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
                 </Button>
               </Link>
-              
-              {/* Mobile Sticky Checkout Button */}
-              <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t shadow-lg md:hidden z-50 flex justify-center">
-                <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full max-w-md">
-                  <Button className="w-full" size="lg">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
-                  </Button>
-                </Link>
-              </div>
             </CardFooter>
           </Card>
         </div>
       </div>
+      
+      {/* Mobile Sticky Checkout Button - en dehors de la grille pour éviter les doublons */}
+      <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t shadow-lg md:hidden z-50 flex justify-center">
+        <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full max-w-md">
+          <Button className="w-full" size="lg">
+            <CreditCard className="mr-2 h-4 w-4" />
+            {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
+          </Button>
+        </Link>
+      </div>
+      
+      {/* Ajouter un espace en bas pour éviter que le contenu soit caché par le bouton fixe sur mobile */}
+      <div className="h-24 md:h-0"></div>
     </div>
   );
 }
