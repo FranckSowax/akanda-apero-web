@@ -1,31 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useAuth } from '../../hooks/supabase/useAuth';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useToast } from '../../components/ui/use-toast';
 import { AlertCircle, Key, User, Mail, EyeOff, Eye } from 'lucide-react';
+import { supabase } from '../../lib/supabase/client';
 
 export default function AuthPage() {
   const router = useRouter();
-  const { signIn, signUp, resetPassword, user } = useAuth();
   const { toast } = useToast();
   
+  // États pour le formulaire
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('signin');
   
   // Extraire le paramètre de redirection de l'URL
-  const [redirectTo, setRedirectTo] = React.useState('/');
+  const [redirectTo, setRedirectTo] = useState('/');
   
-  React.useEffect(() => {
+  // Vérifier si un utilisateur est connecté et gérer la redirection
+  useEffect(() => {
+    // Vérifier si une session existe déjà
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        window.location.href = redirectTo;
+      }
+    };
+    
     // Récupérer le paramètre de redirection s'il existe
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -33,35 +43,45 @@ export default function AuthPage() {
       if (redirect) {
         setRedirectTo(redirect);
       }
+      checkSession();
     }
   }, []);
   
-  // Rediriger si déjà connecté
-  React.useEffect(() => {
-    if (user) {
-      router.push(redirectTo);
-    }
-  }, [user, router, redirectTo]);
-  
+  // Fonction de connexion simplifiée pour fonctionner sur tous les appareils
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      console.log('Tentative de connexion avec:', { email, redirectTo });
-      const result = await signIn(email, password);
-      console.log('Résultat de connexion:', result);
+      // Utiliser directement Supabase pour l'authentification
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
       
+      if (error) {
+        throw error;
+      }
+      
+      // Authentification réussie
       toast({
         title: "Connexion réussie",
         description: "Vous êtes maintenant connecté.",
       });
       
-      // Forcer un délai court avant la redirection pour s'assurer que les états sont correctement mis à jour
-      setTimeout(() => {
-        console.log('Redirection vers:', redirectTo);
-        router.push(redirectTo);
-      }, 300);
+      // Redirection directe - approche universelle qui fonctionne sur tous les appareils
+      window.location.href = redirectTo;
+      
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
       toast({
@@ -69,27 +89,43 @@ export default function AuthPage() {
         description: error.message || "Une erreur s'est produite lors de la connexion.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
   
+  // Fonction simplifiée pour réinitialiser le mot de passe
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer votre adresse e-mail.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      if (!email) {
-        throw new Error("Veuillez entrer votre adresse e-mail.");
+      // Utiliser directement l'API Supabase
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
       }
       
-      await resetPassword(email);
       toast({
         title: "Email envoyé",
         description: "Si un compte existe avec cette adresse, vous recevrez un e-mail avec les instructions pour réinitialiser votre mot de passe.",
       });
+      
       setForgotPassword(false);
     } catch (error: any) {
+      console.error('Erreur réinitialisation:', error);
       toast({
         title: "Erreur",
         description: error.message || "Une erreur s'est produite lors de l'envoi de l'e-mail.",
@@ -100,21 +136,49 @@ export default function AuthPage() {
     }
   };
   
+  // Fonction simplifiée pour l'inscription
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      await signUp(email, password);
+      // Utiliser directement l'API Supabase
+      const { error } = await supabase.auth.signUp({
+        email: email, 
+        password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth?redirect_to=${encodeURIComponent(redirectTo)}`
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast({
         title: "Inscription réussie",
-        description: "Un e-mail de confirmation a été envoyé. Veuillez confirmer votre adresse e-mail.",
+        description: "Veuillez vérifier votre boîte de réception pour confirmer votre adresse e-mail.",
       });
-      // L'utilisateur est automatiquement connecté après inscription dans certains cas
-      // S'il est connecté, le redirige via l'effet useEffect
+      
+      // Rediriger vers la page de connexion
+      setTimeout(() => {
+        window.location.href = `/auth?tab=signin&redirect_to=${encodeURIComponent(redirectTo)}`;
+      }, 2000);
+      
     } catch (error: any) {
+      console.error('Erreur inscription:', error);
       toast({
-        title: "Erreur d'inscription",
+        title: "Erreur",
         description: error.message || "Une erreur s'est produite lors de l'inscription.",
         variant: "destructive",
       });
