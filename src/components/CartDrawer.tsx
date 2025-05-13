@@ -58,7 +58,7 @@ const CartDrawer: React.FC = () => {
     return (
       <Button 
         variant="ghost" 
-        className="relative p-2 h-auto cursor-pointer transition-colors duration-200" 
+        className="relative p-2 h-auto cursor-pointer transition-colors duration-200 border-none outline-none focus:ring-0 focus:ring-offset-0" 
         aria-label="Open cart" 
         id="cart-drawer-trigger"
         type="button"
@@ -80,9 +80,11 @@ const CartDrawer: React.FC = () => {
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <CartButton />
+          <div className="block cursor-pointer">
+            <CartButton />
+          </div>
         </SheetTrigger>
-        <SheetContent className="w-full sm:max-w-md p-3 sm:p-6">
+        <SheetContent side="right" className="w-full sm:max-w-md p-3 sm:p-6">
           <SheetHeader className="mb-6">
             <SheetTitle className="text-xl font-bold">Votre Panier</SheetTitle>
           </SheetHeader>
@@ -106,9 +108,11 @@ const CartDrawer: React.FC = () => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <CartButton />
+        <div className="block cursor-pointer">
+          <CartButton />
+        </div>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="mb-4 sticky top-0 bg-white pb-2 z-10">
           <div className="flex justify-between items-center">
             <SheetTitle className="text-xl font-bold">Votre Panier ({itemCount})</SheetTitle>
