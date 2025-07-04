@@ -1,18 +1,33 @@
 export type Product = {
   id: string;
+  category_id: string | null;
   name: string;
-  slug: string;
   description: string | null;
-  price: number;
-  compare_at_price: number | null;
+  short_description: string | null;
+  image_url: string | null;
+  emoji: string | null;
+  base_price: number;
+  sale_price: number | null;
+  product_type: 'simple' | 'bundle' | 'cocktail_kit';
+  sku: string | null;
   stock_quantity: number;
-  low_stock_threshold: number | null;
-  is_featured: boolean;
+  min_stock_level: number | null;
   is_active: boolean;
+  is_featured: boolean;
+  rating: number;
+  rating_count: number;
+  weight_grams: number | null;
+  alcohol_percentage: number | null;
+  volume_ml: number | null;
+  origin_country: string | null;
+  brand: string | null;
+  tags: string[] | null;
+  meta_title: string | null;
+  meta_description: string | null;
   created_at: string;
   updated_at: string;
   product_images?: ProductImage[];
-  product_categories?: { category_id: string }[];
+  product_options?: ProductOption[];
 };
 
 export type ProductImage = {
@@ -22,6 +37,20 @@ export type ProductImage = {
   alt_text: string | null;
   position: number;
   created_at: string;
+};
+
+export type ProductOption = {
+  id: string;
+  product_id: string;
+  name: string;
+  description: string | null;
+  price_modifier: number;
+  stock_quantity: number;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Category = {
@@ -42,18 +71,44 @@ export type Order = {
   id: string;
   order_number: string;
   customer_id: string | null;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered' | 'cancelled';
   total_amount: number;
-  shipping_address_id: string | null;
-  shipping_method: string | null;
-  shipping_cost: number;
+  subtotal: number;
+  delivery_fee: number;
+  discount_amount: number;
+  // Informations de livraison
+  delivery_address: string | null;
+  delivery_phone: string | null;
+  delivery_notes: string | null;
+  // Coordonnées GPS pour navigation
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
+  delivery_location_address: string | null;
+  delivery_location_accuracy: number | null;
+  // Paiement
   payment_method: string | null;
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
-  notes: string | null;
+  payment_status: string | null;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
   customers?: Customer;
+};
+
+// Type pour les liens de navigation
+export type NavigationLinks = {
+  waze: string;
+  google_maps: string;
+  apple_maps: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+};
+
+// Type pour les commandes avec liens de navigation
+export type OrderWithNavigation = Order & {
+  navigation_links?: NavigationLinks | null;
 };
 
 export type OrderItem = {

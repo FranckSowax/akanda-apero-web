@@ -76,17 +76,21 @@ export function useOrders() {
           customer_id: customer.id,
           status: 'pending',
           total_amount: orderData.totalAmount,
-          shipping_address: orderData.deliveryInfo.address,
-          shipping_city: orderData.deliveryInfo.city,
-          shipping_additional_info: orderData.deliveryInfo.additionalInfo,
-          shipping_lat: orderData.deliveryInfo.location.lat,
-          shipping_lng: orderData.deliveryInfo.location.lng,
-          shipping_method: orderData.deliveryInfo.deliveryOption,
-          shipping_cost: orderData.deliveryCost,
+          subtotal: orderData.subtotal,
+          delivery_fee: orderData.deliveryCost,
+          discount_amount: orderData.discount,
+          // Informations de livraison
+          delivery_address: `${orderData.deliveryInfo.address}, ${orderData.deliveryInfo.city}`,
+          delivery_phone: orderData.customerInfo.phone,
+          delivery_notes: orderData.deliveryInfo.additionalInfo,
+          // Coordonnées GPS pour navigation
+          delivery_latitude: orderData.deliveryInfo.location.hasLocation ? orderData.deliveryInfo.location.lat : null,
+          delivery_longitude: orderData.deliveryInfo.location.hasLocation ? orderData.deliveryInfo.location.lng : null,
+          delivery_location_address: orderData.deliveryInfo.location.hasLocation ? 
+            `${orderData.deliveryInfo.address}, ${orderData.deliveryInfo.city}` : null,
+          // Paiement
           payment_method: orderData.paymentInfo.method,
-          payment_status: 'pending',
-          items_subtotal: orderData.subtotal,
-          discount_amount: orderData.discount
+          payment_status: 'pending'
         }])
         .select()
         .single();

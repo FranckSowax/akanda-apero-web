@@ -11,15 +11,32 @@ import {
 // Types
 interface Product {
   id: string;
+  category_id: string;
   name: string;
   description: string;
-  price: number;
-  stock_quantity: number;
-  category_id: string;
-  is_featured: boolean;
-  is_active: boolean;
+  short_description?: string;
   image_url?: string;
+  emoji?: string;
+  base_price: number;
+  sale_price?: number;
+  product_type?: 'simple' | 'bundle' | 'cocktail_kit';
+  sku?: string;
+  stock_quantity: number;
+  min_stock_level?: number;
+  is_active: boolean;
+  is_featured: boolean;
   rating?: number;
+  rating_count?: number;
+  weight_grams?: number;
+  alcohol_percentage?: number;
+  volume_ml?: number;
+  origin_country?: string;
+  brand?: string;
+  tags?: string[];
+  meta_title?: string;
+  meta_description?: string;
+  created_at?: string;
+  updated_at?: string;
   categories?: { name: string; icon: string };
   product_options?: ProductOption[];
 }
@@ -114,7 +131,7 @@ export default function ProductsPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: 0,
+    base_price: 0,
     stock_quantity: 0,
     category_id: '',
     is_featured: false,
@@ -242,7 +259,7 @@ export default function ProductsPage() {
     setFormData({
       name: '',
       description: '',
-      price: 0,
+      base_price: 0,
       stock_quantity: 0,
       category_id: '',
       is_featured: false,
@@ -261,7 +278,7 @@ export default function ProductsPage() {
     setFormData({
       name: product.name,
       description: product.description,
-      price: product.price,
+      base_price: product.base_price,
       stock_quantity: product.stock_quantity,
       category_id: product.category_id,
       is_featured: product.is_featured,
@@ -589,8 +606,8 @@ export default function ProductsPage() {
                   id="price"
                   type="number"
                   step="1"
-                  value={formData.price}
-                  onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                  value={formData.base_price}
+                  onChange={(e) => setFormData({...formData, base_price: parseFloat(e.target.value) || 0})}
                   placeholder="0"
                   required
                 />
@@ -804,7 +821,7 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">
-                        {product.price.toLocaleString('fr-FR')} FCFA
+                        {product.base_price.toLocaleString('fr-FR')} FCFA
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
