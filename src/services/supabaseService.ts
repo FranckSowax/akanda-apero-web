@@ -15,7 +15,7 @@ export const supabaseService = {
             color
           )
         `)
-        .eq('is_featured', true)
+        // .eq('is_featured', true) // Temporairement désactivé pour afficher tous les produits
         .eq('is_active', true)
         .order('rating', { ascending: false })
         .limit(5)
@@ -42,6 +42,23 @@ export const supabaseService = {
       return data || []
     } catch (error) {
       console.error('Erreur lors du chargement des catégories:', error)
+      return []
+    }
+  },
+
+  // Récupérer toutes les catégories actives
+  async getAllCategories() {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Erreur lors du chargement de toutes les catégories:', error)
       return []
     }
   },

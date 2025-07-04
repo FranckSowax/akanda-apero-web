@@ -13,6 +13,7 @@ import {
 interface Category {
   id: string;
   name: string;
+  slug: string;
   description: string | null;
   emoji: string;
   color: string;
@@ -70,8 +71,11 @@ export default function CategoriesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    slug: '',
     description: '',
     emoji: '📦',
     color: '#3B82F6',
@@ -122,12 +126,26 @@ export default function CategoriesPage() {
     (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Générer un slug à partir du nom
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+      .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces et tirets
+      .replace(/\s+/g, '-') // Remplacer espaces par tirets
+      .replace(/-+/g, '-') // Remplacer tirets multiples par un seul
+      .trim()
+      .replace(/^-+|-+$/g, ''); // Supprimer tirets en début/fin
+  };
+
   // Ouvrir le modal pour créer/éditer
   const openModal = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
       setFormData({
         name: category.name,
+        slug: category.slug || generateSlug(category.name),
         description: category.description || '',
         emoji: category.emoji,
         color: category.color,
@@ -139,6 +157,7 @@ export default function CategoriesPage() {
       setEditingCategory(null);
       setFormData({
         name: '',
+        slug: '',
         description: '',
         emoji: '📦',
         color: '#3B82F6',
@@ -161,12 +180,16 @@ export default function CategoriesPage() {
     e.preventDefault();
     
     try {
+      // Générer le slug automatiquement si vide
+      const slug = formData.slug || generateSlug(formData.name);
+      
       if (editingCategory) {
         // Mise à jour
         const { error } = await supabase
           .from('categories')
           .update({
             name: formData.name,
+            slug: slug,
             description: formData.description || null,
             emoji: formData.emoji,
             color: formData.color,
@@ -184,6 +207,7 @@ export default function CategoriesPage() {
           .from('categories')
           .insert({
             name: formData.name,
+            slug: slug,
             description: formData.description || null,
             emoji: formData.emoji,
             color: formData.color,
@@ -203,18 +227,38 @@ export default function CategoriesPage() {
     }
   };
 
-  // Supprimer une catégorie
-  const deleteCategory = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) return;
+  // Ouvrir le modal de confirmation de suppression
+  const openDeleteModal = (category: Category) => {
+    setCategoryToDelete(category);
+    setShowDeleteModal(true);
+  };
+
+  // Fermer le modal de suppression
+  const closeDeleteModal = () => {
+    setCategoryToDelete(null);
+    setShowDeleteModal(false);
+  };
+
+  // Supprimer une catégorie (fonction effective)
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
 
     try {
       const { error } = await supabase
         .from('categories')
         .delete()
-        .eq('id', id);
+        .eq('id', categoryToDelete.id);
 
       if (error) throw error;
+      
+      // Recharger la liste des catégories
       await loadCategories();
+      
+      // Fermer le modal
+      closeDeleteModal();
+      
+      // Notification de succès
+      alert('Catégorie supprimée avec succès !');
     } catch (err) {
       console.error('Erreur lors de la suppression:', err);
       alert('Erreur lors de la suppression de la catégorie');
@@ -497,7 +541,11 @@ export default function CategoriesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => deleteCategory(category.id)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openDeleteModal(category);
+                            }}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -536,10 +584,32 @@ export default function CategoriesPage() {
                       id="name"
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => {
+                        const newName = e.target.value;
+                        setFormData({ 
+                          ...formData, 
+                          name: newName,
+                          slug: formData.slug || generateSlug(newName)
+                        });
+                      }}
                       placeholder="Ex: Vins rouges"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="slug">Slug (URL) *</Label>
+                    <Input
+                      id="slug"
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      placeholder="Ex: vins-rouges"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Utilisé dans l'URL. Généré automatiquement depuis le nom.
+                    </p>
                   </div>
 
                   <div>
@@ -636,6 +706,50 @@ export default function CategoriesPage() {
                     </Button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de confirmation de suppression */}
+        {showDeleteModal && categoryToDelete && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-5 text-center">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Supprimer la catégorie
+                  </h3>
+                  <div className="mt-2 px-7 py-3">
+                    <p className="text-sm text-gray-500">
+                      Êtes-vous sûr de vouloir supprimer la catégorie <strong>"{categoryToDelete.name}"</strong> ?
+                    </p>
+                    <p className="text-sm text-red-600 mt-2">
+                      Cette action est irréversible et supprimera définitivement cette catégorie.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center space-x-4 mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={closeDeleteModal}
+                      className="px-4 py-2"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={confirmDeleteCategory}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

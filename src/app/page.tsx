@@ -307,10 +307,10 @@ export default function Home() {
             
             {/* Navigation Menu */}
             <nav className="hidden lg:flex items-center space-x-1">
-              <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
+              <Link href="/" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
                 Accueil
               </Link>
-              <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
+              <Link href="/products" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
                 À boire
               </Link>
               <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
@@ -649,19 +649,48 @@ export default function Home() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center text-xl">
-                      {product.image || product.categories?.icon || '🍹'}
+                    {/* Image du produit */}
+                    <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                      {product.image_url ? (
+                        <img 
+                          src={product.image_url} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback vers emoji si l'image ne charge pas
+                            e.currentTarget.style.display = 'none';
+                            const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (nextElement) {
+                              nextElement.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={`w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center text-xl ${
+                          product.image_url ? 'hidden' : 'flex'
+                        }`}
+                      >
+                        {product.emoji || product.categories?.icon || '🍹'}
+                      </div>
                     </div>
                     
                     <div className="flex-1">
                       <h3 className="font-bold text-gray-900 text-sm">{product.name}</h3>
-                      <p className="text-xs text-gray-600">{product.description}</p>
+                      <p className="text-xs text-gray-600 line-clamp-1">
+                        {product.description && product.description.length > 60 
+                          ? `${product.description.substring(0, 60)}...` 
+                          : product.description
+                        }
+                      </p>
                     </div>
                     
                     <div className="text-right">
-                      <div className="font-bold text-gray-900 text-sm">{product.price} XAF</div>
+                      <div className="font-bold text-gray-900 text-sm">
+                        {(product.sale_price || product.base_price || 0).toLocaleString()} XAF
+                      </div>
                       <div className="text-xs text-gray-500">chacun</div>
-                  </div>
+                    </div>
                   
                   <button 
                     onClick={() => addToCart(product)}
@@ -675,10 +704,10 @@ export default function Home() {
             )}
              
             {/* Voir tous les produits button */}
-            <button className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-full font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2">
+            <Link href="/products" className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-full font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2">
               <span>VOIR TOUS LES PRODUITS</span>
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </Link>
           </motion.div>
           
           {/* Top Categories Section */}
