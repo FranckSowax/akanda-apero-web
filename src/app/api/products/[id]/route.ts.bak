@@ -1,0 +1,186 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Product } from '../../../../lib/types';
+
+// Nous utilisons la même base de données fictive définie dans le fichier route.ts parent
+// Dans une application réelle, cela serait géré par un service de base de données
+// Cette approche est utilisée à des fins de démonstration uniquement
+let products: Product[] = [
+  {
+    id: 1,
+    name: "Pack The Party Mix",
+    description: "Assortiment de 12 canettes de diverses boissons pour vos soirées",
+    price: 15000,
+    oldPrice: 18000,
+    imageUrl: "https://picsum.photos/seed/pack1/600/600",
+    category: "Packs",
+    stock: 25,
+    status: 'En stock',
+    rating: 4.5,
+    featured: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 2,
+    name: "Whisky Premium",
+    description: "Whisky de qualité premium, vieilli en fût de chêne pendant 12 ans",
+    price: 35000,
+    imageUrl: "https://picsum.photos/seed/whisky1/600/600",
+    category: "Spiritueux",
+    stock: 10,
+    status: 'En stock',
+    rating: 4.8,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  // Autres produits...
+];
+
+// GET /api/products/:id
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver le produit correspondant à l'ID
+  const product = products.find(p => p.id === id);
+  
+  if (!product) {
+    return NextResponse.json({
+      success: false,
+      error: 'Produit non trouvé'
+    }, { status: 404 });
+  }
+  
+  return NextResponse.json({
+    success: true,
+    data: product
+  });
+}
+
+// PUT /api/products/:id
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    
+    // Trouver l'index du produit
+    const productIndex = products.findIndex(p => p.id === id);
+    
+    if (productIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Produit non trouvé'
+      }, { status: 404 });
+    }
+    
+    // Mettre à jour le produit
+    const updatedProduct = {
+      ...products[productIndex],
+      ...body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Mise à jour du statut en fonction du stock si le stock a été modifié
+    if (body.stock !== undefined) {
+      updatedProduct.status = body.stock > 0 
+        ? (body.stock > 10 ? 'En stock' : 'Stock faible') 
+        : 'Épuisé';
+    }
+    
+    products[productIndex] = updatedProduct;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedProduct,
+      message: 'Produit mis à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du produit:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du produit'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/products/:id
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver l'index du produit
+  const productIndex = products.findIndex(p => p.id === id);
+  
+  if (productIndex === -1) {
+    return NextResponse.json({
+      success: false,
+      error: 'Produit non trouvé'
+    }, { status: 404 });
+  }
+  
+  // Supprimer le produit
+  products.splice(productIndex, 1);
+  
+  return NextResponse.json({
+    success: true,
+    message: 'Produit supprimé avec succès'
+  });
+}
+
+// PATCH /api/products/:id/stock - Endpoint spécifique pour mettre à jour le stock
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    
+    // Vérifier que le stock est fourni
+    if (body.stock === undefined) {
+      return NextResponse.json({
+        success: false,
+        error: 'Le stock est requis pour cette opération'
+      }, { status: 400 });
+    }
+    
+    // Trouver l'index du produit
+    const productIndex = products.findIndex(p => p.id === id);
+    
+    if (productIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Produit non trouvé'
+      }, { status: 404 });
+    }
+    
+    // Mettre à jour le stock et le statut
+    const updatedProduct = {
+      ...products[productIndex],
+      stock: body.stock,
+      status: body.stock > 0 ? (body.stock > 10 ? 'En stock' : 'Stock faible') : 'Épuisé',
+      updatedAt: new Date().toISOString()
+    };
+    
+    products[productIndex] = updatedProduct;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedProduct,
+      message: 'Stock mis à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du stock:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du stock'
+    }, { status: 500 });
+  }
+}

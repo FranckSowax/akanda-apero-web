@@ -1,0 +1,225 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Promotion } from '../../../../lib/types';
+
+// Base de données fictive pour les promotions (dupliquée pour la démo)
+let promotions: Promotion[] = [
+  {
+    id: 1,
+    name: "Offre de Bienvenue",
+    code: "BIENVENUE10",
+    type: "Pourcentage",
+    value: 10,
+    minPurchase: 20000,
+    status: "Actif",
+    usageCount: 87,
+    usageLimit: 200,
+    startDate: "2025-01-01T00:00:00.000Z",
+    endDate: "2025-12-31T23:59:59.000Z",
+    products: [],
+    categories: [],
+    createdAt: "2024-12-15T10:00:00.000Z",
+    updatedAt: "2025-05-01T14:30:00.000Z"
+  },
+  // Autres promotions...
+];
+
+// GET /api/promotions/:id
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver la promotion correspondant à l'ID
+  const promotion = promotions.find(p => p.id === id);
+  
+  if (!promotion) {
+    return NextResponse.json({
+      success: false,
+      error: 'Promotion non trouvée'
+    }, { status: 404 });
+  }
+  
+  return NextResponse.json({
+    success: true,
+    data: promotion
+  });
+}
+
+// PUT /api/promotions/:id
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    
+    // Trouver l'index de la promotion
+    const promotionIndex = promotions.findIndex(p => p.id === id);
+    
+    if (promotionIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Promotion non trouvée'
+      }, { status: 404 });
+    }
+    
+    // Vérifier si le code existe déjà (si modifié)
+    if (body.code && body.code !== promotions[promotionIndex].code) {
+      const existingPromotion = promotions.find(p => p.code === body.code);
+      if (existingPromotion) {
+        return NextResponse.json({
+          success: false,
+          error: 'Ce code promotionnel existe déjà.'
+        }, { status: 409 });
+      }
+    }
+    
+    // Valider les dates si elles sont modifiées
+    if (body.startDate && body.endDate) {
+      const startDate = new Date(body.startDate);
+      const endDate = new Date(body.endDate);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate >= endDate) {
+        return NextResponse.json({
+          success: false,
+          error: 'Dates invalides. La date de début doit être antérieure à la date de fin.'
+        }, { status: 400 });
+      }
+    } else if (body.startDate) {
+      const startDate = new Date(body.startDate);
+      const endDate = new Date(promotions[promotionIndex].endDate);
+      
+      if (isNaN(startDate.getTime()) || startDate >= endDate) {
+        return NextResponse.json({
+          success: false,
+          error: 'Date de début invalide. Elle doit être antérieure à la date de fin existante.'
+        }, { status: 400 });
+      }
+    } else if (body.endDate) {
+      const startDate = new Date(promotions[promotionIndex].startDate);
+      const endDate = new Date(body.endDate);
+      
+      if (isNaN(endDate.getTime()) || startDate >= endDate) {
+        return NextResponse.json({
+          success: false,
+          error: 'Date de fin invalide. Elle doit être postérieure à la date de début existante.'
+        }, { status: 400 });
+      }
+    }
+    
+    // Mettre à jour la promotion
+    const updatedPromotion = {
+      ...promotions[promotionIndex],
+      ...body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    promotions[promotionIndex] = updatedPromotion;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedPromotion,
+      message: 'Promotion mise à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la promotion:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour de la promotion'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/promotions/:id
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver l'index de la promotion
+  const promotionIndex = promotions.findIndex(p => p.id === id);
+  
+  if (promotionIndex === -1) {
+    return NextResponse.json({
+      success: false,
+      error: 'Promotion non trouvée'
+    }, { status: 404 });
+  }
+  
+  // Supprimer la promotion
+  promotions.splice(promotionIndex, 1);
+  
+  return NextResponse.json({
+    success: true,
+    message: 'Promotion supprimée avec succès'
+  });
+}
+
+// PATCH /api/promotions/:id/activate or /api/promotions/:id/deactivate
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+    
+    // Trouver l'index de la promotion
+    const promotionIndex = promotions.findIndex(p => p.id === id);
+    
+    if (promotionIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Promotion non trouvée'
+      }, { status: 404 });
+    }
+    
+    const promotion = promotions[promotionIndex];
+    let updatedPromotion = { ...promotion, updatedAt: new Date().toISOString() };
+    let message = '';
+    
+    // Mettre à jour en fonction de l'action
+    if (action === 'activate') {
+      updatedPromotion.status = 'Actif';
+      message = 'Promotion activée avec succès';
+    } else if (action === 'deactivate') {
+      updatedPromotion.status = 'Inactif';
+      message = 'Promotion désactivée avec succès';
+    } else if (action === 'stats') {
+      // Dans une vraie application, ces statistiques seraient calculées dynamiquement
+      return NextResponse.json({
+        success: true,
+        data: {
+          totalUsage: promotion.usageCount,
+          revenue: promotion.usageCount * 50000, // Valeur fictive pour la démo
+          avgDiscount: promotion.type === 'Pourcentage' 
+            ? Math.round(50000 * (promotion.value / 100)) 
+            : promotion.value,
+        }
+      });
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: 'Action non valide'
+      }, { status: 400 });
+    }
+    
+    promotions[promotionIndex] = updatedPromotion;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedPromotion,
+      message
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la promotion:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour de la promotion'
+    }, { status: 500 });
+  }
+}

@@ -1,0 +1,21 @@
+[build]
+  command = "./netlify-build.sh"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NEXT_USE_NETLIFY_EDGE = "true"
+  NODE_VERSION = "18"
+  NETLIFY_NEXT_PLUGIN_SKIP_INSTALL = "true"
+
+# Configuration des en-têtes pour permettre l'accès à Supabase
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    Content-Security-Policy = "default-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co https://mcdpzoisorbnhkjhljaj.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://* blob:; font-src 'self' data:; frame-src 'self'; object-src 'none'"
+    X-DNS-Prefetch-Control = "on"
