@@ -1,14 +1,13 @@
 [build]
-  command = "./netlify-build.sh"
+  command = "npm run build"
   publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
-  NETLIFY_NEXT_PLUGIN_SKIP_INSTALL = "true"
+  NPM_FLAGS = "--production=false"
 
 # Configuration des en-têtes pour permettre l'accès à Supabase
 [[headers]]
