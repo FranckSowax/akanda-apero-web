@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase/client';
+import { supabaseService } from '../../../services/supabaseService';
+import { useProductSync } from '../../../hooks/useProductSync';
 import { 
   Package, Plus, Search, Edit, Trash2, X, 
   Star, AlertCircle, Save, Eye, EyeOff, 
@@ -128,6 +130,9 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  
+  // Hook de synchronisation
+  const { triggerSync } = useProductSync();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -206,6 +211,16 @@ export default function ProductsPage() {
         
         // Mettre à jour les options si nécessaire
         await updateProductOptions(currentProduct.id);
+        
+        // Déclencher la synchronisation pour les produits modifiés
+        triggerSync({
+          type: 'product_updated',
+          productId: currentProduct.id,
+          categoryId: formData.category_id
+        });
+        
+        // Notifier le service de cache
+        supabaseService.notifyDataChange('products', 'updated', currentProduct.id);
       } else {
         // Création
         const { data: newProduct, error } = await supabase
@@ -220,6 +235,16 @@ export default function ProductsPage() {
         if (newProduct && productOptions.length > 0) {
           await updateProductOptions(newProduct.id);
         }
+        
+        // Déclencher la synchronisation pour les nouveaux produits
+        triggerSync({
+          type: 'product_added',
+          productId: newProduct.id,
+          categoryId: newProduct.category_id
+        });
+        
+        // Notifier le service de cache
+        supabaseService.notifyDataChange('products', 'added', newProduct.id);
       }
       
       await loadData();
@@ -311,6 +336,16 @@ export default function ProductsPage() {
         .eq('id', productId);
         
       if (error) throw error;
+      
+      // Déclencher la synchronisation pour la suppression
+      triggerSync({
+        type: 'product_deleted',
+        productId: productId
+      });
+      
+      // Notifier le service de cache
+      supabaseService.notifyDataChange('products', 'deleted', productId);
+      
       await loadData();
     } catch (err) {
       console.error('Erreur lors de la suppression:', err);

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabaseService } from '../../services/supabaseService';
 import { useCart } from '../../hooks/useCart';
+import { useProductPageSync } from '../../hooks/useProductSync';
 
 interface Product {
   id: string;
@@ -42,6 +43,7 @@ export default function ProductsPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -49,7 +51,21 @@ export default function ProductsPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  const { addToCart, getItemQuantity, getCartItemCount } = useCart();
+  const { addToCart, getItemQuantity, updateQuantity, getCartItemCount } = useCart();
+  
+  // Fonctions de chargement pour la synchronisation
+  const loadProducts = async () => {
+    const productsData = await supabaseService.getAllProducts();
+    setProducts(productsData);
+  };
+  
+  const loadCategories = async () => {
+    const categoriesData = await supabaseService.getAllCategories();
+    setCategories(categoriesData);
+  };
+  
+  // Hook de synchronisation pour recharger automatiquement les données
+  useProductPageSync(loadProducts, loadCategories);
 
   // Charger les données
   useEffect(() => {

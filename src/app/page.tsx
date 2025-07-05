@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Clock, MapPin, Star, Wine, Beer, Zap, Plus, ChefHat, Truck, ChevronLeft, ChevronRight, PackageOpen } from 'lucide-react';
 import { supabaseService } from '../services/supabaseService';
+import { useHomePageSync } from '../hooks/useProductSync';
 
 interface Product {
   id: string;
@@ -222,17 +223,38 @@ export default function Home() {
     setCart([]);
   };
 
+  // Fonctions de chargement des données
+  const loadFeaturedProducts = async () => {
+    try {
+      const featured = await supabaseService.getFeaturedProducts();
+      setFeaturedProducts(featured);
+    } catch (error) {
+      console.error('Erreur lors du chargement des produits vedettes:', error);
+    }
+  };
+
+  const loadTopCategories = async () => {
+    try {
+      const categories = await supabaseService.getTopCategories();
+      setTopCategories(categories);
+      console.log('📊 Catégories chargées avec compteurs:', categories);
+    } catch (error) {
+      console.error('Erreur lors du chargement des catégories:', error);
+    }
+  };
+
+  // Hook de synchronisation pour la page d'accueil
+  useHomePageSync(loadTopCategories);
+
   // Charger les données Supabase
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [featured, categories] = await Promise.all([
-          supabaseService.getFeaturedProducts(),
-          supabaseService.getTopCategories()
+        await Promise.all([
+          loadFeaturedProducts(),
+          loadTopCategories()
         ]);
-        setFeaturedProducts(featured);
-        setTopCategories(categories);
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
       } finally {
@@ -750,7 +772,7 @@ export default function Home() {
                     </div>
                     
                     <div className="text-right">
-                      <div className="font-bold text-gray-900 text-sm">{category.count || 0} produits</div>
+                      <div className="font-bold text-gray-900 text-sm">{category.product_count || 0} produits</div>
                       <div className="text-xs text-gray-500">disponibles</div>
                     </div>
                     
