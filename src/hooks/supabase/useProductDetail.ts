@@ -42,8 +42,7 @@ export function useProductDetail() {
           return products ? 
             products.filter((product: Product) => 
               product.id !== currentProductId && 
-              product.product_categories && 
-              product.product_categories.some(pc => pc.category_id === categoryId)
+              product.category_id === categoryId
             ).slice(0, 4) : // limiter à 4 produits en rapport
             [];
         } catch (error) {

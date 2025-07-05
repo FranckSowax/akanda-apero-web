@@ -53,11 +53,11 @@ export default function ProduitsPage() {
       {
         id: parseInt(product.id) || 0,
         name: product.name,
-        price: product.price,
+        price: product.base_price,
         imageUrl: imageUrl,
         description: product.description || '',
         currency: 'EUR',
-        categorySlug: product.product_categories && product.product_categories.length > 0 ? 'categorie' : 'general',
+        categorySlug: product.category_id ? 'categorie' : 'general',
         stock: product.stock_quantity || 10
       },
       1
@@ -189,9 +189,9 @@ export default function ProduitsPage() {
                             />
                           </div>
                           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            {product.compare_at_price && (
+                            {product.sale_price && (
                               <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                -{Math.round((1 - product.price / product.compare_at_price) * 100)}%
+                                -{Math.round((1 - product.base_price / product.sale_price) * 100)}%
                               </span>
                             )}
                           </div>
@@ -206,9 +206,9 @@ export default function ProduitsPage() {
                         <p className="text-gray-700 text-xs mb-2 sm:mb-3 line-clamp-1 sm:line-clamp-2">{product.description}</p>
                         <div className="flex justify-between items-center mb-3 sm:mb-4">
                           <div>
-                            <div className="font-bold text-lg text-gray-800">{`${formatPrice(product.price)} XAF`}</div>
-                            {product.compare_at_price && (
-                              <div className="text-gray-600 text-xs line-through">{`${formatPrice(product.compare_at_price)} XAF`}</div>
+                            <div className="font-bold text-lg text-gray-800">{`${formatPrice(product.base_price)} XAF`}</div>
+                            {product.sale_price && (
+                              <div className="text-gray-600 text-xs line-through">{`${formatPrice(product.sale_price)} XAF`}</div>
                             )}
                           </div>
                         </div>

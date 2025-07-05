@@ -54,16 +54,16 @@ function convertToUIProduct(product: SupabaseProduct, categoryName?: string): UI
     id: product.id,
     name: product.name,
     description: product.description || '',
-    price: product.price,
+    price: product.base_price,
     imageUrl: getProductImageUrl(product),
     rating: 4.5,
-    discount: product.compare_at_price ? Math.round((1 - product.price / product.compare_at_price) * 100) : undefined,
+    discount: product.sale_price ? Math.round((1 - product.base_price / product.sale_price) * 100) : undefined,
     details: product.description || '',
     ingredients: 'Voir détails sur l\'étiquette du produit',
     stock: product.stock_quantity,
-    categoryId: product.product_categories?.[0]?.category_id,
+    categoryId: product.category_id || undefined,
     categoryName: categoryName,
-    isPromo: product.compare_at_price ? product.price < product.compare_at_price : false
+    isPromo: product.sale_price ? product.base_price < product.sale_price : false
   };
 }
 
@@ -98,7 +98,7 @@ export default function ProductClient({ productId }: { productId: string }) {
     
     if (relatedProductsData && !relatedProductsLoading && categoriesData) {
       const convertedProducts = relatedProductsData.map((prod: SupabaseProduct) => {
-        const catId = prod.product_categories?.[0]?.category_id;
+        const catId = prod.category_id;
         const catName = catId && categoriesData
           ? categoriesData.find((c: { id: string; name: string }) => c.id === catId)?.name
           : undefined;

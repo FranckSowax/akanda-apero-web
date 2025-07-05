@@ -25,7 +25,23 @@ interface Category {
 }
 
 // Composants UI intégrés
-const Button = ({ children, variant = 'default', size = 'default', className = '', onClick, disabled = false, type = 'button' }: any) => {
+function Button({ 
+  children, 
+  variant = 'default', 
+  size = 'default', 
+  className = '', 
+  type = 'button',
+  onClick,
+  disabled = false 
+}: {
+  children: React.ReactNode;
+  variant?: 'default' | 'destructive' | 'outline' | 'ghost' | 'secondary';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  className?: string;
+  type?: 'button' | 'submit' | 'reset';
+  onClick?: (e?: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
+}) {
   const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
   const variants = {
     default: 'bg-blue-600 text-white hover:bg-blue-700',
@@ -223,7 +239,23 @@ export default function CategoriesPage() {
       closeModal();
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);
-      alert('Erreur lors de la sauvegarde de la catégorie');
+      
+      // Affichage détaillé de l'erreur
+      let errorMessage = 'Erreur lors de la sauvegarde de la catégorie';
+      
+      if (err && typeof err === 'object') {
+        if ('message' in err) {
+          errorMessage += ': ' + (err as any).message;
+        } else if ('error' in err) {
+          errorMessage += ': ' + (err as any).error;
+        } else {
+          errorMessage += ': ' + JSON.stringify(err);
+        }
+      } else if (typeof err === 'string') {
+        errorMessage += ': ' + err;
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -410,7 +442,7 @@ export default function CategoriesPage() {
                 type="text"
                 placeholder="Rechercher une catégorie..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -541,9 +573,9 @@ export default function CategoriesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
+                            onClick={(e?: React.MouseEvent<HTMLButtonElement>) => {
+                              e?.preventDefault();
+                              e?.stopPropagation();
                               openDeleteModal(category);
                             }}
                             className="text-red-600 hover:text-red-700"
@@ -584,7 +616,7 @@ export default function CategoriesPage() {
                       id="name"
                       type="text"
                       value={formData.name}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const newName = e.target.value;
                         setFormData({ 
                           ...formData, 
@@ -603,7 +635,7 @@ export default function CategoriesPage() {
                       id="slug"
                       type="text"
                       value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, slug: e.target.value })}
                       placeholder="Ex: vins-rouges"
                       required
                     />
@@ -617,7 +649,7 @@ export default function CategoriesPage() {
                     <textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Description de la catégorie..."
                       rows={3}
                       className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -649,13 +681,13 @@ export default function CategoriesPage() {
                         <input
                           type="color"
                           value={formData.color}
-                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, color: e.target.value })}
                           className="h-10 w-16 rounded border border-gray-300"
                         />
                         <Input
                           type="text"
                           value={formData.color}
-                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, color: e.target.value })}
                           placeholder="#3B82F6"
                           className="flex-1"
                         />
@@ -669,7 +701,7 @@ export default function CategoriesPage() {
                       id="sort_order"
                       type="number"
                       value={formData.sort_order}
-                      onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
                       min="0"
                     />
                   </div>
@@ -680,7 +712,7 @@ export default function CategoriesPage() {
                       id="image_url"
                       type="url"
                       value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, image_url: e.target.value })}
                       placeholder="https://example.com/image.jpg"
                     />
                   </div>
@@ -690,7 +722,7 @@ export default function CategoriesPage() {
                       type="checkbox"
                       id="is_active"
                       checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, is_active: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <Label htmlFor="is_active">Catégorie active</Label>

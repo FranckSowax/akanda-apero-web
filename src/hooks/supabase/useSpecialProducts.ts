@@ -24,14 +24,11 @@ export function useSpecialProducts() {
           // La fonction mcp.read retourne directement un tableau de produits
           const products = await mcp.read('products') as Product[];
           
-          // Filtrer pour ne retourner que les produits de la catégorie "cocktails"
-          // Note: Nous supposons qu'il existe une catégorie avec le slug "cocktails"
+          // Filtrer pour ne retourner que les produits contenant "cocktail" dans le nom ou la description
           return products ? 
             products.filter((product: Product) => 
-              product.product_categories && 
-              product.product_categories.some((pc: ProductCategoryJoin) => 
-                pc.categories && (pc.categories.slug === 'cocktails' || pc.categories.name.toLowerCase().includes('cocktail'))
-              )
+              product.name.toLowerCase().includes('cocktail') || 
+              (product.description && product.description.toLowerCase().includes('cocktail'))
             ) : 
             [];
         } catch (error) {
@@ -51,18 +48,13 @@ export function useSpecialProducts() {
           // La fonction mcp.read retourne directement un tableau de produits
           const products = await mcp.read('products') as Product[];
           
-          // Filtrer pour ne retourner que les produits de la catégorie "kits football"
-          // Note: Nous supposons qu'il existe une catégorie avec le slug "football" ou contenant "football" dans le nom
+          // Filtrer pour ne retourner que les produits contenant "football" ou "match" dans le nom ou la description
           return products ? 
             products.filter((product: Product) => 
-              product.product_categories && 
-              product.product_categories.some((pc: ProductCategoryJoin) => 
-                pc.categories && (
-                  pc.categories.slug === 'football-kits' || 
-                  pc.categories.name.toLowerCase().includes('football') ||
-                  pc.categories.name.toLowerCase().includes('match')
-                )
-              )
+              product.name.toLowerCase().includes('football') || 
+              product.name.toLowerCase().includes('match') ||
+              (product.description && product.description.toLowerCase().includes('football')) ||
+              (product.description && product.description.toLowerCase().includes('match'))
             ) : 
             [];
         } catch (error) {
