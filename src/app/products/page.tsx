@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Grid, List, ShoppingCart, Star, Heart, Eye, Menu, X } from 'lucide-react';
@@ -39,8 +39,28 @@ interface Category {
   is_active: boolean;
 }
 
-export default function ProductsPage() {
+// Composant qui gère les paramètres URL
+function ProductsPageWrapper() {
   const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category');
+  const categoryNameParam = searchParams.get('categoryName');
+  
+  return (
+    <ProductsContent 
+      categoryParam={categoryParam}
+      categoryNameParam={categoryNameParam}
+    />
+  );
+}
+
+// Composant principal avec la logique métier
+function ProductsContent({ 
+  categoryParam, 
+  categoryNameParam 
+}: { 
+  categoryParam: string | null;
+  categoryNameParam: string | null;
+}) {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -95,14 +115,11 @@ export default function ProductsPage() {
 
   // Détecter les paramètres d'URL pour le filtre de catégorie
   useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    const categoryNameParam = searchParams.get('categoryName');
-    
     if (categoryParam && categoryParam !== 'all') {
       setSelectedCategory(categoryParam);
       console.log(`🎯 Filtre de catégorie appliqué depuis l'URL: ${categoryNameParam || categoryParam}`);
     }
-  }, [searchParams]);
+  }, [categoryParam, categoryNameParam]);
 
   // Filtrer et trier les produits
   useEffect(() => {
@@ -490,5 +507,21 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Composant principal avec Suspense boundary
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des produits...</p>
+        </div>
+      </div>
+    }>
+      <ProductsPageWrapper />
+    </Suspense>
   );
 }
