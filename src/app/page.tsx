@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Clock, MapPin, Star, Wine, Beer, Zap, Plus, ChefHat, Truck, ChevronLeft, ChevronRight, PackageOpen } from 'lucide-react';
@@ -187,6 +188,7 @@ const heroSlides = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [cart, setCart] = useState<Product[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -244,7 +246,7 @@ export default function Home() {
   };
 
   // Hook de synchronisation pour la page d'accueil
-  useHomePageSync(loadTopCategories);
+  useHomePageSync(loadTopCategories, loadFeaturedProducts);
 
   // Charger les données Supabase
   useEffect(() => {
@@ -308,6 +310,13 @@ export default function Home() {
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
+  };
+
+  // Navigation vers la page produits avec filtre de catégorie
+  const navigateToProductsWithCategory = (categoryId: string, categoryName: string) => {
+    // Encoder le nom de la catégorie pour l'URL
+    const encodedCategoryName = encodeURIComponent(categoryName);
+    router.push(`/products?category=${categoryId}&categoryName=${encodedCategoryName}`);
   };
 
   return (
@@ -758,6 +767,7 @@ export default function Home() {
                 {topCategories.slice(0, 5).map((category: any, index: number) => (
                   <motion.div 
                     key={category.id}
+                    onClick={() => navigateToProductsWithCategory(category.id, category.name)}
                     className="flex items-center space-x-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -776,7 +786,10 @@ export default function Home() {
                       <div className="text-xs text-gray-500">disponibles</div>
                     </div>
                     
-                    <button className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
+                    <button 
+                      onClick={() => navigateToProductsWithCategory(category.id, category.name)}
+                      className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
+                    >
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </motion.div>

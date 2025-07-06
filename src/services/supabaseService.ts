@@ -50,7 +50,7 @@ export const supabaseService = {
   },
 
   // Récupérer les produits en vedette
-  async getFeaturedProducts() {
+  async getFeaturedProducts(): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('products')
@@ -62,12 +62,13 @@ export const supabaseService = {
             color
           )
         `)
-        // .eq('is_featured', true) // Temporairement désactivé pour afficher tous les produits
+        .eq('is_featured', true)
         .eq('is_active', true)
         .order('rating', { ascending: false })
         .limit(5)
 
       if (error) throw error
+      console.log('🌟 Produits vedettes chargés:', data?.length || 0);
       return data || []
     } catch (error) {
       console.error('Erreur lors du chargement des produits vedette:', error)

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Grid, List, ShoppingCart, Star, Heart, Eye, Menu, X } from 'lucide-react';
 import Image from 'next/image';
@@ -39,6 +40,8 @@ interface Category {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -89,6 +92,17 @@ export default function ProductsPage() {
 
     loadData();
   }, []);
+
+  // Détecter les paramètres d'URL pour le filtre de catégorie
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const categoryNameParam = searchParams.get('categoryName');
+    
+    if (categoryParam && categoryParam !== 'all') {
+      setSelectedCategory(categoryParam);
+      console.log(`🎯 Filtre de catégorie appliqué depuis l'URL: ${categoryNameParam || categoryParam}`);
+    }
+  }, [searchParams]);
 
   // Filtrer et trier les produits
   useEffect(() => {

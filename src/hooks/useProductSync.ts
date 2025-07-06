@@ -145,7 +145,10 @@ export const useProductPageSync = (
 };
 
 // Hook spécialisé pour la page d'accueil
-export const useHomePageSync = (reloadCategories: () => Promise<void>) => {
+export const useHomePageSync = (
+  reloadCategories: () => Promise<void>,
+  reloadFeaturedProducts?: () => Promise<void>
+) => {
   const handleSync = useCallback(async (event: ProductSyncEvent) => {
     console.log('🏠 Synchronisation page d\'accueil:', event);
     
@@ -156,7 +159,17 @@ export const useHomePageSync = (reloadCategories: () => Promise<void>) => {
     } catch (error) {
       console.error('❌ Erreur lors du rechargement des catégories:', error);
     }
-  }, [reloadCategories]);
+
+    // Recharger les produits vedettes si la fonction est fournie
+    if (reloadFeaturedProducts) {
+      try {
+        await reloadFeaturedProducts();
+        console.log('✅ Produits vedettes rechargés sur la page d\'accueil');
+      } catch (error) {
+        console.error('❌ Erreur lors du rechargement des produits vedettes:', error);
+      }
+    }
+  }, [reloadCategories, reloadFeaturedProducts]);
 
   const { triggerSync } = useProductSync(handleSync);
 
