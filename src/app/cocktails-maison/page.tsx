@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, 
@@ -195,18 +196,71 @@ export default function CocktailsMaisonPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-green-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+      {/* Hero Section Parallax */}
+      <div className="relative h-[70vh] overflow-hidden">
+        {/* Image de fond avec effet parallax */}
+        <motion.div 
+          className="absolute inset-0 scale-110"
+          initial={{ scale: 1.1 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
+        >
+          <Image
+            src="/Images/banner_akanda.jpg"
+            alt="Cocktails Akanda"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60" />
+        </motion.div>
+        
+        {/* Contenu superposé */}
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="text-center text-white px-4 sm:px-6 lg:px-8">
+            <motion.h1 
+              className="text-5xl md:text-7xl font-black mb-6 drop-shadow-2xl"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.5 }}
+            >
               🍹 Cocktails Maison
-            </h1>
-            <p className="text-lg text-gray-600">
-              Transformez votre maison en bar professionnel
-            </p>
+            </motion.h1>
+            <motion.p 
+              className="text-xl md:text-2xl font-light mb-8 drop-shadow-lg max-w-3xl mx-auto"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.8 }}
+            >
+              Transformez votre maison en bar professionnel avec nos cocktails authentiques
+            </motion.p>
+            <motion.div
+              className="flex justify-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 1.1 }}
+            >
+              <button className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-full transition-all duration-300 transform hover:scale-105 shadow-xl">
+                Découvrir nos cocktails
+              </button>
+            </motion.div>
           </div>
         </div>
+        
+        {/* Indicateur de scroll */}
+        <motion.div 
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <div className="flex flex-col items-center">
+            <span className="text-sm mb-2">Faites défiler</span>
+            <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse" />
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Layout avec barre latérale */}
