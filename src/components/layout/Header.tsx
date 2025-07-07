@@ -44,6 +44,7 @@ export const Header: React.FC = () => {
           </Link>
           <nav className="hidden md:flex space-x-4 lg:space-x-6">
             <Link href="/produits" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Produits</Link>
+            <Link href="/cocktails-maison" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">🍹 Cocktails Maison</Link>
             <Link href="/cocktail-kits" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Kits Cocktails</Link>
             <Link href="/contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Contact</Link>
             <Link href="/admin/dashboard" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Admin</Link>
@@ -118,6 +119,13 @@ export const Header: React.FC = () => {
             onClick={() => dispatch({ type: 'TOGGLE_MENU' })}
           >
             Produits
+          </Link>
+          <Link 
+            href="/cocktails-maison" 
+            className="text-base font-medium text-gray-600 hover:text-gray-900 px-3 py-3 rounded-md hover:bg-gray-50 transition-colors duration-200 touch-manipulation"
+            onClick={() => dispatch({ type: 'TOGGLE_MENU' })}
+          >
+            🍹 Cocktails Maison
           </Link>
           <Link 
             href="/cocktail-kits" 

@@ -159,15 +159,80 @@ export type CocktailKitIngredient = {
   updated_at: string;
 };
 
+// =====================================================
+// TYPES COCKTAILS MAISON
+// =====================================================
+
+export type CocktailMaison = {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string;
+  difficulty_level: number;
+  preparation_time_minutes: number;
+  base_price: number;
+  category: string;
+  alcohol_percentage: number | null;
+  is_active: boolean;
+  is_featured: boolean;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  cocktail_ingredients?: CocktailIngredient[];
+  cocktail_instructions?: CocktailInstruction[];
+};
+
 export type CocktailIngredient = {
   id: string;
-  cocktail_kit_id: string;
+  cocktail_id: string;
   name: string;
   quantity: string;
   unit: string;
-  is_alcoholic: boolean;
   is_optional: boolean;
-  notes: string | null;
+  sort_order: number;
+  created_at: string;
+};
+
+export type CocktailInstruction = {
+  id: string;
+  cocktail_id: string;
+  step_number: number;
+  instruction: string;
+  created_at: string;
+};
+
+export type Mocktail = {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string;
+  base_price: number;
+  preparation_time_minutes: number;
+  is_active: boolean;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  mocktail_ingredients?: MocktailIngredient[];
+};
+
+export type MocktailIngredient = {
+  id: string;
+  mocktail_id: string;
+  name: string;
+  quantity: string;
+  unit: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type CocktailOption = {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string;
+  price: number;
+  is_active: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
