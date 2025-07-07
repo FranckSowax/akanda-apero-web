@@ -434,12 +434,7 @@ function ProductsContent({
                           <h3 className="font-bold text-gray-900 text-lg group-hover:text-green-600 transition-colors">
                             {product.name}
                           </h3>
-                          {product.rating && (
-                            <div className="flex items-center gap-1 text-yellow-500">
-                              <Star className="w-4 h-4 fill-current" />
-                              <span className="text-sm font-medium">{product.rating}</span>
-                            </div>
-                          )}
+                          {/* Rating supprimé pour éliminer le "0" */}
                         </div>
                         
                         <p className={`text-gray-600 text-sm mb-4 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
