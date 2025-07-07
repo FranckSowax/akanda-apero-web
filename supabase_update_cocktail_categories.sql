@@ -5,29 +5,31 @@
 
 -- Mise à jour des catégories pour les cocktails selon le fichier de référence
 
--- 🎉 Réunion familiale & entre amis
+-- 🎉 Tous les événements (catégorie par défaut - pas de mise à jour nécessaire)
+
+-- 🏡 Famille & amis
 UPDATE cocktails_maison 
-SET category = 'Réunion familiale & entre amis'
+SET category = 'Famille & amis'
 WHERE name IN ('Mojito', 'Piña Colada', 'Dark ''n'' Stormy', 'Cosmopolitan', 'Margarita');
 
--- 🎂 Anniversaire festif  
+-- 🎂 Anniversaire
 UPDATE cocktails_maison 
-SET category = 'Anniversaire festif'
+SET category = 'Anniversaire'
 WHERE name IN ('Mai Tai', 'Tequila Sunrise', 'Whisky Sour');
 
--- ❤️ Ambiance romantique
+-- 💕 Romantique
 UPDATE cocktails_maison 
-SET category = 'Ambiance romantique'
+SET category = 'Romantique'
 WHERE name IN ('French 75', 'Espresso Martini');
 
--- 🌍 Cocktails gabonais inspirés du terroir
+-- 🇬🇦 Local
 UPDATE cocktails_maison 
-SET category = 'Cocktails gabonais'
+SET category = 'Local'
 WHERE name IN ('Ndoss Mix', 'Lambar Cocktail', 'Okoumé Sunset', 'Bissap Breeze');
 
--- Mise à jour des mocktails
+-- 🚫 Sans alcool
 UPDATE mocktails 
-SET category = 'Mocktails sans alcool'
+SET category = 'Sans alcool'
 WHERE name IN ('Zébu-Fizz', 'Pink Banana', 'CocoKids');
 
 -- Vérification des mises à jour
