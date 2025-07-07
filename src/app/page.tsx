@@ -848,6 +848,98 @@ export default function Home() {
           </motion.div>
         </div>
         
+        {/* Weekly Cocktail Section */}
+        <motion.div 
+          className="bg-gradient-to-br from-red-400 to-orange-400 rounded-3xl p-6 shadow-xl text-white mt-6 sm:mt-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+        >
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-black mb-2">LE COCKTAIL DE LA SEMAINE 🍸</h2>
+            <p className="text-white/80 text-sm">Découvrez notre création spéciale</p>
+          </div>
+          
+          {/* Main Content - Full Width Split Layout */}
+          <div className="flex flex-col lg:flex-row gap-0 h-48 sm:h-56 lg:h-64">
+            {/* Left - Cocktail Image (Full Height) */}
+            <div className="lg:w-1/2 w-full h-32 lg:h-full">
+              <div className="w-full h-full rounded-2xl lg:rounded-r-none overflow-hidden shadow-2xl">
+                <img 
+                  src="https://i.imgur.com/1nH4E4V.jpg" 
+                  alt="Mango Tango Cocktail"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            
+            {/* Right - Cocktail Info (Full Height) */}
+            <div className="lg:w-1/2 w-full flex flex-col justify-center px-4 lg:px-6 py-4 lg:py-0">
+              {/* Name and Badges */}
+              <div className="mb-3">
+                <h3 className="text-xl lg:text-2xl font-black mb-2">Mango Tango</h3>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <span className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold">NOUVEAU</span>
+                  <span className="bg-green-400 text-green-900 px-3 py-1 rounded-full text-xs font-bold">-20%</span>
+                </div>
+                <p className="text-white/90 text-sm mb-3">Mangue fraîche, rhum blanc, citron vert et menthe</p>
+              </div>
+              
+              {/* Price and Stats Row */}
+              <div className="flex items-center justify-between mb-4">
+                {/* Price */}
+                <div>
+                  <div className="text-2xl lg:text-3xl font-black">2800 XAF</div>
+                  <div className="text-sm text-white/70 line-through">3500 XAF</div>
+                </div>
+                
+                {/* Rating and Popularity */}
+                <div className="flex space-x-4">
+                  <div className="text-center">
+                    <div className="text-lg mb-1">⭐</div>
+                    <div className="text-xs font-semibold opacity-80">NOTE</div>
+                    <div className="text-sm font-bold">4.9/5</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg mb-1">🔥</div>
+                    <div className="text-xs font-semibold opacity-80">POPULARITÉ</div>
+                    <div className="text-sm font-bold">#1</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Add to Cart Button */}
+              <button 
+                onClick={() => {
+                  const cocktail = {
+                    id: 'weekly-cocktail',
+                    name: 'Mango Tango',
+                    description: 'Mangue fraîche, rhum blanc, citron vert et menthe',
+                    price: 2800,
+                    image: 'https://i.imgur.com/1nH4E4V.jpg'
+                  };
+                  addToCart(cocktail);
+                }}
+                className="w-full bg-white text-red-500 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>AJOUTER AU PANIER</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* Availability Notice */}
+          <div className="mt-6 p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+            <div className="flex items-center justify-center space-x-2 text-white/90">
+              <div className="w-4 h-4 bg-green-400 rounded-full flex items-center justify-center">
+                <span className="text-green-900 text-xs font-bold">✓</span>
+              </div>
+              <span className="text-sm font-medium">Disponible uniquement cette semaine</span>
+            </div>
+          </div>
+        </motion.div>
+        
       </main>
       
       {/* Cart Modal */}
