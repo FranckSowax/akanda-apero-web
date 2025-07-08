@@ -322,7 +322,7 @@ function ProductsContent({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group ${
+                      className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group relative ${
                         viewMode === 'list' ? 'flex' : ''
                       }`}
                     >
@@ -438,6 +438,21 @@ function ProductsContent({
                           <p className="text-red-600 text-xs mt-2 font-medium">Rupture de stock</p>
                         )}
                       </div>
+                      
+                      {/* Bouton Add to Cart positionné en bas à droite */}
+                      <AddToCartButton
+                        product={{
+                          id: parseInt(product.id.toString()),
+                          name: product.name,
+                          description: product.description,
+                          price: getPrice(product),
+                          imageUrl: product.image_url || '',
+                          currency: 'XAF',
+                          categorySlug: 'cocktails',
+                          stock: 100,
+                          discount: hasDiscount(product) ? getDiscountPercentage(product) : 0
+                        }}
+                      />
                     </motion.div>
                   ))}
                 </div>

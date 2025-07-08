@@ -446,26 +446,21 @@ const CocktailShowcase = () => {
                   </div>
                 </div>
                 
-                {/* Bouton d'ajout au panier */}
-                <div className="mt-auto flex justify-end">
-                  <AddToCartButton
-                    product={{
-                      id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000),
-                      name: `Kit Cocktail ${cocktail.name} (${quantities[cocktail.id] || 2} pers.)`,
-                      price: calculatePrice(cocktail.price, quantities[cocktail.id] || 2),
-                      imageUrl: cocktail.image,
-                      description: cocktail.description || '',
-                      currency: 'XAF',
-                      categorySlug: 'kit-cocktail',
-                      stock: 10
-                    }}
-                    className="bg-[#f5a623] hover:bg-[#e09000] text-white w-full sm:w-2/3 text-sm py-1.5 rounded-md"
-                    variant="default"
-                  >
-                    Ajouter au panier
-                  </AddToCartButton>
-                </div>
               </div>
+              
+              {/* Bouton Add to Cart positionné en bas à droite */}
+              <AddToCartButton
+                product={{
+                  id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000),
+                  name: `Kit Cocktail ${cocktail.name} (${quantities[cocktail.id] || 2} pers.)`,
+                  price: calculatePrice(cocktail.price, quantities[cocktail.id] || 2),
+                  imageUrl: cocktail.image,
+                  description: cocktail.description || '',
+                  currency: 'XAF',
+                  categorySlug: 'kit-cocktail',
+                  stock: 10
+                }}
+              />
             </div>
           ))}
         </div>

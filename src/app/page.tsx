@@ -533,12 +533,12 @@ export default function Home() {
                 {featuredProducts.slice(0, 5).map((product: any, index: number) => (
                   <motion.div 
                     key={product.id}
-                    className="flex items-center space-x-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer relative"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {/* Image du produit */}
-                    <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0">
                       {product.image_url ? (
                         <img 
                           src={product.image_url} 
@@ -563,9 +563,9 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-sm">{product.name}</h3>
-                      <p className="text-xs text-gray-600 line-clamp-1">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">{product.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
                         {product.description && product.description.length > 60 
                           ? `${product.description.substring(0, 60)}...` 
                           : product.description
@@ -573,31 +573,32 @@ export default function Home() {
                       </p>
                     </div>
                     
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900 text-sm">
-                        {(product.sale_price || product.base_price || 0).toLocaleString()} XAF
+                    <div className="flex items-center justify-between gap-2 sm:gap-3">
+                      <div className="text-right flex-1 min-w-0">
+                        <div className="font-bold text-gray-900 text-sm sm:text-base">
+                          {(product.sale_price || product.base_price || 0).toLocaleString()} XAF
+                        </div>
+                        <div className="text-xs text-gray-500">chacun</div>
                       </div>
-                      <div className="text-xs text-gray-500">chacun</div>
+                      
+                      {/* Petit bouton Add to Cart à côté du prix */}
+                      <div className="flex-shrink-0">
+                        <AddToCartButton
+                          product={{
+                            id: parseInt(product.id) || 0,
+                            name: product.name,
+                            price: product.sale_price || product.base_price || 0,
+                            imageUrl: product.product_images?.[0]?.image_url || '',
+                            description: product.description || '',
+                            currency: 'XAF',
+                            categorySlug: 'featured',
+                            stock: 100
+                          }}
+                          inline={true}
+                        />
+                      </div>
                     </div>
-                  
-                  <AddToCartButton
-                    product={{
-                      id: parseInt(product.id) || 0,
-                      name: product.name,
-                      price: product.sale_price || product.base_price || 0,
-                      imageUrl: product.product_images?.[0]?.image_url || '',
-                      description: product.description || '',
-                      currency: 'XAF',
-                      categorySlug: 'featured',
-                      stock: 100
-                    }}
-                    size="sm"
-                    className="w-8 h-8 !p-0"
-                    variant="default"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </AddToCartButton>
-                </motion.div>
+                  </motion.div>
               ))}
             </div>
             )}
@@ -636,30 +637,32 @@ export default function Home() {
                   <motion.div 
                     key={category.id}
                     onClick={() => navigateToProductsWithCategory(category.id, category.name)}
-                    className="flex items-center space-x-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${category.color || 'from-blue-100 to-blue-200'} rounded-xl flex items-center justify-center text-xl`}>
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${category.color || 'from-blue-100 to-blue-200'} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
                       {category.icon || '🍹'}
                     </div>
                     
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-sm">{category.name}</h3>
-                      <p className="text-xs text-gray-600">{category.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">{category.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">{category.description}</p>
                     </div>
                     
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900 text-sm">{category.product_count || 0} produits</div>
-                      <div className="text-xs text-gray-500">disponibles</div>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-gray-900 text-sm sm:text-base">{category.product_count || 0} produits</div>
+                        <div className="text-xs text-gray-500">disponibles</div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => navigateToProductsWithCategory(category.id, category.name)}
+                        className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors flex-shrink-0"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
-                    
-                    <button 
-                      onClick={() => navigateToProductsWithCategory(category.id, category.name)}
-                      className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
                   </motion.div>
                 ))}
               </div>
@@ -743,7 +746,7 @@ export default function Home() {
             </div>
             
             {/* Right - Cocktail Info (Full Height) */}
-            <div className="lg:w-1/2 w-full flex flex-col justify-center px-4 lg:px-6 py-4 lg:py-0">
+            <div className="lg:w-1/2 w-full flex flex-col justify-center px-4 lg:px-6 py-4 lg:py-0 relative">
               {/* Name and Badges */}
               <div className="mb-3">
                 <h3 className="text-xl lg:text-2xl font-black mb-2">Mango Tango</h3>
@@ -777,7 +780,7 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Add to Cart Button */}
+              {/* Bouton Add to Cart positionné en bas à droite */}
               <AddToCartButton
                 product={{
                   id: 999,
@@ -789,12 +792,7 @@ export default function Home() {
                   categorySlug: 'weekly-special',
                   stock: 100
                 }}
-                className="w-full bg-white text-red-500 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
-                variant="outline"
-              >
-                <Plus className="w-5 h-5" />
-                <span>AJOUTER AU PANIER</span>
-              </AddToCartButton>
+              />
             </div>
           </div>
           

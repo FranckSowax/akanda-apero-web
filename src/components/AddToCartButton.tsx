@@ -18,6 +18,7 @@ interface AddToCartButtonProps {
   showQuantity?: boolean;
   autoOpenModal?: boolean;
   children?: React.ReactNode;
+  inline?: boolean; // Nouvelle prop pour le mode inline
 }
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
@@ -29,7 +30,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   showIcon = true,
   showQuantity = false,
   autoOpenModal = true,
-  children
+  children,
+  inline = false
 }) => {
   const { addToCart, getItemQuantity } = useAppContext();
   const { openCart } = useCartModalContext();
@@ -96,63 +98,54 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   };
 
   return (
-    <Button
+    <motion.button
       onClick={handleAddToCart}
       disabled={isAdding || product.stock <= 0}
       className={`
-        ${getSizeClasses()}
-        ${getVariantClasses()}
-        font-semibold rounded-lg transition-all duration-200
+        ${inline 
+          ? 'relative w-8 h-8 rounded-md' 
+          : 'absolute bottom-2 right-2 z-10 w-10 h-10 rounded-lg'
+        }
+        ${justAdded ? 'bg-green-500 hover:bg-green-600' : 'bg-[#e09000] hover:bg-[#cc7a00]'}
+        text-white shadow-lg
+        flex items-center justify-center
+        transition-all duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
-        relative overflow-hidden
+        hover:scale-105 active:scale-95
         ${className}
       `}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      animate={isAdding ? { scale: 0.9 } : { scale: 1 }}
     >
       <motion.div
-        className="flex items-center gap-2"
-        animate={isAdding ? { scale: 0.95 } : { scale: 1 }}
-        transition={{ duration: 0.1 }}
+        animate={justAdded ? { rotate: 360 } : { rotate: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        {showIcon && (
+        {justAdded ? (
+          <Check className={inline ? "h-4 w-4" : "h-5 w-5"} />
+        ) : isAdding ? (
           <motion.div
-            animate={justAdded ? { rotate: 360 } : { rotate: 0 }}
-            transition={{ duration: 0.5 }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           >
-            {justAdded ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <ShoppingCart className="h-4 w-4" />
-            )}
+            <Plus className={inline ? "h-4 w-4" : "h-5 w-5"} />
           </motion.div>
-        )}
-        
-        {children ? (
-          children
         ) : (
-          <span>
-            {justAdded ? 'Ajouté !' : 
-             isAdding ? 'Ajout...' : 
-             product.stock <= 0 ? 'Rupture' : 
-             'Ajouter au panier'}
-          </span>
-        )}
-        
-        {showQuantity && quantity > 1 && (
-          <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
-            {quantity}
-          </span>
-        )}
-        
-        {currentQuantity > 0 && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"
-          >
-            {currentQuantity}
-          </motion.span>
+          <Plus className={inline ? "h-4 w-4" : "h-5 w-5"} />
         )}
       </motion.div>
+      
+      {/* Badge de quantité */}
+      {currentQuantity > 0 && (
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white"
+        >
+          {currentQuantity}
+        </motion.span>
+      )}
       
       {/* Animation de succès */}
       {justAdded && (
@@ -165,7 +158,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           <Check className="h-5 w-5 text-white" />
         </motion.div>
       )}
-    </Button>
+    </motion.button>
   );
 };
 

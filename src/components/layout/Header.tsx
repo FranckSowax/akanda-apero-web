@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, User, LogIn, ShoppingBag } from 'lucide-react';
@@ -22,6 +22,11 @@ export const Header: React.FC = () => {
   const { isMenuOpen } = state.ui;
   const { user, signOut } = useAuth();
   const { openCart } = useCartModalContext();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleMenu = () => {
     dispatch({ type: 'TOGGLE_MENU' });
@@ -57,7 +62,7 @@ export const Header: React.FC = () => {
           >
             <ShoppingBag className="h-5 w-5 mr-2" />
             PANIER
-            {getCartItemsCount() > 0 && (
+            {mounted && getCartItemsCount() > 0 && (
               <span className="bg-white text-[#e09000] text-xs rounded-full px-2 py-0.5 font-bold">
                 {getCartItemsCount()}
               </span>
@@ -155,7 +160,7 @@ export const Header: React.FC = () => {
             >
               <ShoppingBag className="h-5 w-5" />
               <span>PANIER</span>
-              {getCartItemsCount() > 0 && (
+              {mounted && getCartItemsCount() > 0 && (
                 <span className="bg-white text-[#e09000] text-xs rounded-full px-2 py-0.5 font-bold ml-2">
                   {getCartItemsCount()}
                 </span>

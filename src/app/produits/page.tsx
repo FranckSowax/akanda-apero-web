@@ -152,7 +152,7 @@ export default function ProduitsPage() {
                 {productsData.map((product: Product) => (
                   <div 
                     key={product.id} 
-                    className="group overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full bg-white"
+                    className="group overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full bg-white relative"
                   >
                     {/* Partie supérieure avec fond blanc */}
                     <div className="bg-white">
@@ -193,26 +193,23 @@ export default function ProduitsPage() {
                           </div>
                         </div>
                       </Link>
-                      <AddToCartButton
-                        product={{
-                          id: parseInt(product.id) || 0,
-                          name: product.name,
-                          price: product.base_price,
-                          imageUrl: product.product_images && product.product_images.length > 0 
-                            ? product.product_images[0].image_url 
-                            : 'https://picsum.photos/seed/default/600/600',
-                          description: product.description || '',
-                          currency: 'EUR',
-                          categorySlug: product.category_id ? 'categorie' : 'general',
-                          stock: product.stock_quantity || 10
-                        }}
-                        size="sm"
-                        className="w-full text-[10px] xs:text-xs sm:text-sm py-1 xs:py-2 sm:py-3 h-auto touch-manipulation"
-                        variant="outline"
-                      >
-                        <span className="whitespace-nowrap">Ajouter au panier</span>
-                      </AddToCartButton>
                     </div>
+                    
+                    {/* Bouton Add to Cart positionné en bas à droite */}
+                    <AddToCartButton
+                      product={{
+                        id: parseInt(product.id) || 0,
+                        name: product.name,
+                        price: product.base_price,
+                        imageUrl: product.product_images && product.product_images.length > 0 
+                          ? product.product_images[0].image_url 
+                          : 'https://picsum.photos/seed/default/600/600',
+                        description: product.description || '',
+                        currency: 'EUR',
+                        categorySlug: product.category_id ? 'categorie' : 'general',
+                        stock: product.stock_quantity || 10
+                      }}
+                    />
                   </div>
                 ))}
               </div>
