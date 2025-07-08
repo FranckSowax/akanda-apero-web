@@ -1,5 +1,6 @@
 import "./global.css";
 import { AppProvider } from "../context/AppContext";
+import { CartModalProvider } from "../context/CartModalContext";
 import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata, Viewport } from "next";
@@ -34,12 +35,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AppProvider>
-          <ReactQueryProvider>
-            <div className="touch-manipulation">
-              {children}
-            </div>
-            <ToastNotification />
-          </ReactQueryProvider>
+          <CartModalProvider>
+            <ReactQueryProvider>
+              <div className="touch-manipulation">
+                {children}
+              </div>
+              <ToastNotification />
+            </ReactQueryProvider>
+          </CartModalProvider>
         </AppProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Header } from '../../components/layout/Header';
 import { 
   Clock, 
   Star, 
@@ -196,6 +197,7 @@ export default function CocktailsMaisonPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-green-50">
+      <Header />
       {/* Hero Section Parallax */}
       <div className="relative h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
         {/* Image de fond avec effet parallax */}
@@ -720,31 +722,7 @@ export default function CocktailsMaisonPage() {
             </motion.div>
           </div>
 
-          {/* Panier flottant */}
-          {cartItemCount > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl p-4 border border-gray-200 z-50"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5 text-orange-500" />
-                  <span className="font-semibold text-gray-900">
-                    {cartItemCount} article{cartItemCount > 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg text-orange-600">
-                    {formatPrice(cartTotal)}
-                  </p>
-                </div>
-                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                  Commander
-                </button>
-              </div>
-            </motion.div>
-          )}
+
         </div>
       </div>
     </div>

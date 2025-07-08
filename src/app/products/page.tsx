@@ -8,7 +8,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabaseService } from '../../services/supabaseService';
 import { useCart } from '../../hooks/useCart';
+import AddToCartButton from '../../components/AddToCartButton';
 import { useProductPageSync } from '../../hooks/useProductSync';
+import { Header } from '../../components/layout/Header';
 
 interface Product {
   id: string;
@@ -72,7 +74,6 @@ function ProductsContent({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'rating'>('name');
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const { addToCart, getItemQuantity, updateQuantity, getCartItemCount } = useCart();
   
@@ -178,73 +179,9 @@ function ProductsContent({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="text-2xl font-bold text-green-600">
-              Akanda Apéro
-            </Link>
-            
-            {/* Navigation Desktop */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              <Link href="/" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Accueil
-              </Link>
-              <Link href="/products" className="px-4 py-2 text-green-600 bg-green-50 rounded-xl font-medium">
-                À boire
-              </Link>
-              <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Cocktails Maison
-              </Link>
-              <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Contact
-              </Link>
-            </nav>
-            
-            <div className="flex items-center space-x-4">
-              {/* Panier */}
-              <div className="relative cursor-pointer">
-                <ShoppingCart className="w-6 h-6 text-gray-600" />
-                {getCartItemCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {getCartItemCount()}
-                  </span>
-                )}
-              </div>
-              
-              {/* Menu Mobile */}
-              <button 
-                className="lg:hidden p-2"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-          
-          {/* Menu Mobile */}
-          {mobileMenuOpen && (
-            <div className="lg:hidden border-t border-gray-200 py-4">
-              <nav className="flex flex-col space-y-2">
-                <Link href="/" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                  Accueil
-                </Link>
-                <Link href="/products" className="px-4 py-2 text-green-600 bg-green-50 rounded-xl font-medium">
-                  À boire
-                </Link>
-                <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                  Cocktails Maison
-                </Link>
-                <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                  Contact
-                </Link>
-              </nav>
-            </div>
-          )}
-        </div>
-      </div>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50">
 
       {/* Section Titre et Recherche */}
       <div className="bg-white shadow-sm border-b">
@@ -454,32 +391,40 @@ function ProductsContent({
                             </span>
                           </div>
                           
-                          {getItemQuantity(product.id) > 0 ? (
-                            <div className="flex items-center gap-2">
+                          <AddToCartButton
+                            product={{
+                              id: parseInt(product.id.toString()),
+                              name: product.name,
+                              description: product.description,
+                              price: getPrice(product),
+                              imageUrl: product.image_url || '',
+                              currency: 'XAF',
+                              categorySlug: 'cocktails',
+                              stock: 100,
+                              discount: hasDiscount(product) ? getDiscountPercentage(product) : 0
+                            }}
+                            size="sm"
+                            className="text-sm"
+                          />
+                          
+                          {getItemQuantity(product.id) > 0 && (
+                            <div className="flex items-center gap-2 mt-2">
                               <button 
-                                onClick={() => addToCart(product, -1)}
-                                className="w-8 h-8 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors flex items-center justify-center"
+                                onClick={() => updateQuantity(product.id, Math.max(0, getItemQuantity(product.id) - 1))}
+                                className="w-6 h-6 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors flex items-center justify-center text-sm"
                               >
                                 -
                               </button>
-                              <span className="font-bold text-lg min-w-[2rem] text-center">
+                              <span className="font-bold text-sm min-w-[1.5rem] text-center">
                                 {getItemQuantity(product.id)}
                               </span>
                               <button 
-                                onClick={() => addToCart(product, 1)}
-                                className="w-8 h-8 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors flex items-center justify-center"
+                                onClick={() => updateQuantity(product.id, getItemQuantity(product.id) + 1)}
+                                className="w-6 h-6 bg-[#f5a623] text-white rounded-full hover:bg-[#e09000] transition-colors flex items-center justify-center text-sm"
                               >
                                 +
                               </button>
                             </div>
-                          ) : (
-                            <button 
-                              onClick={() => addToCart(product, 1)}
-                              className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition-colors flex items-center gap-2 font-medium"
-                            >
-                              <ShoppingCart className="w-4 h-4" />
-                              Ajouter
-                            </button>
                           )}
                         </div>
                         
@@ -501,7 +446,8 @@ function ProductsContent({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

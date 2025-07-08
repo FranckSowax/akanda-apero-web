@@ -18,6 +18,7 @@ import { formatPrice } from '../../lib/utils/formatters';
 import { useOrders } from '../../hooks/supabase/useOrders';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Header } from '../../components/layout/Header';
 
 // Types pour la page de checkout
 interface CheckoutCartItem {
@@ -701,7 +702,9 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 sm:py-8 px-4">
+    <>
+      <Header />
+      <div className="container mx-auto py-6 sm:py-8 px-4">
       <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8">Passer une commande</h1>
       
       {/* Si le panier est vide, afficher un message et un lien pour retourner aux produits */}
@@ -728,5 +731,6 @@ export default function CheckoutPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

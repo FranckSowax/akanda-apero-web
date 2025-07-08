@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabase/client';
 import { Eye, EyeOff, Mail, Key, AlertCircle } from 'lucide-react';
+import { Header } from '../../components/layout/Header';
 
 // Composants UI simplifiés pour éviter les problèmes d'importation
 const Card = ({ children, className }: { children: React.ReactNode, className?: string }) => (
@@ -198,7 +199,9 @@ export default function AuthPage() {
   };
   
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden py-12 px-4">
+    <>
+      <Header />
+      <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden py-12 px-4">
       {/* Arrière-plan avec effet fondu */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 to-black/60 z-10" />
@@ -456,5 +459,6 @@ export default function AuthPage() {
       </Card>
       </div>
     </div>
+    </>
   );
 }

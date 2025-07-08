@@ -6,9 +6,8 @@ import Link from 'next/link';
 import { ParallaxSection } from '../../components/ui/parallax-section';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
-import { useAppContext } from '../../context/AppContext';
 import { Button } from '../../components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import AddToCartButton from '../../components/AddToCartButton';
 import { useFeaturedProducts } from '../../hooks/supabase/useFeaturedProducts';
 import { useCategories } from '../../hooks/supabase/useCategories';
 import { Product, Category } from '../../types/supabase';
@@ -16,7 +15,6 @@ import { formatPrice } from '../../lib/utils/formatters';
 
 
 export default function ProduitsPage() {
-  const { addToCart } = useAppContext();
   const [activeCategory, setActiveCategory] = useState('bestseller');
   const [isAnimating, setIsAnimating] = useState(false);
   const { getFeaturedProducts, getProductsByCategory } = useFeaturedProducts();
@@ -44,25 +42,7 @@ export default function ProduitsPage() {
     }, 300);
   };
   
-  const handleAddToCart = (product: Product) => {
-    const imageUrl = product.product_images && product.product_images.length > 0 
-      ? product.product_images[0].image_url 
-      : 'https://picsum.photos/seed/default/600/600';
-    
-    addToCart(
-      {
-        id: parseInt(product.id) || 0,
-        name: product.name,
-        price: product.base_price,
-        imageUrl: imageUrl,
-        description: product.description || '',
-        currency: 'EUR',
-        categorySlug: product.category_id ? 'categorie' : 'general',
-        stock: product.stock_quantity || 10
-      },
-      1
-    );
-  };
+
   const categories = categoriesLoading || !categoriesData 
     ? [{
         id: 'bestseller', 
@@ -213,17 +193,25 @@ export default function ProduitsPage() {
                           </div>
                         </div>
                       </Link>
-                      <Button 
-                        className="w-full bg-white hover:bg-gray-50 text-black hover:bg-gray-100 transform transition-transform hover:scale-105 shadow-md font-semibold text-[10px] xs:text-xs sm:text-sm py-1 xs:py-2 sm:py-3 h-auto touch-manipulation"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleAddToCart(product);
+                      <AddToCartButton
+                        product={{
+                          id: parseInt(product.id) || 0,
+                          name: product.name,
+                          price: product.base_price,
+                          imageUrl: product.product_images && product.product_images.length > 0 
+                            ? product.product_images[0].image_url 
+                            : 'https://picsum.photos/seed/default/600/600',
+                          description: product.description || '',
+                          currency: 'EUR',
+                          categorySlug: product.category_id ? 'categorie' : 'general',
+                          stock: product.stock_quantity || 10
                         }}
+                        size="sm"
+                        className="w-full text-[10px] xs:text-xs sm:text-sm py-1 xs:py-2 sm:py-3 h-auto touch-manipulation"
+                        variant="outline"
                       >
-                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                         <span className="whitespace-nowrap">Ajouter au panier</span>
-                      </Button>
+                      </AddToCartButton>
                     </div>
                   </div>
                 ))}

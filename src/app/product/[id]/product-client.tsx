@@ -12,6 +12,7 @@ import { useAppContext } from '../../../context/AppContext';
 import { useProductDetail } from '../../../hooks/supabase/useProductDetail';
 import { useCategories } from '../../../hooks/supabase/useCategories';
 import { Product as SupabaseProduct } from '../../../types/supabase';
+import { Header } from '../../../components/layout/Header';
 
 interface UIProduct {
   id: string;
@@ -174,7 +175,9 @@ export default function ProductClient({ productId }: { productId: string }) {
   }
 
   return (
-    <div className="bg-background min-h-screen relative">
+    <>
+      <Header />
+      <div className="bg-background min-h-screen relative">
       {/* Toast de succès */}
       <div id="toast-success" className="hidden fixed bottom-4 right-4 left-4 sm:left-auto sm:right-4 sm:bottom-4 z-50 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md animate-fadeIn">
         <div className="flex items-center">
@@ -399,5 +402,6 @@ export default function ProductClient({ productId }: { productId: string }) {
         )}
       </div>
     </div>
+    </>
   );
 }

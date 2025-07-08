@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../hooks/supabase/useAuth';
+import { Header } from '../../components/layout/Header';
 
 // Delivery options
 const deliveryOptions = [
@@ -110,7 +111,9 @@ export default function CartPage() {
 
   // Rendu de base pour tous les cas
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <Header />
+      <div className="container mx-auto px-4 py-8">
       {/* Affichage conditionnel du contenu après hydratation */}
       {isClient && (!cartItems || cartItems.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-16 min-h-[60vh]">
@@ -382,5 +385,6 @@ export default function CartPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

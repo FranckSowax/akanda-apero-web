@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/button';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
+import AddToCartButton from '../../components/AddToCartButton';
 import { supabase } from '../../lib/supabase/client';
 import { CocktailKit, CocktailKitIngredient } from '../../types/supabase';
 
@@ -132,7 +132,6 @@ const FullPageSlider = () => {
 
 // Composant de présentation des cocktails
 const CocktailShowcase = () => {
-  const { addToCart } = useAppContext();
   const [cocktails, setCocktails] = useState<Cocktail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -220,20 +219,7 @@ const CocktailShowcase = () => {
     return price * quantity;
   };
 
-  const handleAddToCart = (cocktail: Cocktail, quantity: number) => {
-    const calculatedPrice = calculatePrice(cocktail.price, quantity);
-    
-    addToCart({
-      id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000), // Conversion de l'ID en nombre
-      name: `Kit Cocktail ${cocktail.name} (${quantity} pers.)`,
-      price: calculatedPrice,
-      imageUrl: cocktail.image, // Utilisé imageUrl au lieu de image
-      description: cocktail.description || '',
-      currency: 'XAF',
-      categorySlug: 'kit-cocktail',
-      stock: 10
-    }, 1);
-  };
+
 
   // Simplification puisque nous n'avons plus de propriété difficulty
   const getStockStatusValue = (status?: string): number => {
@@ -462,12 +448,22 @@ const CocktailShowcase = () => {
                 
                 {/* Bouton d'ajout au panier */}
                 <div className="mt-auto flex justify-end">
-                  <Button
+                  <AddToCartButton
+                    product={{
+                      id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000),
+                      name: `Kit Cocktail ${cocktail.name} (${quantities[cocktail.id] || 2} pers.)`,
+                      price: calculatePrice(cocktail.price, quantities[cocktail.id] || 2),
+                      imageUrl: cocktail.image,
+                      description: cocktail.description || '',
+                      currency: 'XAF',
+                      categorySlug: 'kit-cocktail',
+                      stock: 10
+                    }}
                     className="bg-[#f5a623] hover:bg-[#e09000] text-white w-full sm:w-2/3 text-sm py-1.5 rounded-md"
-                    onClick={() => handleAddToCart(cocktail, quantities[cocktail.id] || 2)}
+                    variant="default"
                   >
                     Ajouter au panier
-                  </Button>
+                  </AddToCartButton>
                 </div>
               </div>
             </div>

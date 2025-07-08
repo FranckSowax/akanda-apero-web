@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Clock, MapPin, Star, Wine, Beer, Zap, Plus, ChefHat, Truck, ChevronLeft, ChevronRight, PackageOpen } from 'lucide-react';
 import { supabaseService } from '../services/supabaseService';
 import { useHomePageSync } from '../hooks/useProductSync';
+import { Header } from '../components/layout/Header';
+import AddToCartButton from '../components/AddToCartButton';
 
 interface Product {
   id: string;
@@ -189,10 +191,7 @@ const heroSlides = [
 
 export default function Home() {
   const router = useRouter();
-  const [cart, setCart] = useState<Product[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartModalOpen, setCartModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     hours: 0,
     minutes: 0,
@@ -203,27 +202,6 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [topCategories, setTopCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const addToCart = (product: Product) => {
-    setCart([...cart, product]);
-  };
-
-  const removeFromCart = (index: number) => {
-    const newCart = cart.filter((_, i) => i !== index);
-    setCart(newCart);
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((total, product) => total + product.price, 0);
-  };
-
-  const getCartItemCount = () => {
-    return cart.length;
-  };
-
-  const clearCart = () => {
-    setCart([]);
-  };
 
   // Fonctions de chargement des données
   const loadFeaturedProducts = async () => {
@@ -321,128 +299,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Image 
-                src="/Images/qIBlF8u.png" 
-                alt="Akanda Apéro Logo" 
-                width={56} 
-                height={56} 
-                className="w-14 h-14 object-cover"
-              />
-            </div>
-            
-            {/* Navigation Menu */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              <Link href="/" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Accueil
-              </Link>
-              <Link href="/products" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                À boire
-              </Link>
-              <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Cocktails Maison
-              </Link>
-              <Link href="#" className="px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Contact
-              </Link>
-            </nav>
-            
-            {/* Mobile Menu Button */}
-            <button 
-              className="lg:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <div className="w-5 h-5 flex flex-col justify-center space-y-1">
-                <div className={`w-full h-0.5 bg-gray-600 transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></div>
-                <div className={`w-full h-0.5 bg-gray-600 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></div>
-                <div className={`w-full h-0.5 bg-gray-600 transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></div>
-              </div>
-            </button>
-            
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-3">
-              {/* Profile Button */}
-              <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors group">
-                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">👤</span>
-                </div>
-              </button>
-              
-              {/* Cart Button */}
-              <button 
-                className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-5 py-2.5 rounded-full font-bold flex items-center space-x-2 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 relative"
-                onClick={() => setCartModalOpen(true)}
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span className="hidden sm:inline">PANIER</span>
-                {getCartItemCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">
-                    {getCartItemCount()}
-                  </span>
-                )}
-              </button>
-              
-              {/* Mobile Menu Button */}
-              <button className="lg:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors">
-                <div className="w-5 h-5 flex flex-col justify-center space-y-1">
-                  <div className="w-full h-0.5 bg-gray-600 rounded"></div>
-                  <div className="w-full h-0.5 bg-gray-600 rounded"></div>
-                  <div className="w-full h-0.5 bg-gray-600 rounded"></div>
-                </div>
-              </button>
-            </div>
-          </div>
-          
-          {/* Mobile Navigation Menu */}
-          <div className="lg:hidden border-t border-gray-100 py-3">
-            <nav className="flex flex-wrap gap-2">
-              <Link href="#" className="px-3 py-1.5 text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg font-medium transition-all">
-                Accueil
-              </Link>
-              <Link href="#" className="px-3 py-1.5 text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg font-medium transition-all">
-                À boire
-              </Link>
-              <Link href="#" className="px-3 py-1.5 text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg font-medium transition-all">
-                Cocktails Maison
-              </Link>
-              <Link href="#" className="px-3 py-1.5 text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg font-medium transition-all">
-                Contact
-              </Link>
-            </nav>
-          </div>
-        </div>
-        
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <motion.div 
-            className="lg:hidden bg-white border-t border-gray-200 shadow-lg"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="px-4 py-2 space-y-1">
-              <Link href="#" className="block px-4 py-3 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Accueil
-              </Link>
-              <Link href="#" className="block px-4 py-3 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                À boire
-              </Link>
-              <Link href="#" className="block px-4 py-3 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Cocktails Maison
-              </Link>
-              <Link href="#" className="block px-4 py-3 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-xl font-medium transition-all duration-200">
-                Contact
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -723,12 +580,23 @@ export default function Home() {
                       <div className="text-xs text-gray-500">chacun</div>
                     </div>
                   
-                  <button 
-                    onClick={() => addToCart(product)}
-                    className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors"
+                  <AddToCartButton
+                    product={{
+                      id: parseInt(product.id) || 0,
+                      name: product.name,
+                      price: product.sale_price || product.base_price || 0,
+                      imageUrl: product.product_images?.[0]?.image_url || '',
+                      description: product.description || '',
+                      currency: 'XAF',
+                      categorySlug: 'featured',
+                      stock: 100
+                    }}
+                    size="sm"
+                    className="w-8 h-8 !p-0"
+                    variant="default"
                   >
                     <Plus className="w-4 h-4" />
-                  </button>
+                  </AddToCartButton>
                 </motion.div>
               ))}
             </div>
@@ -910,22 +778,23 @@ export default function Home() {
               </div>
               
               {/* Add to Cart Button */}
-              <button 
-                onClick={() => {
-                  const cocktail = {
-                    id: 'weekly-cocktail',
-                    name: 'Mango Tango',
-                    description: 'Mangue fraîche, rhum blanc, citron vert et menthe',
-                    price: 2800,
-                    image: 'https://i.imgur.com/1nH4E4V.jpg'
-                  };
-                  addToCart(cocktail);
+              <AddToCartButton
+                product={{
+                  id: 999,
+                  name: 'Mango Tango',
+                  description: 'Mangue fraîche, rhum blanc, citron vert et menthe',
+                  price: 2800,
+                  imageUrl: 'https://i.imgur.com/1nH4E4V.jpg',
+                  currency: 'XAF',
+                  categorySlug: 'weekly-special',
+                  stock: 100
                 }}
                 className="w-full bg-white text-red-500 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
+                variant="outline"
               >
                 <Plus className="w-5 h-5" />
                 <span>AJOUTER AU PANIER</span>
-              </button>
+              </AddToCartButton>
             </div>
           </div>
           
@@ -941,125 +810,7 @@ export default function Home() {
         </motion.div>
         
       </main>
-      
-      {/* Cart Modal */}
-      {cartModalOpen && (
-        <div className="fixed inset-0 z-[9999] overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            {/* Background overlay */}
-            <motion.div 
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setCartModalOpen(false)}
-            />
-            
-            {/* Modal content */}
-            <motion.div 
-              className="relative inline-block align-bottom bg-white rounded-3xl px-6 py-8 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-[10000]"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <h2 className="text-2xl font-black text-gray-900">Mon Panier</h2>
-                </div>
-                <button 
-                  onClick={() => setCartModalOpen(false)}
-                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-                >
-                  <span className="text-gray-600 text-lg font-bold">×</span>
-                </button>
-              </div>
-              
-              {/* Cart Items */}
-              <div className="max-h-96 overflow-y-auto">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <ShoppingCart className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 text-lg font-medium mb-2">Votre panier est vide</p>
-                    <p className="text-gray-400 text-sm">Ajoutez des produits pour commencer</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item, index) => (
-                      <motion.div 
-                        key={index}
-                        className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center text-2xl">
-                          {item.image}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-gray-900">{item.name}</h3>
-                          <p className="text-sm text-gray-600">{item.description}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-gray-900">{item.price.toLocaleString()} XAF</div>
-                          <button 
-                            onClick={() => removeFromCart(index)}
-                            className="text-red-500 hover:text-red-700 text-sm font-medium mt-1 transition-colors"
-                          >
-                            Supprimer
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {/* Footer */}
-              {cart.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  {/* Total */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-lg font-bold text-gray-900">Total</span>
-                    <span className="text-2xl font-black text-orange-600">
-                      {getCartTotal().toLocaleString()} XAF
-                    </span>
-                  </div>
-                  
-                  {/* Action buttons */}
-                  <div className="flex space-x-3">
-                    <button 
-                      onClick={clearCart}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-full font-bold transition-colors"
-                    >
-                      Vider le panier
-                    </button>
-                    <button className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 py-3 rounded-full font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
-                      Commander
-                    </button>
-                  </div>
-                  
-                  {/* Delivery info */}
-                  <div className="mt-4 p-3 bg-green-50 rounded-xl">
-                    <div className="flex items-center space-x-2 text-green-700">
-                      <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-medium">Livraison gratuite à partir de 5000 XAF</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
