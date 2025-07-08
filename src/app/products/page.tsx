@@ -310,9 +310,9 @@ function ProductsContent({
               </div>
             ) : (
               <AnimatePresence>
-                <div className={`grid gap-6 ${
+                <div className={`grid gap-3 sm:gap-6 ${
                   viewMode === 'grid' 
-                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+                    ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
                     : 'grid-cols-1'
                 }`}>
                   {filteredProducts.map((product, index) => (
@@ -322,7 +322,7 @@ function ProductsContent({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group relative ${
+                      className={`bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group relative ${
                         viewMode === 'list' ? 'flex' : ''
                       }`}
                     >
@@ -342,85 +342,71 @@ function ProductsContent({
                         
                         {/* Badge réduction */}
                         {hasDiscount(product) && (
-                          <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-500 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-bold">
                             -{getDiscountPercentage(product)}%
                           </div>
                         )}
                         
-                        {/* Actions */}
-                        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Actions - masquées sur mobile pour économiser l'espace */}
+                        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 hidden sm:flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => toggleFavorite(product.id)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-colors ${
                               favorites.includes(product.id)
                                 ? 'bg-red-500 text-white'
                                 : 'bg-white text-gray-600 hover:bg-red-50 hover:text-red-500'
                             }`}
                           >
-                            <Heart className="w-4 h-4" fill={favorites.includes(product.id) ? 'currentColor' : 'none'} />
+                            <Heart className="w-3 h-3 sm:w-4 sm:h-4" fill={favorites.includes(product.id) ? 'currentColor' : 'none'} />
                           </button>
-                          <button className="w-8 h-8 bg-white text-gray-600 rounded-full flex items-center justify-center hover:bg-blue-50 hover:text-blue-500 transition-colors">
-                            <Eye className="w-4 h-4" />
+                          <button className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-gray-600 rounded-full flex items-center justify-center hover:bg-blue-50 hover:text-blue-500 transition-colors">
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           </button>
                         </div>
                       </div>
                       
                       {/* Contenu */}
-                      <div className="p-4 flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-bold text-gray-900 text-lg group-hover:text-green-600 transition-colors">
+                      <div className="p-2 sm:p-4 flex-1">
+                        <div className="flex items-start justify-between mb-1 sm:mb-2">
+                          <h3 className="font-bold text-gray-900 text-sm sm:text-lg group-hover:text-green-600 transition-colors line-clamp-2 sm:line-clamp-1">
                             {product.name}
                           </h3>
                           {/* Rating supprimé pour éliminer le "0" */}
                         </div>
                         
-                        <p className={`text-gray-600 text-sm mb-4 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
+                        {/* Description masquée sur mobile */}
+                        <p className="text-gray-600 text-sm mb-2 sm:mb-4 hidden sm:block overflow-hidden text-ellipsis whitespace-nowrap">
                           {product.description}
                         </p>
                         
                         {/* Prix */}
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                             {hasDiscount(product) && (
-                              <span className="text-gray-400 line-through text-sm">
+                              <span className="text-gray-400 line-through text-xs sm:text-sm">
                                 {product.base_price.toLocaleString()} XAF
                               </span>
                             )}
-                            <span className="font-bold text-xl text-gray-900">
+                            <span className="font-bold text-sm sm:text-xl text-gray-900">
                               {getPrice(product).toLocaleString()} XAF
                             </span>
                           </div>
-                          
-                          <AddToCartButton
-                            product={{
-                              id: parseInt(product.id.toString()),
-                              name: product.name,
-                              description: product.description,
-                              price: getPrice(product),
-                              imageUrl: product.image_url || '',
-                              currency: 'XAF',
-                              categorySlug: 'cocktails',
-                              stock: 100,
-                              discount: hasDiscount(product) ? getDiscountPercentage(product) : 0
-                            }}
-                            size="sm"
-                            className="text-sm"
-                          />
+
                           
                           {getItemQuantity(product.id) > 0 && (
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-2">
                               <button 
                                 onClick={() => updateQuantity(product.id, Math.max(0, getItemQuantity(product.id) - 1))}
-                                className="w-6 h-6 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors flex items-center justify-center text-sm"
+                                className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors flex items-center justify-center text-xs sm:text-sm"
                               >
                                 -
                               </button>
-                              <span className="font-bold text-sm min-w-[1.5rem] text-center">
+                              <span className="font-bold text-xs sm:text-sm min-w-[1rem] sm:min-w-[1.5rem] text-center">
                                 {getItemQuantity(product.id)}
                               </span>
                               <button 
                                 onClick={() => updateQuantity(product.id, getItemQuantity(product.id) + 1)}
-                                className="w-6 h-6 bg-[#f5a623] text-white rounded-full hover:bg-[#e09000] transition-colors flex items-center justify-center text-sm"
+                                className="w-5 h-5 sm:w-6 sm:h-6 bg-[#f5a623] text-white rounded-full hover:bg-[#e09000] transition-colors flex items-center justify-center text-xs sm:text-sm"
                               >
                                 +
                               </button>
@@ -430,29 +416,32 @@ function ProductsContent({
                         
                         {/* Stock */}
                         {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
-                          <p className="text-orange-600 text-xs mt-2 font-medium">
+                          <p className="text-orange-600 text-xs mt-1 sm:mt-2 font-medium">
                             Plus que {product.stock_quantity} en stock !
                           </p>
                         )}
                         {product.stock_quantity === 0 && (
-                          <p className="text-red-600 text-xs mt-2 font-medium">Rupture de stock</p>
+                          <p className="text-red-600 text-xs mt-1 sm:mt-2 font-medium">Rupture de stock</p>
                         )}
                       </div>
                       
-                      {/* Bouton Add to Cart positionné en bas à droite */}
-                      <AddToCartButton
-                        product={{
-                          id: parseInt(product.id.toString()),
-                          name: product.name,
-                          description: product.description,
-                          price: getPrice(product),
-                          imageUrl: product.image_url || '',
-                          currency: 'XAF',
-                          categorySlug: 'cocktails',
-                          stock: 100,
-                          discount: hasDiscount(product) ? getDiscountPercentage(product) : 0
-                        }}
-                      />
+                      {/* Bouton Add to Cart - inline sur mobile, absolu sur desktop */}
+                      <div className="sm:absolute sm:bottom-2 sm:right-2 flex justify-end mt-2 sm:mt-0">
+                        <AddToCartButton
+                          product={{
+                            id: parseInt(product.id.toString()),
+                            name: product.name,
+                            description: product.description,
+                            price: getPrice(product),
+                            imageUrl: product.image_url || '',
+                            currency: 'XAF',
+                            categorySlug: 'cocktails',
+                            stock: 100,
+                            discount: hasDiscount(product) ? getDiscountPercentage(product) : 0
+                          }}
+                          inline={true}
+                        />
+                      </div>
                     </motion.div>
                   ))}
                 </div>
