@@ -16,6 +16,7 @@ type AppContextType = {
   applyPromoCode: (code: string) => void;
   getCartTotal: () => { subtotal: number; deliveryCost: number; discount: number; total: number };
   getCartItemsCount: () => number;
+  getItemQuantity: (productId: number) => number;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -155,6 +156,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return state.cart.items.reduce((count, item) => count + item.quantity, 0);
   };
 
+  // Obtenir la quantité d'un produit spécifique dans le panier
+  const getItemQuantity = (productId: number) => {
+    const item = state.cart.items.find(item => item.product.id === productId);
+    return item ? item.quantity : 0;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -167,6 +174,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         applyPromoCode,
         getCartTotal,
         getCartItemsCount,
+        getItemQuantity,
       }}
     >
       {children}
