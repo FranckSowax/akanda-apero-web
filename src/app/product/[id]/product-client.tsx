@@ -47,7 +47,7 @@ function getProductImageUrl(product: SupabaseProduct): string {
     }
   }
   
-  return 'https://picsum.photos/seed/default/600/600';
+  return '/images/placeholder-product.svg';
 }
 
 function convertToUIProduct(product: SupabaseProduct, categoryName?: string): UIProduct {
@@ -218,7 +218,7 @@ export default function ProductClient({ productId }: { productId: string }) {
                   // Fallback si l'image ne charge pas
                   const target = e.target as HTMLImageElement;
                   target.onerror = null;
-                  target.src = 'https://picsum.photos/seed/product/800/800';
+                  target.src = '/images/placeholder-product.svg';
                 }}
               />
               {uiProduct.discount && uiProduct.discount > 0 && (

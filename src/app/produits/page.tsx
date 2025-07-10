@@ -161,7 +161,7 @@ export default function ProduitsPage() {
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black bg-opacity-10 transition-opacity duration-300"></div>
                           <div className="transform transition-transform duration-500 group-hover:scale-110">
                             <Image 
-                              src={product.product_images && product.product_images.length > 0 ? product.product_images[0].image_url : 'https://picsum.photos/seed/default/600/600'} 
+                              src={product.product_images && product.product_images.length > 0 ? product.product_images[0].image_url : '/images/placeholder-product.svg'} 
                               alt={product.product_images && product.product_images.length > 0 ? (product.product_images[0].alt_text || product.name) : product.name} 
                               width={180}
                               height={180}
@@ -203,7 +203,7 @@ export default function ProduitsPage() {
                         price: product.base_price,
                         imageUrl: product.product_images && product.product_images.length > 0 
                           ? product.product_images[0].image_url 
-                          : 'https://picsum.photos/seed/default/600/600',
+                          : '/images/placeholder-product.svg',
                         description: product.description || '',
                         currency: 'EUR',
                         categorySlug: product.category_id ? 'categorie' : 'general',
