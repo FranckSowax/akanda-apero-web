@@ -107,7 +107,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -134,9 +134,9 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-hidden">
               {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-center p-6">
+                <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <div className="p-4 bg-gray-50 rounded-full mb-4">
                     <ShoppingBag className="h-8 w-8 text-gray-400" />
                   </div>
@@ -154,11 +154,10 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                   </Button>
                 </div>
               ) : (
-                <>
-                  {/* Items List */}
-                  <div className="flex-1 min-h-0">
-                    <ScrollArea className="h-full px-6">
-                      <div className="space-y-4 py-4">
+                <ScrollArea className="h-full">
+                  <div className="px-6 py-4">
+                    {/* Items List */}
+                    <div className="space-y-4 mb-6">
                       {cart.map((item) => (
                         <motion.div
                           key={item.product.id}
@@ -166,7 +165,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
-                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
+                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                         >
                           {/* Image */}
                           <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -247,38 +246,36 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           </Button>
                         </motion.div>
                       ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
+                    </div>
 
-                  {/* Footer */}
-                  <div className="border-t border-gray-100 p-6 space-y-4">
                     {/* Totals */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Sous-total</span>
-                        <span className="font-medium">{Math.round(subtotal).toLocaleString()} F CFA</span>
-                      </div>
-                      {discount > 0 && (
-                        <div className="flex justify-between text-sm text-green-600">
-                          <span>Réduction</span>
-                          <span>-{Math.round(discount).toLocaleString()} F CFA</span>
+                    <div className="border-t border-gray-100 pt-4 mb-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Sous-total</span>
+                          <span className="font-medium">{Math.round(subtotal).toLocaleString()} F CFA</span>
                         </div>
-                      )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Livraison</span>
-                        <span className="font-medium">
-                          {deliveryCost === 0 ? 'Gratuite' : `${Math.round(deliveryCost).toLocaleString()} F CFA`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-lg font-bold border-t pt-2">
-                        <span>Total</span>
-                        <span className="text-[#f5a623]">{Math.round(total).toLocaleString()} F CFA</span>
+                        {discount > 0 && (
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Réduction</span>
+                            <span>-{Math.round(discount).toLocaleString()} F CFA</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Livraison</span>
+                          <span className="font-medium">
+                            {deliveryCost === 0 ? 'Gratuite' : `${Math.round(deliveryCost).toLocaleString()} F CFA`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-lg font-bold border-t pt-2">
+                          <span>Total</span>
+                          <span className="text-[#f5a623]">{Math.round(total).toLocaleString()} F CFA</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 mb-4">
                       {!isLoggedIn && (
                         <Alert>
                           <LogIn className="h-4 w-4" />
@@ -322,7 +319,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                       )}
                     </div>
                   </div>
-                </>
+                </ScrollArea>
               )}
             </div>
           </motion.div>
