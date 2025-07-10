@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ShoppingBag, LogIn, CreditCard } from 'lucide-react';
 import Image from 'next/image';
@@ -39,6 +39,8 @@ const CartDrawer: React.FC = () => {
   const itemCount = getCartItemsCount();
   
   const [isClient, setIsClient] = React.useState(false);
+  // État pour gérer les erreurs d'images
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   
   React.useEffect(() => {
     setIsClient(true);
@@ -139,16 +141,24 @@ const CartDrawer: React.FC = () => {
                 exit="hidden"
                 className="flex gap-4 py-4 border-b border-gray-100 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-2"
               >
-                <div className="h-20 w-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-50 shadow-sm border border-gray-200 group-hover:border-gray-300 transition-all duration-200">
+                <div className="h-20 w-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 shadow-sm border border-gray-200 group-hover:border-gray-300 transition-all duration-200">
                   <Image
-                    src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'}
+                    src={imageErrors.has(String(item.product.id)) || !item.product.imageUrl || item.product.imageUrl.trim() === '' 
+                      ? '/images/placeholder-product.svg' 
+                      : item.product.imageUrl}
                     alt={item.product.name}
                     width={80}
                     height={80}
                     className="h-full w-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/images/placeholder-product.svg';
+                    onError={() => {
+                      setImageErrors(prev => new Set([...prev, String(item.product.id)]));
+                    }}
+                    onLoad={() => {
+                      setImageErrors(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(String(item.product.id));
+                        return newSet;
+                      });
                     }}
                   />
                 </div>

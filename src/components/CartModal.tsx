@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ShoppingBag, LogIn, CreditCard, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
@@ -32,6 +32,9 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
   const { items: cart } = state.cart;
   const { subtotal, deliveryCost, discount, total } = getCartTotal();
   const itemCount = getCartItemsCount();
+  
+  // État pour gérer les erreurs d'images
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   // Fermer le modal avec Escape
   React.useEffect(() => {
@@ -104,7 +107,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -131,7 +134,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center p-6">
                   <div className="p-4 bg-gray-50 rounded-full mb-4">
@@ -153,8 +156,9 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
               ) : (
                 <>
                   {/* Items List */}
-                  <ScrollArea className="flex-1 px-6">
-                    <div className="space-y-4 py-4">
+                  <div className="flex-1 min-h-0">
+                    <ScrollArea className="h-full px-6">
+                      <div className="space-y-4 py-4">
                       {cart.map((item) => (
                         <motion.div
                           key={item.product.id}
@@ -165,15 +169,23 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
                         >
                           {/* Image */}
-                          <div className="relative w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                             <Image
-                              src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'}
+                              src={imageErrors.has(String(item.product.id)) || !item.product.imageUrl || item.product.imageUrl.trim() === '' 
+                                ? '/images/placeholder-product.svg' 
+                                : item.product.imageUrl}
                               alt={item.product.name}
                               fill
                               className="object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = '/images/placeholder-product.svg';
+                              onError={() => {
+                                setImageErrors(prev => new Set([...prev, String(item.product.id)]));
+                              }}
+                              onLoad={() => {
+                                setImageErrors(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(String(item.product.id));
+                                  return newSet;
+                                });
                               }}
                             />
                           </div>
@@ -235,8 +247,9 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           </Button>
                         </motion.div>
                       ))}
-                    </div>
-                  </ScrollArea>
+                      </div>
+                    </ScrollArea>
+                  </div>
 
                   {/* Footer */}
                   <div className="border-t border-gray-100 p-6 space-y-4">
