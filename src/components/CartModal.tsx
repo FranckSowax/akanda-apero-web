@@ -166,18 +166,16 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                         >
                           {/* Image */}
                           <div className="relative w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0">
-                            {item.product.imageUrl ? (
-                              <Image
-                                src={item.product.imageUrl}
-                                alt={item.product.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                <span className="text-2xl">🍹</span>
-                              </div>
-                            )}
+                            <Image
+                              src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'}
+                              alt={item.product.name}
+                              fill
+                              className="object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/images/placeholder-product.svg';
+                              }}
+                            />
                           </div>
 
                           {/* Info */}

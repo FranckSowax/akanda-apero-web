@@ -772,11 +772,7 @@ export default function Home() {
                     <div className="text-xs font-semibold opacity-80">NOTE</div>
                     <div className="text-sm font-bold">4.9/5</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg mb-1">🔥</div>
-                    <div className="text-xs font-semibold opacity-80">POPULARITÉ</div>
-                    <div className="text-sm font-bold">#1</div>
-                  </div>
+
                 </div>
               </div>
               

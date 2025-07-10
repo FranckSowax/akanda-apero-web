@@ -161,11 +161,15 @@ export default function CartPage() {
                     <div className="flex-shrink-0">
                       <Link href={`/product/${item.product.id}`}>
                         <Image 
-                          src={item.product.imageUrl} 
+                          src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'} 
                           alt={item.product.name} 
                           width={80} 
                           height={80} 
                           className="rounded-md object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/images/placeholder-product.svg';
+                          }}
                         />
                       </Link>
                     </div>

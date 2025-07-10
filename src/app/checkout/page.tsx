@@ -306,10 +306,14 @@ export default function CheckoutPage() {
                 <div key={item.product.id} className="flex items-start space-x-4">
                   <div className="relative w-16 h-16 rounded overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image 
-                      src={item.product.imageUrl}
+                      src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'}
                       alt={item.product.name}
                       fill
                       className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/images/placeholder-product.svg';
+                      }}
                     />
                   </div>
                   <div className="flex-1">
