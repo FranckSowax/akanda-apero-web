@@ -107,17 +107,17 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md h-[90vh] flex flex-col"
+            className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md h-[95vh] sm:h-[90vh] flex flex-col mx-4 sm:mx-0"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-[#f5a623]/10 rounded-full">
                   <ShoppingCart className="h-5 w-5 text-[#f5a623]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Mon Panier</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Mon Panier</h2>
                   <p className="text-sm text-gray-500">
                     {itemCount} {itemCount <= 1 ? 'article' : 'articles'}
                   </p>
@@ -155,7 +155,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 <ScrollArea className="h-full">
-                  <div className="px-6 py-4">
+                  <div className="px-4 sm:px-6 py-4">
                     {/* Items List */}
                     <div className="space-y-4 mb-6">
                       {cart.map((item) => (
@@ -275,43 +275,46 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="space-y-3 mb-4">
+                    <div className="space-y-4 mb-6">
+                      {/* Alert de connexion */}
                       {!isLoggedIn && (
-                        <Alert>
-                          <LogIn className="h-4 w-4" />
-                          <AlertDescription>
-                            <Link href="/auth" className="text-[#f5a623] hover:underline font-medium">
+                        <Alert className="border-[#f5a623]/20 bg-[#f5a623]/5">
+                          <LogIn className="h-4 w-4 text-[#f5a623]" />
+                          <AlertDescription className="text-sm">
+                            <Link href="/auth" className="text-[#f5a623] hover:underline font-semibold">
                               Connectez-vous
                             </Link> pour finaliser votre commande
                           </AlertDescription>
                         </Alert>
                       )}
                       
-                      <div className="flex gap-3">
+                      {/* Boutons principaux */}
+                      <div className="flex flex-col sm:flex-row gap-3">
                         <Button
                           variant="outline"
                           onClick={onClose}
-                          className="flex-1"
+                          className="flex-1 h-12 text-base font-medium border-gray-300 hover:border-[#f5a623] hover:text-[#f5a623]"
                         >
-                          Continuer
+                          Continuer mes achats
                         </Button>
                         <Link href="/checkout" className="flex-1">
                           <Button
-                            className="w-full bg-[#f5a623] hover:bg-[#e09000] text-white"
+                            className="w-full h-12 text-base font-semibold bg-[#f5a623] hover:bg-[#e09000] text-white shadow-lg hover:shadow-xl transition-all duration-200"
                             disabled={!isLoggedIn}
                             onClick={onClose}
                           >
-                            <CreditCard className="h-4 w-4 mr-2" />
-                            Commander
+                            <CreditCard className="h-5 w-5 mr-2" />
+                            Commander maintenant
                           </Button>
                         </Link>
                       </div>
                       
+                      {/* Bouton vider panier */}
                       {cart.length > 0 && (
                         <Button
                           variant="ghost"
                           onClick={clearCart}
-                          className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="w-full h-10 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Vider le panier
