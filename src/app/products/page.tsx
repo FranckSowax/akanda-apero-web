@@ -243,7 +243,25 @@ function ProductsContent({
               {/* Catégories */}
               <div className="mb-6">
                 <h4 className="font-semibold text-gray-700 mb-3">Catégories</h4>
-                <div className="space-y-2">
+                
+                {/* Liste déroulante pour mobile */}
+                <div className="block md:hidden">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                  >
+                    <option value="all">🏷️ Toutes les catégories</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.icon} {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Liste de boutons pour desktop */}
+                <div className="hidden md:block space-y-2">
                   <button
                     onClick={() => setSelectedCategory('all')}
                     className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${

@@ -155,7 +155,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 <ScrollArea className="h-full">
-                  <div className="px-4 sm:px-6 py-4">
+                  <div className="px-4 sm:px-6 py-4 pb-8">
                     {/* Items List */}
                     <div className="space-y-4 mb-6">
                       {cart.map((item) => (
@@ -314,7 +314,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                         <Button
                           variant="ghost"
                           onClick={clearCart}
-                          className="w-full h-10 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
+                          className="w-full h-10 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors duration-200 mb-4"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Vider le panier
