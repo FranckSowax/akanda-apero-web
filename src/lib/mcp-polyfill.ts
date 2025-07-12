@@ -57,36 +57,20 @@ export function useMcpPolyfill(serverName: string) {
           
           console.log('[mcp-polyfill] Clé Supabase utilisée (products):', supabaseKey);
           
-          // Méthode directe pour récupérer les produits et leurs images - version précédente fonctionnelle
+          // Utiliser Supabase directement pour récupérer les produits avec leurs images
+          const { data: productsData, error: productsError } = await supabase
+            .from('products')
+            .select('*, product_images(*)');
           
-          // Méthode alternative si la vue n'est pas disponible
-          const response = await fetch(`${supabaseUrl}/rest/v1/products?select=*`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          });
-          
-          if (!response.ok) {
-            console.error("❌ Erreur lors de la récupération des produits:", response.status, response.statusText);
+          if (productsError) {
+            console.error("❌ Erreur lors de la récupération des produits:", productsError);
             return [];
           }
-          
-          const productsData = await response.json();
 
           if (!productsData || productsData.length === 0) {
             console.log("ℹ️ Aucun produit trouvé dans la base de données");
             return [];
           }
-
-          // Récupérer les images pour tous les produits
-          const productIds = productsData.map((p: any) => p.id);
-          const { data: imagesData } = await supabase
-            .from('product_images')
-            .select('*')
-            .in('product_id', productIds);
 
           // Récupérer les catégories pour ces produits
           const { data: categoriesData, error: catError } = await supabase
@@ -125,7 +109,7 @@ export function useMcpPolyfill(serverName: string) {
             
             return {
               ...product,
-              product_images: imagesData ? imagesData.filter((img: any) => img.product_id === product.id) : [],
+              // product_images est déjà inclus dans la requête Supabase
               // Assigner uniquement les catégories associées à ce produit
               categories: productSpecificCategories || [],
               // Ajouter la structure product_categories pour les hooks qui l'utilisent

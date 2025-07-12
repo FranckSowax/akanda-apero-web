@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { useAppContext } from '../context/AppContext';
 import { useCartModalContext } from '../context/CartModalContext';
 import { Product } from '../context/types';
+import { getProductImageUrl } from '../utils/imageUtils';
 
 interface AddToCartButtonProps {
   product: Product;
@@ -46,8 +47,14 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     setIsAdding(true);
     
     try {
+      // Convertir le produit avec la bonne imageUrl
+      const productWithCorrectImage = {
+        ...product,
+        imageUrl: getProductImageUrl(product)
+      };
+      
       // Ajouter au panier
-      addToCart(product, quantity);
+      addToCart(productWithCorrectImage, quantity);
       
       // Animation de confirmation
       setJustAdded(true);

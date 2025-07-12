@@ -588,12 +588,13 @@ export default function Home() {
                             id: parseInt(product.id) || 0,
                             name: product.name,
                             price: product.sale_price || product.base_price || 0,
-                            imageUrl: product.product_images?.[0]?.image_url || '',
+                            imageUrl: product.image_url || '',
                             description: product.description || '',
                             currency: 'XAF',
                             categorySlug: 'featured',
-                            stock: 100
-                          }}
+                            stock: 100,
+                            image_url: product.image_url
+                          } as any}
                           inline={true}
                         />
                       </div>

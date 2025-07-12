@@ -13,6 +13,7 @@ import { useProductDetail } from '../../../hooks/supabase/useProductDetail';
 import { useCategories } from '../../../hooks/supabase/useCategories';
 import { Product as SupabaseProduct } from '../../../types/supabase';
 import { Header } from '../../../components/layout/Header';
+import { getProductImageUrl } from '../../../utils/imageUtils';
 
 interface UIProduct {
   id: string;
@@ -30,25 +31,7 @@ interface UIProduct {
   isPromo?: boolean;
 }
 
-function getProductImageUrl(product: SupabaseProduct): string {
-  // Vérification complète de la disponibilité des images
-  if (product && product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
-    const firstImage = product.product_images[0];
-    if (firstImage && firstImage.image_url) {
-      const imageUrl = firstImage.image_url;
-      
-      if (typeof imageUrl === 'string') {
-        if (imageUrl.startsWith('data:')) return imageUrl;
-        if (imageUrl.startsWith('placeholder-') || imageUrl.startsWith('blob:')) {
-          return `https://source.unsplash.com/random/800x600?sig=${product.id}`;
-        }
-        return imageUrl;
-      }
-    }
-  }
-  
-  return '/images/placeholder-product.svg';
-}
+
 
 function convertToUIProduct(product: SupabaseProduct, categoryName?: string): UIProduct {
   return {

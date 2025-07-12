@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ShoppingBag, LogIn, CreditCard, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import { useAuth } from '../hooks/supabase/useAuth';
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { getProductImageUrl } from '../utils/imageUtils';
 
 interface CartModalProps {
   isOpen: boolean;
@@ -170,9 +172,9 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           {/* Image */}
                           <div className="relative w-12 h-12 xs:w-16 xs:h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                             <Image
-                              src={imageErrors.has(String(item.product.id)) || !item.product.imageUrl || item.product.imageUrl.trim() === '' 
+                              src={imageErrors.has(String(item.product.id)) 
                                 ? '/images/placeholder-product.svg' 
-                                : item.product.imageUrl}
+                                : getProductImageUrl(item.product)}
                               alt={item.product.name}
                               fill
                               className="object-cover"
