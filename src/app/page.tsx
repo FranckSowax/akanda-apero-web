@@ -514,7 +514,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <h2 className="text-2xl font-black text-gray-900 mb-6">TOP-5<br />FAVORIS</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-6">⭐ TOP-5 FAVORIS</h2>
             
             {loading ? (
               <div className="flex justify-center py-8">
@@ -617,7 +617,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <h2 className="text-2xl font-black text-gray-900 mb-6">TOP-5<br />CATÉGORIES</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-6">🏷️ TOP-5 CATÉGORIES</h2>
             
             {loading ? (
               <div className="flex justify-center py-8">
