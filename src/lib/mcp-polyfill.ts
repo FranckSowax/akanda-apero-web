@@ -72,6 +72,9 @@ export function useMcpPolyfill(serverName: string) {
             return [];
           }
 
+          // Extraire les IDs des produits pour les requêtes suivantes
+          const productIds = productsData.map((product: any) => product.id);
+
           // Récupérer les catégories pour ces produits
           const { data: categoriesData, error: catError } = await supabase
             .from('categories')
