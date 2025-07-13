@@ -349,7 +349,10 @@ export default function CartPage() {
             </CardContent>
             <CardFooter className="md:block hidden"> {/* Uniquement sur desktop */}
               <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full">
-                <Button className="w-full" size="lg">
+                <Button 
+                  className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
+                  size="lg"
+                >
                   <CreditCard className="mr-2 h-4 w-4" />
                   {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
                 </Button>
@@ -367,7 +370,10 @@ export default function CartPage() {
                 <p className="text-xs text-gray-500">Total TTC</p>
               </div>
               <Link href={isLoggedIn ? "/checkout" : "/auth"} className="flex-1">
-                <Button className="w-full" size="lg">
+                <Button 
+                  className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
+                  size="lg"
+                >
                   <CreditCard className="mr-2 h-4 w-4" />
                   {isLoggedIn ? "Paiement" : "Se connecter"}
                 </Button>

@@ -107,21 +107,24 @@ export default function UserButton() {
     );
   }
 
-  // Si utilisateur non connecté - Bouton moderne
+  // Si utilisateur non connecté - Bouton moderne et responsive
   return (
     <div className="flex items-center space-x-2">
       <Link
         href="/auth"
-        className="group relative inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ease-out overflow-hidden"
+        className="group relative inline-flex items-center justify-center px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ease-out overflow-hidden min-w-[100px] sm:min-w-[140px]"
       >
         {/* Effet de brillance animé */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
         
-        {/* Icône utilisateur */}
-        <UserIcon className="h-4 w-4 mr-2 relative z-10" />
+        {/* Icône utilisateur - masquée sur très petit écran */}
+        <UserIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 relative z-10 hidden xs:block" />
         
-        {/* Texte */}
-        <span className="relative z-10">Se connecter</span>
+        {/* Texte responsive */}
+        <span className="relative z-10 whitespace-nowrap">
+          <span className="sm:hidden">Connexion</span>
+          <span className="hidden sm:inline">Se connecter</span>
+        </span>
         
         {/* Effet de bordure lumineuse */}
         <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-200" />
