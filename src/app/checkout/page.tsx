@@ -113,6 +113,7 @@ export default function CheckoutPage() {
     fullName: '',
     phone: '',
     address: 'Libreville, Gabon',
+    city: 'Libreville',
     district: '',
     additionalInfo: '',
     deliveryOption: 'standard',
@@ -254,6 +255,7 @@ export default function CheckoutPage() {
         },
         deliveryInfo: {
           address: deliveryInfo.address,
+          city: deliveryInfo.city,
           district: deliveryInfo.district,
           additionalInfo: deliveryInfo.additionalInfo,
           location: deliveryInfo.location,
@@ -438,6 +440,19 @@ export default function CheckoutPage() {
                   className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
                 />
               </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="city" className="text-sm font-medium text-gray-700">Ville</Label>
+              <Input 
+                id="city" 
+                name="city" 
+                value={deliveryInfo.city} 
+                onChange={handleDeliveryInfoChange} 
+                placeholder="Ex: Libreville, Port-Gentil..." 
+                required 
+                className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
+              />
             </div>
             
             <div className="space-y-3">
