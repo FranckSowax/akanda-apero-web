@@ -418,22 +418,6 @@ export default function AuthPage() {
               <CardDescription className="text-gray-600">
                 Connectez-vous ou créez un compte pour profiter de nos services premium
               </CardDescription>
-              
-              {/* Bouton de déconnexion d'urgence */}
-              <div className="flex justify-center">
-                <button
-                  onClick={async () => {
-                    console.log('🚨 DÉCONNEXION D\'URGENCE');
-                    await supabase.auth.signOut();
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.reload();
-                  }}
-                  className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                >
-                  🚨 Déconnexion d'urgence
-                </button>
-              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg">

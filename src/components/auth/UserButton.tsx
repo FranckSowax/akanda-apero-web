@@ -107,14 +107,24 @@ export default function UserButton() {
     );
   }
 
-  // Si utilisateur non connecté
+  // Si utilisateur non connecté - Bouton moderne
   return (
     <div className="flex items-center space-x-2">
       <Link
         href="/auth"
-        className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+        className="group relative inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ease-out overflow-hidden"
       >
-        Se connecter
+        {/* Effet de brillance animé */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+        
+        {/* Icône utilisateur */}
+        <UserIcon className="h-4 w-4 mr-2 relative z-10" />
+        
+        {/* Texte */}
+        <span className="relative z-10">Se connecter</span>
+        
+        {/* Effet de bordure lumineuse */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-200" />
       </Link>
     </div>
   );
