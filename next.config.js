@@ -112,7 +112,6 @@ const nextConfig = {
 // Optimisations spécifiques pour Netlify
 if (isNetlify) {
   // Optimisations nécessaires pour le déploiement sur Netlify
-  nextConfig.output = 'standalone';
   nextConfig.poweredByHeader = false;
   nextConfig.trailingSlash = false;
   nextConfig.productionBrowserSourceMaps = false;
