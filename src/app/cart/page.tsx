@@ -34,8 +34,13 @@ export default function CartPage() {
   } = useAppContext();
   
   // Vérifier si l'utilisateur est connecté
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isLoggedIn = !!user;
+  
+  // Debug de l'authentification
+  useEffect(() => {
+    console.log('🛒 Cart - État auth:', { user, isLoggedIn, authLoading });
+  }, [user, isLoggedIn, authLoading]);
   
   // État local pour le code promo et la livraison
   const [promoCode, setPromoCode] = useState('');
@@ -432,27 +437,39 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter className="md:block hidden"> {/* Uniquement sur desktop */}
-              <Link 
-                href={isLoggedIn ? "/checkout" : "/auth"} 
-                className="w-full"
-                onClick={() => {
-                  // Sauvegarder le panier dans localStorage avant redirection vers /auth
-                  if (!isLoggedIn) {
-                    localStorage.setItem('cart_before_auth', JSON.stringify({
-                      items: cartItems,
-                      timestamp: Date.now()
-                    }));
-                  }
-                }}
-              >
+              {authLoading ? (
                 <Button 
-                  className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
+                  className="w-full" 
                   size="lg"
+                  disabled
                 >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Chargement...
                 </Button>
-              </Link>
+              ) : (
+                <Link 
+                  href={isLoggedIn ? "/checkout" : "/auth"} 
+                  className="w-full"
+                  onClick={() => {
+                    console.log('🔗 Cart - Navigation vers:', isLoggedIn ? '/checkout' : '/auth');
+                    // Sauvegarder le panier dans localStorage avant redirection vers /auth
+                    if (!isLoggedIn) {
+                      localStorage.setItem('cart_before_auth', JSON.stringify({
+                        items: cartItems,
+                        timestamp: Date.now()
+                      }));
+                    }
+                  }}
+                >
+                  <Button 
+                    className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
+                    size="lg"
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {isLoggedIn ? "Procéder au paiement" : "Se connecter pour commander"}
+                  </Button>
+                </Link>
+              )}
             </CardFooter>
           </Card>
         </div>
@@ -465,27 +482,39 @@ export default function CartPage() {
                 <p className="font-semibold text-lg">{formatPrice(total)}</p>
                 <p className="text-xs text-gray-500">Total TTC</p>
               </div>
-              <Link 
-                href={isLoggedIn ? "/checkout" : "/auth"} 
-                className="flex-1"
-                onClick={() => {
-                  // Sauvegarder le panier dans localStorage avant redirection vers /auth
-                  if (!isLoggedIn) {
-                    localStorage.setItem('cart_before_auth', JSON.stringify({
-                      items: cartItems,
-                      timestamp: Date.now()
-                    }));
-                  }
-                }}
-              >
+              {authLoading ? (
                 <Button 
-                  className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
+                  className="flex-1" 
                   size="lg"
+                  disabled
                 >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  {isLoggedIn ? "Paiement" : "Se connecter"}
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Chargement...
                 </Button>
-              </Link>
+              ) : (
+                <Link 
+                  href={isLoggedIn ? "/checkout" : "/auth"} 
+                  className="flex-1"
+                  onClick={() => {
+                    console.log('🔗 Cart Mobile - Navigation vers:', isLoggedIn ? '/checkout' : '/auth');
+                    // Sauvegarder le panier dans localStorage avant redirection vers /auth
+                    if (!isLoggedIn) {
+                      localStorage.setItem('cart_before_auth', JSON.stringify({
+                        items: cartItems,
+                        timestamp: Date.now()
+                      }));
+                    }
+                  }}
+                >
+                  <Button 
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
+                    size="lg"
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {isLoggedIn ? "Procéder au paiement" : "Se connecter"}
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
           
