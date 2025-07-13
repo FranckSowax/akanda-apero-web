@@ -6,10 +6,68 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Fonction pour forcer la récupération de la session
+  const forceRefreshAuth = async () => {
+    console.log('🔄 useAuth - Forçage de la récupération de session...');
+    setLoading(true);
+    
+    try {
+      // Attendre un peu pour éviter les appels trop rapides
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ useAuth - Erreur lors du forçage:', error);
+        // Retry si erreur et moins de 3 tentatives
+        if (retryCount < 3) {
+          console.log(`🔄 useAuth - Tentative ${retryCount + 1}/3...`);
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => forceRefreshAuth(), 1000);
+          return;
+        }
+      }
+      
+      console.log('📊 useAuth - Session forçée récupérée:', {
+        session: session,
+        user: session?.user,
+        email: session?.user?.email,
+        expires_at: session?.expires_at,
+        retryCount: retryCount
+      });
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      setRetryCount(0); // Reset retry count on success
+      
+    } catch (err) {
+      console.error('❌ useAuth - Erreur dans forceRefreshAuth:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔍 useAuth - Récupération initiale de la session...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ useAuth - Erreur lors de la récupération de la session:', error);
+        // Essayer de forcer la récupération
+        setTimeout(() => forceRefreshAuth(), 500);
+        return;
+      }
+      
+      console.log('📊 useAuth - Session initiale récupérée:', {
+        session: session,
+        user: session?.user,
+        email: session?.user?.email,
+        expires_at: session?.expires_at
+      });
+      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -18,17 +76,25 @@ export function useAuth() {
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log('🔄 useAuth - Changement d\'état d\'authentification:', {
+          event: event,
+          session: session,
+          user: session?.user,
+          email: session?.user?.email
+        });
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        setRetryCount(0); // Reset retry count on auth change
       }
     );
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [retryCount]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -71,10 +137,43 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
+      console.log('🚪 Début de la déconnexion...');
+      
+      // 1. Effectuer la déconnexion Supabase
       const { error } = await supabase.auth.signOut();
-      if (error) throw translateAuthError(error);
+      if (error) {
+        console.error('❌ Erreur Supabase lors de la déconnexion:', error);
+        throw translateAuthError(error);
+      }
+      
+      console.log('✅ Déconnexion Supabase réussie');
+      
+      // 2. Forcer la mise à jour de l'état local immédiatement
+      setUser(null);
+      setSession(null);
+      setLoading(false);
+      
+      console.log('🔄 État local mis à jour');
+      
+      // 3. Attendre un peu pour s'assurer que tout est propagé
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 4. Vérifier que la session est bien supprimée
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔍 Vérification session après déconnexion:', session);
+      
+      // 5. Rediriger vers la page d'authentification
+      console.log('🔄 Redirection vers /auth');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth';
+      }
+      
     } catch (err) {
-      console.error("Erreur lors de la déconnexion:", err);
+      console.error("❌ Erreur lors de la déconnexion:", err);
+      // En cas d'erreur, forcer quand même la mise à jour de l'état
+      setUser(null);
+      setSession(null);
+      setLoading(false);
       throw err;
     }
   };
@@ -164,6 +263,7 @@ export function useAuth() {
     signUp,
     resetPassword,
     updatePassword,
-    checkAuth
+    checkAuth,
+    forceRefreshAuth
   };
 }

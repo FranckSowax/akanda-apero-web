@@ -1,6 +1,7 @@
 import "./global.css";
 import { AppProvider } from "../context/AppContext";
 import { CartModalProvider } from "../context/CartModalContext";
+import { AuthProvider } from "../contexts/AuthContext";
 import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata, Viewport } from "next";
@@ -34,16 +35,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body>
-        <AppProvider>
-          <CartModalProvider>
-            <ReactQueryProvider>
-              <div className="touch-manipulation">
-                {children}
-              </div>
-              <ToastNotification />
-            </ReactQueryProvider>
-          </CartModalProvider>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <CartModalProvider>
+              <ReactQueryProvider>
+                <div className="touch-manipulation">
+                  {children}
+                </div>
+                <ToastNotification />
+              </ReactQueryProvider>
+            </CartModalProvider>
+          </AppProvider>
+        </AuthProvider>
       </body>
     </html>
   );

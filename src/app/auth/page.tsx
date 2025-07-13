@@ -119,41 +119,61 @@ export default function AuthPage() {
   const [message, setMessage] = useState<Message>({ text: '', type: 'info', show: false });
   const [redirectTo, setRedirectTo] = useState('/');
   
-  // Vérifier si un utilisateur est connecté et gérer la redirection
+  // Vérification de session au chargement - TEMPORAIREMENT DÉSACTIVÉE
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        // Vérifier le rôle de l'utilisateur
-        const userRole = await checkUserRole(data.session.user.id);
-        const destination = userRole === 'admin' ? '/admin/dashboard' : '/';
-        window.location.href = destination;
-      }
-    };
+    console.log('🚨 REDIRECTION AUTOMATIQUE DÉSACTIVÉE - Mode debug');
     
-    // Récupérer le paramètre de redirection
     if (typeof window !== 'undefined') {
+      // Récupérer le paramètre de redirection
       const urlParams = new URLSearchParams(window.location.search);
       const redirect = urlParams.get('redirect_to');
       if (redirect) {
         setRedirectTo(redirect);
       }
-      checkSession();
+      
+      // Vérifier la session sans rediriger
+      const checkSessionDebug = async () => {
+        try {
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          console.log('📊 État de la session:', {
+            hasSession: !!sessionData.session,
+            user: sessionData.session?.user?.email,
+            error: sessionError?.message
+          });
+        } catch (error) {
+          console.log('❌ Erreur session:', error);
+        }
+      };
+      
+      setTimeout(checkSessionDebug, 1000);
     }
   }, []);
   
   // Vérifier le rôle de l'utilisateur
   const checkUserRole = async (userId: string): Promise<'admin' | 'customer'> => {
     try {
-      const { data: adminProfile } = await supabase
+      console.log('Vérification du rôle pour userId:', userId);
+      
+      const { data: adminProfile, error } = await supabase
         .from('admin_profiles')
         .select('role, is_active')
-        .eq('id', userId)
+        .eq('user_id', userId)  // Correction: utiliser 'user_id' au lieu de 'id'
         .eq('is_active', true)
         .single();
       
-      return adminProfile ? 'admin' : 'customer';
-    } catch {
+      console.log('Profil admin trouvé:', adminProfile);
+      console.log('Erreur éventuelle:', error);
+      
+      // Vérifier si l'utilisateur a un rôle admin actif
+      if (adminProfile && adminProfile.role && adminProfile.is_active) {
+        console.log('Utilisateur identifié comme admin avec rôle:', adminProfile.role);
+        return 'admin';
+      }
+      
+      console.log('Utilisateur identifié comme customer');
+      return 'customer';
+    } catch (error) {
+      console.error('Erreur lors de la vérification du rôle:', error);
       return 'customer';
     }
   };
@@ -249,17 +269,80 @@ export default function AuthPage() {
       if (error) throw error;
       
       // Authentification réussie
+      console.log('✅ Connexion réussie, session:', data.session);
       showMessage("Connexion réussie!", 'success');
       
-      // Vérifier le rôle et rediriger intelligemment
-      if (data.user) {
-        const userRole = await checkUserRole(data.user.id);
-        const destination = userRole === 'admin' ? '/admin/dashboard' : redirectTo;
+      // Attendre que la session soit sauvegardée
+      if (data.user && data.session) {
+        console.log('💾 Attente de la sauvegarde de session...');
         
-        // Petit délai pour que l'utilisateur voie le message de succès
-        setTimeout(() => {
-          window.location.href = destination;
-        }, 1000);
+        // 🚀 FONCTION DE REDIRECTION ULTRA-ROBUSTE
+        const waitForSession = async () => {
+          // ÉTAPE 1: Forcer la sauvegarde dans TOUS les storages
+          const sessionString = JSON.stringify(data.session);
+          localStorage.setItem('akanda-supabase-auth', sessionString);
+          sessionStorage.setItem('akanda-supabase-auth-backup', sessionString);
+          localStorage.setItem('akanda-auth-backup', sessionString);
+          
+          console.log('💾 Session sauvée dans 3 emplacements');
+          
+          // ÉTAPE 2: Forcer Supabase à utiliser cette session
+          try {
+            await supabase.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token
+            });
+            console.log('✅ Session forcée dans Supabase');
+          } catch (error) {
+            console.error('⚠️ Erreur setSession:', error);
+          }
+          
+          // ÉTAPE 3: Déterminer la destination
+          const userRole = await checkUserRole(data.user.id);
+          const destination = userRole === 'admin' ? '/admin/dashboard' : redirectTo;
+          
+          // ÉTAPE 4: Vérification et redirection ultra-robuste
+          let attempts = 0;
+          const maxAttempts = 15;
+          
+          const verifyAndRedirect = async () => {
+            // Vérifier que la session est bien là
+            const stored1 = localStorage.getItem('akanda-supabase-auth');
+            const stored2 = sessionStorage.getItem('akanda-supabase-auth-backup');
+            const stored3 = localStorage.getItem('akanda-auth-backup');
+            
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            
+            if ((stored1 || stored2 || stored3) && currentSession && attempts < maxAttempts) {
+              console.log('✅ Triple vérification OK - Redirection sécurisée vers:', destination);
+              
+              // Déclencher événement personnalisé avant redirection
+              window.dispatchEvent(new CustomEvent('auth-before-redirect', {
+                detail: { session: currentSession, redirectTo: destination }
+              }));
+              
+              // Redirection avec délai pour laisser le temps à la persistance
+              setTimeout(() => {
+                console.log('🚀 Redirection vers:', destination);
+                window.location.replace(destination);
+              }, 1000);
+              
+            } else if (attempts < maxAttempts) {
+              attempts++;
+              console.log(`⏳ Vérification ${attempts}/${maxAttempts} - Session:`, !!currentSession, 'Storage:', !!(stored1 || stored2 || stored3));
+              setTimeout(verifyAndRedirect, 300);
+            } else {
+              console.log('⚠️ Timeout - Redirection forcée malgré tout vers:', destination);
+              window.location.replace(destination);
+            }
+          };
+          
+          // Attendre un peu puis commencer la vérification
+          setTimeout(verifyAndRedirect, 500);
+        };
+        
+        // Commencer la vérification après un petit délai
+        setTimeout(waitForSession, 500);
       }
       
     } catch (error: any) {
@@ -335,6 +418,22 @@ export default function AuthPage() {
               <CardDescription className="text-gray-600">
                 Connectez-vous ou créez un compte pour profiter de nos services premium
               </CardDescription>
+              
+              {/* Bouton de déconnexion d'urgence */}
+              <div className="flex justify-center">
+                <button
+                  onClick={async () => {
+                    console.log('🚨 DÉCONNEXION D\'URGENCE');
+                    await supabase.auth.signOut();
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.reload();
+                  }}
+                  className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                >
+                  🚨 Déconnexion d'urgence
+                </button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg">

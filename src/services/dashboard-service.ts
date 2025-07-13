@@ -84,43 +84,64 @@ export const DashboardService = {
         console.error('Erreur lors de la récupération des nouveaux utilisateurs:', usersError);
       }
       
-      // Récupérer les livraisons en cours
-      const { data: activeDeliveries, error: deliveriesError } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('status', 'En cours');
+      // Récupérer les livraisons en cours (avec gestion d'erreur)
+      let activeDeliveries = null;
+      let deliveriesError = null;
       
-      if (deliveriesError) {
-        console.error('Erreur lors de la récupération des livraisons actives:', deliveriesError);
+      try {
+        const result = await supabase
+          .from('orders')
+          .select('id')
+          .eq('status', 'En cours');
+        
+        activeDeliveries = result.data;
+        deliveriesError = result.error;
+      } catch (err) {
+        console.log('Table orders non disponible, utilisation de valeurs par défaut');
+        deliveriesError = err;
       }
       
-      // Récupérer les commandes récentes
-      const { data: recentOrdersData, error: recentOrdersError } = await supabase
-        .from('orders')
-        .select(`
-          id, 
-          total, 
-          created_at, 
-          status, 
-          user_id,
-          order_items:order_items(
-            product_id,
-            quantity,
-            products:products(
-              name
+      if (deliveriesError) {
+        console.log('Livraisons actives non disponibles:', deliveriesError.message || 'Table non trouvée');
+      }
+      
+      // Récupérer les commandes récentes (avec gestion d'erreur)
+      let recentOrdersData = null;
+      let recentOrdersError = null;
+      
+      try {
+        const result = await supabase
+          .from('orders')
+          .select(`
+            id, 
+            total, 
+            created_at, 
+            status, 
+            user_id,
+            order_items:order_items(
+              product_id,
+              quantity,
+              products:products(
+                name
+              )
+            ),
+            profiles:profiles(
+              first_name,
+              last_name
             )
-          ),
-          profiles:profiles(
-            first_name,
-            last_name
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(4) as { data: OrderData[] | null, error: any };
+          `)
+          .order('created_at', { ascending: false })
+          .limit(4) as { data: OrderData[] | null, error: any };
+        
+        recentOrdersData = result.data;
+        recentOrdersError = result.error;
+      } catch (err) {
+        console.log('Table orders non disponible pour les commandes récentes');
+        recentOrdersError = err;
+      }
       
       if (recentOrdersError) {
-        // Log plus discret pour éviter d'afficher des erreurs quand c'est normal qu'il n'y ait pas de données
-        console.log('Aucune commande récente disponible');
+        console.log('Commandes récentes non disponibles:', recentOrdersError.message || 'Table non trouvée');
       }
       
       // Formater les commandes récentes

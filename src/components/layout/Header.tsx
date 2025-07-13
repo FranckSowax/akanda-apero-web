@@ -3,11 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, User, LogIn, ShoppingBag } from 'lucide-react';
+import { 
+  Menu, 
+  User, 
+  LogIn, 
+  ShoppingBag, 
+  Settings, 
+  Package, 
+  Heart, 
+  LogOut, 
+  Crown,
+  MessageCircle,
+  MapPin
+} from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { useAuth } from '../../hooks/supabase/useAuth';
 import { useCartModalContext } from '../../context/CartModalContext';
 import { Button } from '../ui/button';
+import UserButton from '../auth/UserButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,13 +32,14 @@ import {
 export const Header: React.FC = () => {
   const { state, dispatch, getCartItemsCount } = useAppContext();
   const { isMenuOpen } = state.ui;
-  const { user, signOut } = useAuth();
   const { openCart } = useCartModalContext();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+
 
   const toggleMenu = () => {
     dispatch({ type: 'TOGGLE_MENU' });
@@ -69,39 +82,8 @@ export const Header: React.FC = () => {
             )}
           </Button>
           
-          {/* Ajouter le menu utilisateur ou bouton de connexion */}
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-2">
-                  <User className="h-5 w-5 text-gray-700" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/mon-compte/profil" className="w-full">Profil</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/mon-compte/commandes" className="w-full">Mes commandes</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/mon-compte/fidelite" className="w-full">Programme fidélité</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
-                  Se déconnecter
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link href="/auth">
-              <Button variant="ghost" className="p-2 flex items-center justify-center">
-                <User className="h-5 w-5 text-gray-700" />
-              </Button>
-            </Link>
-          )}
+          {/* Bouton utilisateur moderne */}
+          <UserButton />
           <button 
             className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors duration-200 touch-manipulation"
             onClick={toggleMenu}
@@ -169,6 +151,8 @@ export const Header: React.FC = () => {
           </div>
         </nav>
       </div>
+      
+
     </header>
   );
 };

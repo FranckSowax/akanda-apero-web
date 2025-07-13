@@ -101,16 +101,17 @@ export default function CategoriesPage() {
   });
 
   // Icônes disponibles pour les catégories
-  const availableIcons = [
+  const iconOptions = [
     { emoji: '🎁', name: 'Formules' },
     { emoji: '🍷', name: 'Vins' },
+    { emoji: '🍸', name: 'Liqueurs' },
     { emoji: '🍺', name: 'Bières' },
-    { emoji: '🥃', name: 'Spiritueux' },
-    { emoji: '🍾', name: 'Champagnes' },
-    { emoji: '🧊', name: 'Softs' },
-    { emoji: '☕', name: 'Café/Thé' },
-    { emoji: '🥤', name: 'Boissons' },
-    { emoji: '📦', name: 'Autres' }
+    { emoji: '🥂', name: 'Champagnes' },
+    { emoji: '🍫', name: 'Apéritifs & sucreries' },
+    { emoji: '🥤', name: 'Sodas & jus' },
+    { emoji: '🛒', name: 'Dépannage' },
+    { emoji: '🧊', name: 'Glaçons' },
+    { emoji: '🥃', name: 'Sans Alcool' }
   ];
 
   // Charger les catégories
@@ -660,7 +661,7 @@ export default function CategoriesPage() {
                     <div>
                       <Label htmlFor="emoji">Emoji</Label>
                       <div className="grid grid-cols-3 gap-2 mt-2">
-                        {availableIcons.map((icon) => (
+                        {iconOptions.map((icon) => (
                           <button
                             key={icon.emoji}
                             type="button"

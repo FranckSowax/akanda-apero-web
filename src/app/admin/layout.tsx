@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Package, 
@@ -20,8 +20,10 @@ import {
   Image,
   TrendingUp,
   Calendar,
-  Globe
+  Globe,
+  LogOut
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, color: 'text-blue-600' },
@@ -43,7 +45,30 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    setIsLoggingOut(true);
+    try {
+      // Déconnexion Supabase
+      await supabase.auth.signOut();
+      
+      // Nettoyer le localStorage
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('adminUser');
+      
+      // Redirection vers la page d'authentification
+      router.push('/auth');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -90,7 +115,7 @@ export default function AdminLayout({
             })}
           </nav>
           <div className="p-4 border-t border-gray-200">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-3">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">AA</span>
@@ -101,6 +126,14 @@ export default function AdminLayout({
                 </div>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <LogOut className="mr-3 h-5 w-5" />
+              {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
+            </button>
           </div>
         </div>
       </div>
@@ -144,7 +177,7 @@ export default function AdminLayout({
               })}
             </nav>
             <div className="p-4 border-t border-gray-200">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-3">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">AA</span>
@@ -155,6 +188,14 @@ export default function AdminLayout({
                   </div>
                 </div>
               </div>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <LogOut className="mr-3 h-5 w-5" />
+                {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
+              </button>
             </div>
           </div>
         </div>
