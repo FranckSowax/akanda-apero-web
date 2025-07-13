@@ -147,7 +147,7 @@ export default function CartPage() {
             <CardHeader>
               <CardTitle>Articles ({getCartItemsCount()})</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4">
               {cartItems.map((item) => {
                 const product = item.product;
                 const itemPrice = product.isPromo && product.discount 
@@ -156,80 +156,164 @@ export default function CartPage() {
                 const itemTotal = itemPrice * item.quantity;
                 
                 return (
-                  <div key={item.product.id} className="flex flex-wrap md:flex-nowrap items-start space-x-2 md:space-x-4 py-4 border-b last:border-0">
-                    {/* Product Image */}
-                    <div className="flex-shrink-0">
-                      <Link href={`/product/${item.product.id}`}>
-                        <Image 
-                          src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'} 
-                          alt={item.product.name} 
-                          width={80} 
-                          height={80} 
-                          className="rounded-md object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/images/placeholder-product.svg';
-                          }}
-                        />
-                      </Link>
-                    </div>
-                    
-                    {/* Product Info */}
-                    <div className="flex-grow">
-                      <Link href={`/product/${item.product.id}`} className="hover:underline">
-                        <h3 className="font-medium">{item.product.name}</h3>
-                      </Link>
+                  <div key={item.product.id} className="bg-white rounded-lg p-3 md:p-4 border border-gray-100 shadow-sm">
+                    {/* Mobile Layout - Image centrée avec infos en dessous */}
+                    <div className="block md:hidden">
+                      {/* Image agrandie centrée */}
+                      <div className="flex justify-center mb-3">
+                        <Link href={`/product/${item.product.id}`}>
+                          <Image 
+                            src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'} 
+                            alt={item.product.name} 
+                            width={120} 
+                            height={120} 
+                            className="rounded-lg object-cover shadow-md"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/images/placeholder-product.svg';
+                            }}
+                          />
+                        </Link>
+                      </div>
                       
-                      {/* Price */}
-                      <div className="mt-1">
-                        {item.product.isPromo && item.product.discount ? (
-                          <div className="flex items-center">
-                            <span className="text-red-600 font-medium">
-                              {formatPrice(itemPrice, item.product.currency)}
-                            </span>
-                            <span className="ml-2 text-sm text-gray-500 line-through">
+                      {/* Titre et prix centrés */}
+                      <div className="text-center mb-3">
+                        <Link href={`/product/${item.product.id}`} className="hover:underline">
+                          <h3 className="font-semibold text-lg mb-1">{item.product.name}</h3>
+                        </Link>
+                        
+                        {/* Prix */}
+                        <div className="mb-2">
+                          {item.product.isPromo && item.product.discount ? (
+                            <div className="flex items-center justify-center space-x-2">
+                              <span className="text-red-600 font-bold text-lg">
+                                {formatPrice(itemPrice, item.product.currency)}
+                              </span>
+                              <span className="text-sm text-gray-500 line-through">
+                                {formatPrice(item.product.price, item.product.currency)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-lg">
                               {formatPrice(item.product.price, item.product.currency)}
                             </span>
-                          </div>
-                        ) : (
-                          <span className="font-medium">
-                            {formatPrice(item.product.price, item.product.currency)}
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Contrôles quantité et total */}
+                      <div className="flex items-center justify-between">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center space-x-3 bg-gray-50 rounded-full px-3 py-2">
+                          <button 
+                            onClick={() => handleQuantityChange(item.product.id, -1)}
+                            className="p-1 rounded-full text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                            aria-label="Diminuer la quantité"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                          <button 
+                            onClick={() => handleQuantityChange(item.product.id, 1)}
+                            className="p-1 rounded-full text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                            aria-label="Augmenter la quantité"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        
+                        {/* Total et suppression */}
+                        <div className="flex items-center space-x-3">
+                          <span className="font-bold text-lg text-orange-600">
+                            {formatPrice(itemTotal, item.product.currency)}
                           </span>
-                        )}
+                          <button 
+                            onClick={() => handleRemoveItem(item.product.id)}
+                            className="p-2 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                            aria-label="Supprimer l'article"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Quantity Controls */}
-                    <div className="flex items-center space-x-2 mt-2 md:mt-0">
-                      <button 
-                        onClick={() => handleQuantityChange(item.product.id, -1)}
-                        className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
-                        aria-label="Diminuer la quantité"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button 
-                        onClick={() => handleQuantityChange(item.product.id, 1)}
-                        className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
-                        aria-label="Augmenter la quantité"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                    
-                    {/* Total & Remove */}
-                    <div className="text-right flex flex-col items-end ml-auto mt-2 md:mt-0">
-                      <span className="font-bold">
-                        {formatPrice(itemTotal, item.product.currency)}
-                      </span>
-                      <button 
-                        onClick={() => handleRemoveItem(item.product.id)}
-                        className="text-gray-400 hover:text-red-500 mt-2"
-                        aria-label="Supprimer l'article"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    {/* Desktop Layout - Layout horizontal classique */}
+                    <div className="hidden md:flex items-start space-x-4">
+                      {/* Product Image */}
+                      <div className="flex-shrink-0">
+                        <Link href={`/product/${item.product.id}`}>
+                          <Image 
+                            src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'} 
+                            alt={item.product.name} 
+                            width={80} 
+                            height={80} 
+                            className="rounded-md object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/images/placeholder-product.svg';
+                            }}
+                          />
+                        </Link>
+                      </div>
+                      
+                      {/* Product Info */}
+                      <div className="flex-grow">
+                        <Link href={`/product/${item.product.id}`} className="hover:underline">
+                          <h3 className="font-medium">{item.product.name}</h3>
+                        </Link>
+                        
+                        {/* Price */}
+                        <div className="mt-1">
+                          {item.product.isPromo && item.product.discount ? (
+                            <div className="flex items-center">
+                              <span className="text-red-600 font-medium">
+                                {formatPrice(itemPrice, item.product.currency)}
+                              </span>
+                              <span className="ml-2 text-sm text-gray-500 line-through">
+                                {formatPrice(item.product.price, item.product.currency)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-medium">
+                              {formatPrice(item.product.price, item.product.currency)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Quantity Controls */}
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleQuantityChange(item.product.id, -1)}
+                          className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
+                          aria-label="Diminuer la quantité"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-8 text-center">{item.quantity}</span>
+                        <button 
+                          onClick={() => handleQuantityChange(item.product.id, 1)}
+                          className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
+                          aria-label="Augmenter la quantité"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                      
+                      {/* Total & Remove */}
+                      <div className="text-right flex flex-col items-end">
+                        <span className="font-bold">
+                          {formatPrice(itemTotal, item.product.currency)}
+                        </span>
+                        <button 
+                          onClick={() => handleRemoveItem(item.product.id)}
+                          className="text-gray-400 hover:text-red-500 mt-2"
+                          aria-label="Supprimer l'article"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -348,7 +432,19 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter className="md:block hidden"> {/* Uniquement sur desktop */}
-              <Link href={isLoggedIn ? "/checkout" : "/auth"} className="w-full">
+              <Link 
+                href={isLoggedIn ? "/checkout" : "/auth"} 
+                className="w-full"
+                onClick={() => {
+                  // Sauvegarder le panier dans localStorage avant redirection vers /auth
+                  if (!isLoggedIn) {
+                    localStorage.setItem('cart_before_auth', JSON.stringify({
+                      items: cartItems,
+                      timestamp: Date.now()
+                    }));
+                  }
+                }}
+              >
                 <Button 
                   className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
                   size="lg"
@@ -369,7 +465,19 @@ export default function CartPage() {
                 <p className="font-semibold text-lg">{formatPrice(total)}</p>
                 <p className="text-xs text-gray-500">Total TTC</p>
               </div>
-              <Link href={isLoggedIn ? "/checkout" : "/auth"} className="flex-1">
+              <Link 
+                href={isLoggedIn ? "/checkout" : "/auth"} 
+                className="flex-1"
+                onClick={() => {
+                  // Sauvegarder le panier dans localStorage avant redirection vers /auth
+                  if (!isLoggedIn) {
+                    localStorage.setItem('cart_before_auth', JSON.stringify({
+                      items: cartItems,
+                      timestamp: Date.now()
+                    }));
+                  }
+                }}
+              >
                 <Button 
                   className={`w-full ${!isLoggedIn ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200' : ''}`} 
                   size="lg"

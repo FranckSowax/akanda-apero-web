@@ -297,11 +297,60 @@ export default function AuthPage() {
             console.error('⚠️ Erreur setSession:', error);
           }
           
-          // ÉTAPE 3: Déterminer la destination
+          // ÉTAPE 3: Restaurer le panier si nécessaire
+          try {
+            const savedCart = localStorage.getItem('cart_before_auth');
+            if (savedCart) {
+              console.log('🛒 Panier sauvegardé trouvé, restauration...');
+              
+              // Récupérer le panier actuel
+              const currentCart = localStorage.getItem('akanda-cart');
+              let cartToRestore = JSON.parse(savedCart);
+              
+              if (currentCart) {
+                // Fusionner les paniers si il y en a un actuel
+                const currentCartData = JSON.parse(currentCart);
+                const mergedCart = [...currentCartData];
+                
+                // Ajouter les articles du panier sauvegardé
+                cartToRestore.forEach((savedItem: any) => {
+                  const existingIndex = mergedCart.findIndex((item: any) => item.id === savedItem.id);
+                  if (existingIndex >= 0) {
+                    // Additionner les quantités si l'article existe déjà
+                    mergedCart[existingIndex].quantity += savedItem.quantity;
+                  } else {
+                    // Ajouter le nouvel article
+                    mergedCart.push(savedItem);
+                  }
+                });
+                
+                cartToRestore = mergedCart;
+              }
+              
+              // Sauvegarder le panier fusionné
+              localStorage.setItem('akanda-cart', JSON.stringify(cartToRestore));
+              
+              // Supprimer le panier temporaire
+              localStorage.removeItem('cart_before_auth');
+              
+              console.log('✅ Panier restauré avec succès:', cartToRestore.length, 'articles');
+              
+              // Déclencher un événement pour notifier les composants
+              window.dispatchEvent(new CustomEvent('cart-restored', {
+                detail: { cart: cartToRestore }
+              }));
+            }
+          } catch (error) {
+            console.error('⚠️ Erreur lors de la restauration du panier:', error);
+            // Supprimer le panier corrompu pour éviter les problèmes futurs
+            localStorage.removeItem('cart_before_auth');
+          }
+          
+          // ÉTAPE 4: Déterminer la destination
           const userRole = await checkUserRole(data.user.id);
           const destination = userRole === 'admin' ? '/admin/dashboard' : redirectTo;
           
-          // ÉTAPE 4: Vérification et redirection ultra-robuste
+          // ÉTAPE 5: Vérification et redirection ultra-robuste
           let attempts = 0;
           const maxAttempts = 15;
           

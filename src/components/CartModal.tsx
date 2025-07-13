@@ -38,6 +38,28 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
   // État pour gérer les erreurs d'images
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
+  // État pour la notification de restauration du panier
+  const [cartRestored, setCartRestored] = useState(false);
+
+  // Écouter l'événement de restauration du panier
+  React.useEffect(() => {
+    const handleCartRestored = (event: CustomEvent) => {
+      console.log('🛒 Panier restauré détecté dans CartModal:', event.detail.cart.length, 'articles');
+      setCartRestored(true);
+      
+      // Masquer la notification après 5 secondes
+      setTimeout(() => {
+        setCartRestored(false);
+      }, 5000);
+    };
+
+    window.addEventListener('cart-restored', handleCartRestored as EventListener);
+    
+    return () => {
+      window.removeEventListener('cart-restored', handleCartRestored as EventListener);
+    };
+  }, []);
+
   // Fermer le modal avec Escape
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -134,6 +156,32 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                 <X className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Notification de restauration du panier */}
+            <AnimatePresence>
+              {cartRestored && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="mx-3 sm:mx-6 mb-3 p-3 bg-green-50 border border-green-200 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 bg-green-100 rounded-full">
+                      <ShoppingCart className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-800">
+                        Panier restauré !
+                      </p>
+                      <p className="text-xs text-green-600">
+                        Vos articles ont été restaurés après votre connexion.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
