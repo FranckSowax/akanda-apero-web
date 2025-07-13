@@ -36,6 +36,8 @@ import {
 } from "../../../components/ui/dropdown-menu";
 
 import { useOrders } from '../../../hooks/supabase/useOrders';
+import OrderDetailsModal from '../../../components/admin/OrderDetailsModal';
+import InvoiceModal from '../../../components/admin/InvoiceModal';
 import { Order } from '../../../types/supabase';
 
 // Statut des commandes avec leur couleur et icône respectifs
@@ -62,10 +64,11 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
 };
 
 // Tableau des commandes
-const OrderTable = ({ orders, onStatusChange, onViewOrder }: { 
+const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice }: { 
   orders: any[],
   onStatusChange: (orderId: string, status: string) => void,
-  onViewOrder: (orderId: string) => void
+  onViewOrder: (orderId: string) => void,
+  onViewInvoice: (orderId: string) => void
 }) => {
   if (orders.length === 0) {
     return (
@@ -172,7 +175,7 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder }: {
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       <span>Marquer comme livrée</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onViewInvoice(order.id)}>
                       <FileText className="mr-2 h-4 w-4" />
                       <span>Facture</span>
                     </DropdownMenuItem>
@@ -235,6 +238,10 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusUpdateOrderId, setStatusUpdateOrderId] = useState<string | null>(null);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<any | null>(null);
+  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<any | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
 
   const { getAllOrders, updateOrderStatus, loading: ordersLoading } = useOrders();
 
@@ -295,9 +302,33 @@ export default function OrdersPage() {
     }
   };
 
-  // Gérer la vue d'une commande
+  // Gérer la vue d'une commande (ouvrir le modal de détails)
   const handleViewOrder = (orderId: string) => {
-    window.location.href = `/admin/orders/${orderId}`;
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setSelectedOrderForDetails(order);
+      setIsDetailsModalOpen(true);
+    }
+  };
+
+  // Gérer l'ouverture du modal de facture
+  const handleViewInvoice = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setSelectedOrderForInvoice(order);
+      setIsInvoiceModalOpen(true);
+    }
+  };
+
+  // Fermer les modals
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedOrderForDetails(null);
+  };
+
+  const handleCloseInvoiceModal = () => {
+    setIsInvoiceModalOpen(false);
+    setSelectedOrderForInvoice(null);
   };
 
   // Filtrer les commandes par statut et recherche
@@ -377,7 +408,8 @@ export default function OrdersPage() {
           <OrderTable 
             orders={filteredOrders} 
             onStatusChange={handleStatusChange} 
-            onViewOrder={handleViewOrder} 
+            onViewOrder={handleViewOrder}
+            onViewInvoice={handleViewInvoice}
           />
           
           {filteredOrders.length > 0 && (
@@ -389,6 +421,19 @@ export default function OrdersPage() {
           )}
         </>
       )}
+      
+      {/* Modals */}
+      <OrderDetailsModal 
+        order={selectedOrderForDetails}
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
+      />
+      
+      <InvoiceModal 
+        order={selectedOrderForInvoice}
+        isOpen={isInvoiceModalOpen}
+        onClose={handleCloseInvoiceModal}
+      />
     </div>
   );
 }
