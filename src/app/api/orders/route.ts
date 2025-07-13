@@ -1,250 +1,316 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Order } from '../../../lib/types';
+import { createClient } from '@supabase/supabase-js';
 
-// Base de données fictive pour les commandes
-let orders: Order[] = [
-  {
-    id: "ORD-2025050601",
-    customerId: 1,
-    customerName: "Michel Dupont",
-    customerPhone: "+225 07 01 02 03 04",
-    customerEmail: "michel.dupont@email.com",
-    items: [
-      { productId: 1, name: "Pack The Party Mix", quantity: 2, price: 15000, subtotal: 30000 },
-      { productId: 3, name: "Cocktail DIY Kit", quantity: 1, price: 28000, subtotal: 28000 }
-    ],
-    totalAmount: 58000,
-    status: 'Prête',
-    paymentStatus: 'Payée',
-    paymentMethod: 'Mobile Money',
-    address: "Cocody, Rue des Jardins, Abidjan",
-    date: "2025-05-06T10:30:00.000Z",
-    deliveryPersonId: 1,
-    createdAt: "2025-05-06T09:15:00.000Z",
-    updatedAt: "2025-05-06T10:25:00.000Z"
-  },
-  {
-    id: "ORD-2025050602",
-    customerId: 2,
-    customerName: "Aminata Koné",
-    customerPhone: "+225 05 45 67 89 10",
-    customerEmail: "aminata.kone@email.com",
-    items: [
-      { productId: 5, name: "Vin Rouge Château Margaux", quantity: 1, price: 45000, subtotal: 45000 }
-    ],
-    totalAmount: 45000,
-    status: 'En livraison',
-    paymentStatus: 'Payée',
-    paymentMethod: 'Carte bancaire',
-    address: "Plateau, Avenue de la République, Abidjan",
-    date: "2025-05-06T12:00:00.000Z",
-    deliveryPersonId: 2,
-    deliveryNotes: "Sonner à l'interphone",
-    createdAt: "2025-05-06T11:30:00.000Z",
-    updatedAt: "2025-05-06T11:45:00.000Z"
-  },
-  {
-    id: "ORD-2025050603",
-    customerId: 3,
-    customerName: "Jean-Paul Kofi",
-    customerPhone: "+225 07 89 34 56 12",
-    items: [
-      { productId: 2, name: "Whisky Premium", quantity: 1, price: 35000, subtotal: 35000 },
-      { productId: 8, name: "Rhum Diplomatico", quantity: 1, price: 25000, subtotal: 25000 }
-    ],
-    totalAmount: 60000,
-    status: 'Nouvelle',
-    paymentStatus: 'En attente',
-    address: "Marcory, Rue des Alliés, Abidjan",
-    date: "2025-05-06T16:00:00.000Z",
-    createdAt: "2025-05-06T14:20:00.000Z",
-    updatedAt: "2025-05-06T14:20:00.000Z"
-  },
-  {
-    id: "ORD-2025050604",
-    customerId: 4,
-    customerName: "Fatou Diallo",
-    customerPhone: "+225 05 67 23 45 98",
-    customerEmail: "fatou.diallo@email.com",
-    items: [
-      { productId: 4, name: "Bières Artisanales - Assortiment", quantity: 2, price: 12000, subtotal: 24000 }
-    ],
-    totalAmount: 24000,
-    status: 'Livrée',
-    paymentStatus: 'Payée',
-    paymentMethod: 'Espèces',
-    address: "Yopougon, Quartier Millionnaire, Abidjan",
-    date: "2025-05-06T09:00:00.000Z",
-    deliveryPersonId: 1,
-    createdAt: "2025-05-06T08:10:00.000Z",
-    updatedAt: "2025-05-06T09:45:00.000Z"
-  },
-  {
-    id: "ORD-2025050605",
-    customerId: 5,
-    customerName: "Paul Kouamé",
-    customerPhone: "+225 07 34 56 78 90",
-    items: [
-      { productId: 7, name: "Champagne Moët & Chandon", quantity: 2, price: 60000, subtotal: 120000 }
-    ],
-    totalAmount: 120000,
-    status: 'En préparation',
-    paymentStatus: 'Payée',
-    paymentMethod: 'Mobile Money',
-    address: "Deux Plateaux, Rue des Jardins, Abidjan",
-    date: "2025-05-06T18:30:00.000Z",
-    createdAt: "2025-05-06T15:45:00.000Z",
-    updatedAt: "2025-05-06T16:10:00.000Z"
-  }
-];
+// Configuration Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// GET /api/orders
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
-  const status = searchParams.get('status');
-  const customerId = searchParams.get('customerId');
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  
-  let filteredOrders = [...orders];
-
-  // Appliquer les filtres
-  if (status) {
-    filteredOrders = filteredOrders.filter(o => o.status === status);
-  }
-  
-  if (customerId) {
-    filteredOrders = filteredOrders.filter(o => o.customerId === parseInt(customerId));
-  }
-  
-  if (startDate) {
-    const start = new Date(startDate);
-    filteredOrders = filteredOrders.filter(o => new Date(o.date) >= start);
-  }
-  
-  if (endDate) {
-    const end = new Date(endDate);
-    filteredOrders = filteredOrders.filter(o => new Date(o.date) <= end);
-  }
-
-  // Trier par date (plus récent en premier)
-  filteredOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  // Pagination
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-  
-  return NextResponse.json({
-    success: true,
-    data: paginatedOrders,
-    total: filteredOrders.length,
-    page,
-    pageSize: limit,
-    totalPages: Math.ceil(filteredOrders.length / limit)
-  });
+// Types pour les données de commande
+interface OrderData {
+  customerInfo: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone: string;
+  };
+  deliveryInfo: {
+    address: string;
+    district?: string;
+    additionalInfo?: string;
+    location: {
+      lat: number;
+      lng: number;
+      hasLocation: boolean;
+    };
+    deliveryOption: string;
+  };
+  paymentInfo: {
+    method: string;
+    [key: string]: any;
+  };
+  items: Array<{
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+    imageUrl: string;
+  }>;
+  totalAmount: number;
+  subtotal: number;
+  deliveryCost: number;
+  discount: number;
 }
 
-// POST /api/orders
+// GET /api/orders - Récupérer les commandes depuis Supabase
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const status = searchParams.get('status');
+    const customerId = searchParams.get('customerId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    
+    console.log('🔍 GET /api/orders - Paramètres:', { page, limit, status, customerId, startDate, endDate });
+    
+    // Construire la requête Supabase
+    let query = supabase
+      .from('orders_complete') // Utiliser la vue avec toutes les informations
+      .select('*');
+    
+    // Appliquer les filtres
+    if (status) {
+      query = query.eq('status', status);
+    }
+    
+    if (customerId) {
+      query = query.eq('customer_id', customerId);
+    }
+    
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    
+    if (endDate) {
+      query = query.lte('created_at', endDate);
+    }
+    
+    // Compter le total pour la pagination
+    const { count } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+    
+    // Appliquer la pagination et le tri
+    const startIndex = (page - 1) * limit;
+    query = query
+      .order('created_at', { ascending: false })
+      .range(startIndex, startIndex + limit - 1);
+    
+    const { data: orders, error } = await query;
+    
+    if (error) {
+      console.error('❌ Erreur Supabase GET orders:', error);
+      return NextResponse.json(
+        { error: 'Erreur lors de la récupération des commandes', details: error.message },
+        { status: 500 }
+      );
+    }
+    
+    console.log(`✅ ${orders?.length || 0} commandes récupérées`);
+    
+    return NextResponse.json({
+      orders: orders || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur GET /api/orders:', error);
+    return NextResponse.json(
+      { error: 'Erreur serveur lors de la récupération des commandes' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/orders - Créer une nouvelle commande dans Supabase
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const orderData: OrderData = await request.json();
+    
+    console.log('📦 POST /api/orders - Données reçues:', JSON.stringify(orderData, null, 2));
     
     // Vérifications de base
-    if (!body.customerName || !body.customerPhone || !body.items || !body.address) {
+    if (!orderData.customerInfo?.email || !orderData.customerInfo?.phone || 
+        !orderData.items?.length || !orderData.deliveryInfo?.address) {
       return NextResponse.json({
-        success: false,
-        error: 'Données invalides. Veuillez fournir les informations nécessaires pour la commande.'
+        error: 'Données invalides. Informations client, articles et adresse requis.'
       }, { status: 400 });
     }
     
-    if (!body.items.length) {
+    // Vérifier les coordonnees GPS
+    if (!orderData.deliveryInfo.location?.lat || !orderData.deliveryInfo.location?.lng) {
       return NextResponse.json({
-        success: false,
-        error: 'La commande doit contenir au moins un article.'
+        error: 'Coordonnées GPS requises pour la livraison.'
       }, { status: 400 });
     }
     
-    // Calculer le montant total
-    const totalAmount = body.items.reduce((total: number, item: any) => {
-      return total + (item.price * item.quantity);
-    }, 0);
+    // 1. Créer ou récupérer le client
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('email', orderData.customerInfo.email)
+      .single();
     
-    // Générer un ID unique pour la commande
-    const date = new Date();
-    const orderNumber = String(orders.length + 1).padStart(2, '0');
-    const orderId = `ORD-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}${orderNumber}`;
+    let customerId = existingCustomer?.id;
     
-    // Créer une nouvelle commande
-    const newOrder: Order = {
-      id: orderId,
-      customerId: body.customerId || 0,
-      customerName: body.customerName,
-      customerPhone: body.customerPhone,
-      customerEmail: body.customerEmail,
-      items: body.items.map((item: any) => ({
-        productId: item.productId,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.price * item.quantity
-      })),
-      totalAmount,
-      status: 'Nouvelle',
-      paymentStatus: body.paymentStatus || 'En attente',
-      paymentMethod: body.paymentMethod,
-      address: body.address,
-      date: new Date().toISOString(),
-      deliveryPersonId: body.deliveryPersonId,
-      deliveryNotes: body.deliveryNotes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (!customerId) {
+      const { data: newCustomer, error: customerError } = await supabase
+        .from('customers')
+        .insert({
+          email: orderData.customerInfo.email,
+          first_name: orderData.customerInfo.first_name,
+          last_name: orderData.customerInfo.last_name,
+          phone: orderData.customerInfo.phone
+        })
+        .select('id')
+        .single();
+      
+      if (customerError) {
+        console.error('❌ Erreur création client:', customerError);
+        return NextResponse.json(
+          { error: 'Erreur lors de la création du client', details: customerError.message },
+          { status: 500 }
+        );
+      }
+      
+      customerId = newCustomer.id;
+      console.log('✅ Nouveau client créé avec ID:', customerId);
+    }
     
-    orders.push(newOrder);
+    // 2. Créer la commande avec coordonnées GPS
+    const { data: newOrder, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_id: customerId,
+        total_amount: orderData.totalAmount,
+        subtotal: orderData.subtotal,
+        delivery_cost: orderData.deliveryCost,
+        discount: orderData.discount || 0,
+        status: 'Nouvelle',
+        payment_status: 'En attente',
+        payment_method: orderData.paymentInfo.method,
+        delivery_address: orderData.deliveryInfo.address,
+        delivery_district: orderData.deliveryInfo.district,
+        delivery_notes: orderData.deliveryInfo.additionalInfo,
+        delivery_option: orderData.deliveryInfo.deliveryOption,
+        gps_latitude: orderData.deliveryInfo.location.lat,
+        gps_longitude: orderData.deliveryInfo.location.lng
+      })
+      .select('id, order_number')
+      .single();
+    
+    if (orderError) {
+      console.error('❌ Erreur création commande:', orderError);
+      return NextResponse.json(
+        { error: 'Erreur lors de la création de la commande', details: orderError.message },
+        { status: 500 }
+      );
+    }
+    
+    console.log('✅ Commande créée avec ID:', newOrder.id, 'Numéro:', newOrder.order_number);
+    
+    // 3. Ajouter les articles de la commande
+    const orderItems = orderData.items.map(item => ({
+      order_id: newOrder.id,
+      product_id: item.id,
+      product_name: item.name,
+      quantity: item.quantity,
+      unit_price: item.price,
+      subtotal: item.price * item.quantity
+    }));
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+    
+    if (itemsError) {
+      console.error('❌ Erreur ajout articles:', itemsError);
+      // Supprimer la commande si les articles n'ont pas pu être ajoutés
+      await supabase.from('orders').delete().eq('id', newOrder.id);
+      return NextResponse.json(
+        { error: 'Erreur lors de l\'ajout des articles', details: itemsError.message },
+        { status: 500 }
+      );
+    }
+    
+    console.log(`✅ ${orderItems.length} articles ajoutés à la commande`);
+    
+    // 4. Récupérer la commande complète avec les liens de navigation
+    const { data: completeOrder, error: fetchError } = await supabase
+      .from('orders_complete')
+      .select('*')
+      .eq('id', newOrder.id)
+      .single();
+    
+    if (fetchError) {
+      console.error('❌ Erreur récupération commande complète:', fetchError);
+    }
     
     return NextResponse.json({
       success: true,
-      data: newOrder,
-      message: 'Commande créée avec succès'
+      order: completeOrder || {
+        id: newOrder.id,
+        order_number: newOrder.order_number,
+        status: 'Nouvelle',
+        total_amount: orderData.totalAmount
+      },
+      message: `Commande ${newOrder.order_number} créée avec succès avec coordonnées GPS`
     }, { status: 201 });
+    
   } catch (error) {
-    console.error('Erreur lors de la création de la commande:', error);
+    console.error('❌ Erreur POST /api/orders:', error);
     return NextResponse.json({
-      success: false,
-      error: 'Erreur lors de la création de la commande'
+      error: 'Erreur serveur lors de la création de la commande'
     }, { status: 500 });
   }
 }
 
-// Endpoint pour obtenir les statistiques des commandes
+// PATCH /api/orders - Mettre à jour une commande
 export async function PATCH(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const period = searchParams.get('period') || 'day';
-  
-  // Dans une application réelle, cela serait calculé à partir de la base de données
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((total, order) => total + order.totalAmount, 0);
-  const avgOrderValue = totalRevenue / totalOrders;
-  
-  // Compter les commandes par statut
-  const ordersByStatus: Record<string, number> = {};
-  orders.forEach(order => {
-    if (!ordersByStatus[order.status]) {
-      ordersByStatus[order.status] = 0;
+  try {
+    const { searchParams } = new URL(request.url);
+    const orderId = searchParams.get('id');
+    const body = await request.json();
+    
+    if (!orderId) {
+      return NextResponse.json(
+        { error: 'ID de commande requis' },
+        { status: 400 }
+      );
     }
-    ordersByStatus[order.status]++;
-  });
-  
-  return NextResponse.json({
-    success: true,
-    data: {
-      totalOrders,
-      totalRevenue,
-      avgOrderValue,
-      ordersByStatus
+    
+    console.log(`🔄 PATCH /api/orders - Mise à jour commande ${orderId}:`, body);
+    
+    const { data: updatedOrder, error } = await supabase
+      .from('orders')
+      .update({
+        status: body.status,
+        payment_status: body.payment_status,
+        delivery_person_id: body.delivery_person_id,
+        delivery_notes: body.delivery_notes,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .select('*')
+      .single();
+    
+    if (error) {
+      console.error('❌ Erreur mise à jour commande:', error);
+      return NextResponse.json(
+        { error: 'Erreur lors de la mise à jour', details: error.message },
+        { status: 500 }
+      );
     }
-  });
+    
+    console.log('✅ Commande mise à jour:', updatedOrder.order_number);
+    
+    return NextResponse.json({
+      success: true,
+      order: updatedOrder
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur PATCH /api/orders:', error);
+    return NextResponse.json(
+      { error: 'Erreur serveur lors de la mise à jour' },
+      { status: 500 }
+    );
+  }
 }

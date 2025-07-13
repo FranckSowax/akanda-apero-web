@@ -48,75 +48,43 @@ export function useOrders() {
   const [error, setError] = useState<Error | null>(null);
   const { createCustomer } = useCustomers();
 
-  // Créer une nouvelle commande
+  // Créer une nouvelle commande via l'API
   const createOrder = async (orderData: OrderData): Promise<{ success: boolean; orderNumber: string; error: Error | null }> => {
     try {
       setLoading(true);
       setError(null);
 
-      // 1. D'abord créer ou récupérer le client
-      const { data: customer, error: customerError } = await createCustomer({
-        email: orderData.customerInfo.email,
-        first_name: orderData.customerInfo.first_name,
-        last_name: orderData.customerInfo.last_name,
-        phone: orderData.customerInfo.phone
+      console.log('🚀 Création commande via API:', orderData);
+
+      // Appeler l'API POST /api/orders
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
       });
 
-      if (customerError) throw customerError;
-      if (!customer) throw new Error('Erreur lors de la création du client');
+      const result = await response.json();
 
-      // 2. Générer un numéro de commande unique
-      const orderNumber = `AK${Math.floor(100000 + Math.random() * 900000)}`;
+      if (!response.ok) {
+        throw new Error(result.error || `Erreur HTTP: ${response.status}`);
+      }
 
-      // 3. Créer l'entrée dans la table orders
-      const { data: orderData_, error: orderError } = await supabase
-        .from('orders')
-        .insert([{
-          order_number: orderNumber,
-          customer_id: customer.id,
-          status: 'pending',
-          total_amount: orderData.totalAmount,
-          subtotal: orderData.subtotal,
-          delivery_fee: orderData.deliveryCost,
-          discount_amount: orderData.discount,
-          // Informations de livraison
-          delivery_address: `${orderData.deliveryInfo.address}, ${orderData.deliveryInfo.city}`,
-          delivery_phone: orderData.customerInfo.phone,
-          delivery_notes: orderData.deliveryInfo.additionalInfo,
-          // Coordonnées GPS pour navigation
-          delivery_latitude: orderData.deliveryInfo.location.hasLocation ? orderData.deliveryInfo.location.lat : null,
-          delivery_longitude: orderData.deliveryInfo.location.hasLocation ? orderData.deliveryInfo.location.lng : null,
-          delivery_location_address: orderData.deliveryInfo.location.hasLocation ? 
-            `${orderData.deliveryInfo.address}, ${orderData.deliveryInfo.city}` : null,
-          // Paiement
-          payment_method: orderData.paymentInfo.method,
-          payment_status: 'pending'
-        }])
-        .select()
-        .single();
-      
-      if (orderError) throw orderError;
-      if (!orderData_) throw new Error('Erreur lors de la création de la commande');
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de la création de la commande');
+      }
 
-      // 4. Ajouter les éléments de la commande
-      const orderItems = orderData.items.map(item => ({
-        order_id: orderData_.id,
-        product_id: item.id.toString(),
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity
-      }));
+      console.log('✅ Commande créée avec succès:', result.order);
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-      
-      if (itemsError) throw itemsError;
-
-      return { success: true, orderNumber, error: null };
+      return {
+        success: true,
+        orderNumber: result.order.order_number,
+        error: null
+      };
 
     } catch (error) {
-      console.error('Erreur lors de la création de la commande:', error);
+      console.error('❌ Erreur lors de la création de la commande:', error);
       setError(error as Error);
       return { success: false, orderNumber: '', error: error as Error };
     } finally {
@@ -198,22 +166,38 @@ export function useOrders() {
     }
   };
 
-  // Mise à jour du statut d'une commande
+  // Mise à jour du statut d'une commande via l'API
   const updateOrderStatus = async (orderId: string, status: string): Promise<{ success: boolean; error: Error | null }> => {
     try {
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
+      const response = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: orderId,
+          status: status
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Erreur HTTP: ${response.status}`);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de la mise à jour du statut');
+      }
+
+      console.log('✅ Statut commande mis à jour:', result.order);
       
       return { success: true, error: null };
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut de la commande:', error);
+      console.error('❌ Erreur lors de la mise à jour du statut de la commande:', error);
       setError(error as Error);
       return { success: false, error: error as Error };
     } finally {
@@ -221,22 +205,38 @@ export function useOrders() {
     }
   };
 
-  // Mise à jour du statut de paiement d'une commande
+  // Mise à jour du statut de paiement d'une commande via l'API
   const updatePaymentStatus = async (orderId: string, paymentStatus: string): Promise<{ success: boolean; error: Error | null }> => {
     try {
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
-        .from('orders')
-        .update({ payment_status: paymentStatus })
-        .eq('id', orderId);
+      const response = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: orderId,
+          payment_status: paymentStatus
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Erreur HTTP: ${response.status}`);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de la mise à jour du statut de paiement');
+      }
+
+      console.log('✅ Statut paiement mis à jour:', result.order);
       
       return { success: true, error: null };
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut de paiement:', error);
+      console.error('❌ Erreur lors de la mise à jour du statut de paiement:', error);
       setError(error as Error);
       return { success: false, error: error as Error };
     } finally {
@@ -272,13 +272,62 @@ export function useOrders() {
     }
   };
   
+  // Récupérer toutes les commandes via l'API
+  const fetchOrders = async (filters?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    customerId?: string;
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Construire les paramètres de requête
+      const params = new URLSearchParams();
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.customerId) params.append('customerId', filters.customerId);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+
+      const response = await fetch(`/api/orders?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Erreur HTTP: ${response.status}`);
+      }
+
+      console.log(`✅ ${result.orders?.length || 0} commandes récupérées via API`);
+      
+      return {
+        orders: result.orders || [],
+        pagination: result.pagination
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur fetchOrders:', error);
+      setError(error as Error);
+      return {
+        orders: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fonction utilitaire pour traduire les statuts en français
   const translateOrderStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
-      'pending': 'Nouvelle',
-      'processing': 'En préparation',
+      'pending': 'En attente',
+      'confirmed': 'Confirmée',
+      'preparing': 'En préparation',
       'ready': 'Prête',
-      'shipped': 'En livraison',
+      'out_for_delivery': 'En livraison',
       'delivered': 'Livrée',
       'delayed': 'Retardée',
       'cancelled': 'Annulée'
@@ -291,6 +340,7 @@ export function useOrders() {
     loading,
     error,
     createOrder,
+    fetchOrders,
     getCustomerOrders,
     getAllOrders,
     updateOrderStatus,
