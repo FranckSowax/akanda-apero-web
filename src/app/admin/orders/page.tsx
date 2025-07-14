@@ -39,6 +39,7 @@ import { useOrders } from '../../../hooks/supabase/useOrders';
 import OrderDetailsModal from '../../../components/admin/OrderDetailsModal';
 import InvoiceModal from '../../../components/admin/InvoiceModal';
 import { Order } from '../../../types/supabase';
+import { whapiService } from '../../../services/whapi';
 
 // Statut des commandes avec leur couleur et icône respectifs
 const orderStatuses: Record<string, { color: string; icon: React.ReactNode }> = {
@@ -273,6 +274,9 @@ export default function OrdersPage() {
     try {
       const { success, error } = await updateOrderStatus(orderId, status);
       if (success) {
+        // Trouver la commande pour récupérer les infos client
+        const order = orders.find(o => o.id === orderId);
+        
         // Mettre à jour l'état local pour refléter le changement
         setOrders(prevOrders => prevOrders.map(order => {
           if (order.id === orderId) {
@@ -291,6 +295,35 @@ export default function OrdersPage() {
           }
           return order;
         }));
+
+        // Envoyer notification WhatsApp si les infos client sont disponibles
+        if (order && order.customers?.phone && whapiService.isConfigured()) {
+          const customerName = `${order.customers.first_name || ''} ${order.customers.last_name || ''}`.trim() || 'Client';
+          const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase();
+          const statusFr = status === 'processing' ? 'En préparation' :
+                         status === 'ready' ? 'Prête' :
+                         status === 'shipped' ? 'En livraison' :
+                         status === 'delivered' ? 'Livrée' : status;
+          
+          // Envoyer la notification en arrière-plan (ne pas bloquer l'UI)
+          whapiService.sendStatusNotification(
+            order.customers.phone,
+            orderNumber,
+            statusFr,
+            customerName
+          ).then(result => {
+            if (result.sent) {
+              console.log(`✅ Notification WhatsApp envoyée pour la commande ${orderNumber}`);
+            } else {
+              console.warn(`⚠️ Échec envoi WhatsApp pour ${orderNumber}:`, result.error);
+            }
+          }).catch(err => {
+            console.error('Erreur notification WhatsApp:', err);
+          });
+        } else if (!whapiService.isConfigured()) {
+          console.info('ℹ️ Service WhatsApp non configuré - notification non envoyée');
+        }
+        
       } else if (error) {
         setError(`Erreur lors de la mise à jour du statut: ${error.message}`);
       }

@@ -23,6 +23,20 @@ interface OrderDetailsModalProps {
   onClose: () => void;
 }
 
+// Fonction pour mapper le statut anglais vers le français
+const getStatusFrench = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'pending': 'En attente',
+    'confirmed': 'Confirmée',
+    'preparing': 'En préparation',
+    'ready_for_delivery': 'Prête',
+    'out_for_delivery': 'En livraison',
+    'delivered': 'Livrée',
+    'cancelled': 'Annulée'
+  };
+  return statusMap[status] || 'Nouvelle';
+};
+
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, onClose }) => {
   if (!isOpen || !order) return null;
 
@@ -84,8 +98,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-600">Statut:</span>
-              <Badge className={getStatusColor(order.status_fr || 'Nouvelle')}>
-                {order.status_fr || 'Nouvelle'}
+              <Badge className={getStatusColor(getStatusFrench(order.status))}>
+                {getStatusFrench(order.status)}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
@@ -126,7 +140,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
                     <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => window.open(generateWhatsAppLink(order.customers.phone, order.order_number || order.id?.slice(0, 6) || ''), '_blank')}
+                      onClick={() => window.open(generateWhatsAppLink(order.customers?.phone || '', order.order_number || order.id?.slice(0, 6) || ''), '_blank')}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       WhatsApp
@@ -147,18 +161,20 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
                   <p className="text-sm font-medium text-gray-700">Adresse</p>
                   <p className="text-gray-900">{order.delivery_address || 'Non renseignée'}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Quartier</p>
-                  <p className="text-gray-900">{order.delivery_district || 'Non renseigné'}</p>
-                </div>
+                {order.delivery_location_address && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Localisation</p>
+                    <p className="text-gray-900">{order.delivery_location_address}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium text-gray-700">Ville</p>
-                  <p className="text-gray-900">{order.delivery_city || 'Libreville'}</p>
+                  <p className="text-gray-900">Libreville</p>
                 </div>
-                {order.delivery_additional_info && (
+                {order.delivery_notes && (
                   <div>
-                    <p className="text-sm font-medium text-gray-700">Informations supplémentaires</p>
-                    <p className="text-gray-900">{order.delivery_additional_info}</p>
+                    <p className="text-sm font-medium text-gray-700">Notes de livraison</p>
+                    <p className="text-gray-900">{order.delivery_notes}</p>
                   </div>
                 )}
                 {order.delivery_address && (
@@ -166,7 +182,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
                     size="sm"
                     variant="outline"
                     className="w-full"
-                    onClick={() => window.open(generateWazeLink(order.delivery_address, order.delivery_district), '_blank')}
+                    onClick={() => window.open(generateWazeLink(order.delivery_address || '', ''), '_blank')}
                   >
                     <Navigation className="h-4 w-4 mr-2" />
                     Ouvrir dans Waze
@@ -220,10 +236,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
           </div>
 
           {/* Notes */}
-          {order.notes && (
+          {order.delivery_notes && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Notes</h3>
-              <p className="text-gray-700">{order.notes}</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Notes de livraison</h3>
+              <p className="text-gray-700">{order.delivery_notes}</p>
             </div>
           )}
         </div>

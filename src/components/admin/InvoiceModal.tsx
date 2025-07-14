@@ -131,12 +131,12 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClose }) =
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <p className="text-gray-900">{order.delivery_address || 'Adresse non renseignée'}</p>
-                {order.delivery_district && (
-                  <p className="text-gray-600">{order.delivery_district}</p>
+                {order.delivery_location_address && (
+                  <p className="text-gray-600">{order.delivery_location_address}</p>
                 )}
-                <p className="text-gray-600">{order.delivery_city || 'Libreville'}, Gabon</p>
-                {order.delivery_additional_info && (
-                  <p className="text-gray-600 text-sm italic">{order.delivery_additional_info}</p>
+                <p className="text-gray-600">Libreville, Gabon</p>
+                {order.delivery_notes && (
+                  <p className="text-gray-600 text-sm italic">{order.delivery_notes}</p>
                 )}
               </div>
             </div>
@@ -246,11 +246,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClose }) =
           </div>
 
           {/* Notes */}
-          {order.notes && (
+          {order.delivery_notes && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes de livraison</h3>
               <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                <p className="text-gray-700">{order.notes}</p>
+                <p className="text-gray-700">{order.delivery_notes}</p>
               </div>
             </div>
           )}
