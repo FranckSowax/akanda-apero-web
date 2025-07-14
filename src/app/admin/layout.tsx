@@ -27,10 +27,10 @@ import { supabase } from '../../lib/supabase';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, color: 'text-blue-600' },
-  { name: 'Produits', href: '/admin/products', icon: Package, color: 'text-green-600' },
-  { name: 'Catégories', href: '/admin/categories', icon: FolderOpen, color: 'text-purple-600' },
   { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart, color: 'text-orange-600' },
   { name: 'Livraisons', href: '/admin/deliveries', icon: Truck, color: 'text-red-600' },
+  { name: 'Produits', href: '/admin/products', icon: Package, color: 'text-green-600' },
+  { name: 'Catégories', href: '/admin/categories', icon: FolderOpen, color: 'text-purple-600' },
   { name: 'Clients', href: '/admin/customers', icon: Users, color: 'text-indigo-600' },
   { name: 'Promotions', href: '/admin/promotions', icon: Gift, color: 'text-pink-600' },
   { name: 'Bannières', href: '/admin/banners', icon: Image, color: 'text-yellow-600' },
