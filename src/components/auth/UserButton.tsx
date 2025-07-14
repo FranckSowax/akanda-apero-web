@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LogOut, User as UserIcon, Settings, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,26 @@ export default function UserButton() {
   const { user, loading, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fermer le menu lors d'un clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   // Debug simple
   console.log('🎨 UserButton - État:', {
@@ -43,11 +63,11 @@ export default function UserButton() {
     const initials = displayName.charAt(0).toUpperCase();
 
     return (
-      <div className="relative user-menu-container">
+      <div className="relative user-menu-container" ref={menuRef}>
         {/* Bouton utilisateur */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation"
         >
           <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
             {initials}
@@ -59,7 +79,9 @@ export default function UserButton() {
 
         {/* Menu déroulant */}
         {isMenuOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999] min-w-max">
+            {/* Overlay pour mobile */}
+            <div className="fixed inset-0 bg-black bg-opacity-25 z-[-1] md:hidden" onClick={() => setIsMenuOpen(false)} />
             <div className="px-4 py-2 border-b border-gray-100">
               <p className="text-sm font-medium text-gray-900">{displayName}</p>
               <p className="text-xs text-gray-500">{user.email}</p>

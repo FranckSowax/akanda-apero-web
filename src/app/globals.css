@@ -51,6 +51,79 @@ body {
   transition: opacity 300ms, transform 300ms;
 }
 
+/* Styles pour les notifications */
+.notification-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.notification-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+.notification-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+.notification-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Styles pour le menu utilisateur mobile */
+.user-menu-container {
+  position: relative;
+}
+
+/* Amélioration du menu déroulant sur mobile */
+@media (max-width: 768px) {
+  .user-menu-container .absolute {
+    position: fixed !important;
+    top: auto !important;
+    right: 1rem !important;
+    left: auto !important;
+    margin-top: 0.5rem;
+    width: auto;
+    min-width: 200px;
+    max-width: calc(100vw - 2rem);
+    z-index: 9999;
+  }
+}
+
+/* Amélioration du touch sur mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Styles pour le panier mobile */
+.cart-item-mobile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.cart-item-mobile .product-image {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+}
+
+.cart-item-mobile .product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Amélioration des boutons sur mobile */
+@media (max-width: 640px) {
+  .mobile-button {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+}
+
 /* Autres styles personnalisés */
 .product-card-hover:hover {
   transform: translateY(-8px);

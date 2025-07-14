@@ -162,47 +162,49 @@ export default function CartPage() {
                 
                 return (
                   <div key={item.product.id} className="bg-white rounded-lg p-3 md:p-4 border border-gray-100 shadow-sm">
-                    {/* Mobile Layout - Image centrée avec infos en dessous */}
+                    {/* Mobile Layout - Image à gauche, infos à droite */}
                     <div className="block md:hidden">
-                      {/* Image agrandie centrée */}
-                      <div className="flex justify-center mb-3">
-                        <Link href={`/product/${item.product.id}`}>
-                          <Image 
-                            src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'} 
-                            alt={item.product.name} 
-                            width={120} 
-                            height={120} 
-                            className="rounded-lg object-cover shadow-md"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = '/images/placeholder-product.svg';
-                            }}
-                          />
-                        </Link>
-                      </div>
-                      
-                      {/* Titre et prix centrés */}
-                      <div className="text-center mb-3">
-                        <Link href={`/product/${item.product.id}`} className="hover:underline">
-                          <h3 className="font-semibold text-lg mb-1">{item.product.name}</h3>
-                        </Link>
+                      <div className="flex items-start space-x-3">
+                        {/* Image à gauche */}
+                        <div className="flex-shrink-0">
+                          <Link href={`/product/${item.product.id}`}>
+                            <Image 
+                              src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'} 
+                              alt={item.product.name} 
+                              width={80} 
+                              height={80} 
+                              className="rounded-lg object-cover shadow-sm"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/images/placeholder-product.svg';
+                              }}
+                            />
+                          </Link>
+                        </div>
                         
-                        {/* Prix */}
-                        <div className="mb-2">
-                          {item.product.isPromo && item.product.discount ? (
-                            <div className="flex items-center justify-center space-x-2">
-                              <span className="text-red-600 font-bold text-lg">
-                                {formatPrice(itemPrice, item.product.currency)}
-                              </span>
-                              <span className="text-sm text-gray-500 line-through">
+                        {/* Titre et prix à droite */}
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/product/${item.product.id}`} className="hover:underline">
+                            <h3 className="font-semibold text-base mb-2 line-clamp-2">{item.product.name}</h3>
+                          </Link>
+                          
+                          {/* Prix */}
+                          <div className="mb-3">
+                            {item.product.isPromo && item.product.discount ? (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-red-600 font-bold text-lg">
+                                  {formatPrice(itemPrice, item.product.currency)}
+                                </span>
+                                <span className="text-sm text-gray-500 line-through">
+                                  {formatPrice(item.product.price, item.product.currency)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-bold text-lg">
                                 {formatPrice(item.product.price, item.product.currency)}
                               </span>
-                            </div>
-                          ) : (
-                            <span className="font-bold text-lg">
-                              {formatPrice(item.product.price, item.product.currency)}
-                            </span>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                       
