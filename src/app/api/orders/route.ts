@@ -55,9 +55,31 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 GET /api/orders - Paramètres:', { page, limit, status, customerId, startDate, endDate });
     
-    // Construire la requête Supabase
+    // Si on demande une commande spécifique
+    const orderId = searchParams.get('id');
+    
+    if (orderId) {
+      // Récupérer une commande spécifique
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+        
+      if (orderError) {
+        console.error('Erreur lors de la récupération de la commande:', orderError);
+        return NextResponse.json(
+          { error: 'Commande non trouvée', details: orderError.message },
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json(order);
+    }
+    
+    // Construire la requête pour toutes les commandes
     let query = supabase
-      .from('orders_complete') // Utiliser la vue avec toutes les informations
+      .from('orders')
       .select('*');
     
     // Appliquer les filtres
@@ -77,37 +99,28 @@ export async function GET(request: NextRequest) {
       query = query.lte('created_at', endDate);
     }
     
-    // Compter le total pour la pagination
-    const { count } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true });
-    
     // Appliquer la pagination et le tri
     const startIndex = (page - 1) * limit;
     query = query
       .order('created_at', { ascending: false })
       .range(startIndex, startIndex + limit - 1);
     
+    // Exécuter la requête
     const { data: orders, error } = await query;
     
     if (error) {
-      console.error('❌ Erreur Supabase GET orders:', error);
+      console.error('Erreur récupération commandes:', error);
       return NextResponse.json(
         { error: 'Erreur lors de la récupération des commandes', details: error.message },
         { status: 500 }
       );
     }
     
-    console.log(`✅ ${orders?.length || 0} commandes récupérées`);
+    console.log(`${orders?.length || 0} commandes récupérées`);
     
     return NextResponse.json({
       orders: orders || [],
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
+      total: orders?.length || 0
     });
     
   } catch (error) {
