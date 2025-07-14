@@ -269,7 +269,15 @@ export async function PATCH(request: NextRequest) {
     const orderId = searchParams.get('id');
     const body = await request.json();
     
+    console.log('🔍 PATCH /api/orders - Debug:', {
+      url: request.url,
+      orderId,
+      body,
+      searchParams: Object.fromEntries(searchParams.entries())
+    });
+    
     if (!orderId) {
+      console.error('❌ ID de commande manquant');
       return NextResponse.json(
         { error: 'ID de commande requis' },
         { status: 400 }

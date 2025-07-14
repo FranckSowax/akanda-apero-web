@@ -169,16 +169,19 @@ export function useOrders() {
   // Mise à jour du statut d'une commande via l'API
   const updateOrderStatus = async (orderId: string, status: string): Promise<{ success: boolean; error: Error | null }> => {
     try {
+      console.log('🔄 updateOrderStatus appelé avec:', { orderId, status });
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/orders', {
+      const url = `/api/orders?id=${orderId}`;
+      console.log('📡 Requête vers:', url);
+      
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: orderId,
           status: status
         }),
       });
