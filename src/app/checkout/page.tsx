@@ -35,6 +35,7 @@ interface CheckoutCartItem {
 
 // Delivery options
 const deliveryOptions = [
+  { id: 'pickup', name: 'Retrait au Shop', price: 0, description: 'Retirez sur place - Gratuit' },
   { id: 'standard', name: 'Livraison Standard', price: 2000, description: 'Livraison en moins de 45 min' },
   { id: 'express', name: 'Livraison Express', price: 3000, description: 'Livraison en moins de 25 min' },
   { id: 'night', name: 'Livraison nuit', price: 3500, description: 'Après 22H30' },
@@ -549,7 +550,7 @@ export default function CheckoutPage() {
                 <Truck className="h-4 w-4 text-indigo-600" />
                 Option de livraison
               </Label>
-              <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {deliveryOptions.map(option => (
                   <div key={option.id} className="relative">
                     <RadioGroupItem 
@@ -562,7 +563,7 @@ export default function CheckoutPage() {
                       className="group flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 backdrop-blur-sm p-5 hover:border-indigo-300 hover:bg-indigo-50/50 peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-indigo-50 [&:has([data-state=checked])]:border-indigo-500 [&:has([data-state=checked])]:bg-indigo-50 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                     >
                       <div className="mb-3 text-3xl group-hover:scale-110 transition-transform duration-200">
-                        {option.id === 'standard' ? '🚚' : option.id === 'night' ? '🌙' : '⚡️'}
+                        {option.id === 'pickup' ? '🏪' : option.id === 'standard' ? '🚚' : option.id === 'night' ? '🌙' : '⚡️'}
                       </div>
                       <div className="font-semibold text-gray-900 text-center">{option.name}</div>
                       <div className="text-xs text-gray-600 mt-1 text-center leading-tight">{option.description}</div>
