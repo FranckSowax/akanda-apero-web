@@ -71,7 +71,7 @@ export type Order = {
   id: string;
   order_number: string;
   customer_id: string | null;
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  status: 'Nouvelle' | 'Confirmée' | 'En préparation' | 'Prête' | 'En livraison' | 'Livrée' | 'Annulée';
   total_amount: number;
   subtotal: number;
   delivery_fee: number;
@@ -87,7 +87,7 @@ export type Order = {
   delivery_location_accuracy: number | null;
   // Paiement
   payment_method: string | null;
-  payment_status: string | null;
+  payment_status: 'En attente' | 'Payé' | 'Échoué' | 'Remboursé' | null;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];

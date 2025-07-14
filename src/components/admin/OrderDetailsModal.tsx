@@ -105,8 +105,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
             <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-600">Paiement:</span>
-              <Badge className={order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-                {order.payment_status === 'paid' ? 'Payée' : 'En attente'}
+              <Badge className={order.payment_status === 'Payé' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+                {order.payment_status || 'En attente'}
               </Badge>
             </div>
           </div>

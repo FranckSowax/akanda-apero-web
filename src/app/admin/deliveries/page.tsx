@@ -26,7 +26,7 @@ import { OrderWithNavigation } from '../../../types/supabase';
 import { formatPrice } from '../../../lib/utils/formatters';
 
 // Types pour les filtres
-type DeliveryStatus = 'all' | 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered';
+type DeliveryStatus = 'all' | 'Nouvelle' | 'Confirmée' | 'En préparation' | 'Prête' | 'En livraison' | 'Livrée' | 'Annulée';
 
 const DeliveriesPage = () => {
   const [orders, setOrders] = useState<OrderWithNavigation[]>([]);
@@ -119,9 +119,9 @@ const DeliveriesPage = () => {
   // Statistiques des livraisons
   const stats = {
     total: orders.length,
-    pending: orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status)).length,
-    inProgress: orders.filter(o => ['ready_for_delivery', 'out_for_delivery'].includes(o.status)).length,
-    delivered: orders.filter(o => o.status === 'delivered').length
+    pending: orders.filter(o => ['Nouvelle', 'Confirmée', 'En préparation'].includes(o.status)).length,
+    inProgress: orders.filter(o => ['Prête', 'En livraison'].includes(o.status)).length,
+    delivered: orders.filter(o => o.status === 'Livrée').length
   };
 
   if (loading) {
@@ -293,46 +293,46 @@ const DeliveriesPage = () => {
                       
                       {/* Actions de statut */}
                       <div className="flex gap-2">
-                        {order.status === 'pending' && (
+                        {order.status === 'Nouvelle' && (
                           <Button
                             size="sm"
-                            onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                            onClick={() => handleStatusUpdate(order.id, 'Confirmée')}
                             className="bg-blue-600 hover:bg-blue-700"
                           >
                             Confirmer
                           </Button>
                         )}
-                        {order.status === 'confirmed' && (
+                        {order.status === 'Confirmée' && (
                           <Button
                             size="sm"
-                            onClick={() => handleStatusUpdate(order.id, 'preparing')}
+                            onClick={() => handleStatusUpdate(order.id, 'En préparation')}
                             className="bg-orange-600 hover:bg-orange-700"
                           >
                             Préparer
                           </Button>
                         )}
-                        {order.status === 'preparing' && (
+                        {order.status === 'En préparation' && (
                           <Button
                             size="sm"
-                            onClick={() => handleStatusUpdate(order.id, 'ready_for_delivery')}
+                            onClick={() => handleStatusUpdate(order.id, 'Prête')}
                             className="bg-purple-600 hover:bg-purple-700"
                           >
                             Prête
                           </Button>
                         )}
-                        {order.status === 'ready_for_delivery' && (
+                        {order.status === 'Prête' && (
                           <Button
                             size="sm"
-                            onClick={() => handleStatusUpdate(order.id, 'out_for_delivery')}
+                            onClick={() => handleStatusUpdate(order.id, 'En livraison')}
                             className="bg-indigo-600 hover:bg-indigo-700"
                           >
                             En livraison
                           </Button>
                         )}
-                        {order.status === 'out_for_delivery' && (
+                        {order.status === 'En livraison' && (
                           <Button
                             size="sm"
-                            onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                            onClick={() => handleStatusUpdate(order.id, 'Livrée')}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             Livrée

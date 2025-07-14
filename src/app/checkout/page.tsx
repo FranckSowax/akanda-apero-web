@@ -79,6 +79,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { state, getCartTotal, clearCart, dispatch } = useAppContext();
   const cartItems = state.cart.items as CartItem[];
+  
+  // Log pour déboguer l'état du panier
+  console.log('🛍️ État du panier:', { cartItems, count: cartItems.length });
   const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -100,14 +103,14 @@ export default function CheckoutPage() {
     
     console.log('📊 Checkout - État auth:', { user, isLoggedIn, cartItems: state.cart.items.length });
     
-    if (state.cart.items.length === 0) {
+    if (state.cart.items.length === 0 && formStep !== 'confirmation') {
       console.log('🛒 Checkout - Panier vide, redirection vers /cart');
       router.push('/cart');
     } else if (!isLoggedIn) {
       console.log('🔐 Checkout - Utilisateur non connecté, redirection vers /auth');
       router.push('/auth');
     }
-  }, [state.cart.items, router, isLoggedIn, authLoading, user]);
+  }, [state.cart.items, router, isLoggedIn, authLoading, user, formStep]);
 
   // Form state
   const [deliveryInfo, setDeliveryInfo] = useState({
@@ -250,17 +253,30 @@ export default function CheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 handleSubmitOrder déclenché');
+    console.log('📝 Données actuelles:', { deliveryInfo, paymentInfo, cartItems });
+    
+    // Vérifier la validité du formulaire
+    const form = e.target as HTMLFormElement;
+    console.log('📋 Validité du formulaire:', form.checkValidity());
+    if (!form.checkValidity()) {
+      console.error('❌ Formulaire invalide - champs manquants');
+      form.reportValidity();
+      return;
+    }
     setIsSubmitting(true);
     setOrderError(null);
     
     try {
-      // Valider le numéro WhatsApp
-      const whatsappError = getPhoneValidationError(paymentInfo.whatsapp);
-      if (whatsappError) {
-        setOrderError(whatsappError);
+      // Validation WhatsApp simplifiée - juste vérifier que le champ n'est pas vide
+      console.log('📱 Validation WhatsApp pour:', paymentInfo.whatsapp);
+      if (!paymentInfo.whatsapp || paymentInfo.whatsapp.trim() === '') {
+        console.error('❌ Numéro WhatsApp requis');
+        setOrderError('Veuillez entrer un numéro WhatsApp');
         setIsSubmitting(false);
         return;
       }
+      console.log('✅ Validation WhatsApp réussie');
       
       // Extraire le prénom et le nom du nom complet
       const { firstName, lastName } = getFirstAndLastName(deliveryInfo.fullName);
@@ -299,7 +315,9 @@ export default function CheckoutPage() {
       };
       
       // Créer la commande et enregistrer le client
+      console.log('📦 Création commande avec:', orderData);
       const { success, orderNumber: newOrderNumber, error } = await createOrder(orderData);
+      console.log('📝 Résultat createOrder:', { success, newOrderNumber, error });
       
       if (success) {
         setOrderNumber(newOrderNumber);

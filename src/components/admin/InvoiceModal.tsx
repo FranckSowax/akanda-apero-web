@@ -229,11 +229,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClose }) =
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Statut du paiement:</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  order.payment_status === 'paid' 
+                  order.payment_status === 'Payé' 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-amber-100 text-amber-800'
                 }`}>
-                  {order.payment_status === 'paid' ? 'Payé' : 'En attente'}
+                  {order.payment_status || 'En attente'}
                 </span>
               </div>
               {order.payment_method && (

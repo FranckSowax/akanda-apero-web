@@ -139,11 +139,11 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice }: {
                 {order.total_formatted || `${order.total_amount || 0} XAF`}
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
-                <OrderStatusBadge status={order.status_fr || 'Nouvelle'} />
+                <OrderStatusBadge status={order.status || 'Nouvelle'} />
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
-                <Badge className={order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-                  {order.payment_status === 'paid' ? 'Payée' : 'En attente'}
+                <Badge className={order.payment_status === 'Payé' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+                  {order.payment_status || 'En attente'}
                 </Badge>
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-right text-sm">
@@ -153,26 +153,26 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice }: {
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="bg-white border shadow-lg">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => onViewOrder(order.id)}>
                       <Eye className="mr-2 h-4 w-4" />
                       <span>Voir les détails</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'processing')}>
+                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'En préparation')}>
                       <Package className="mr-2 h-4 w-4" />
                       <span>Marquer en préparation</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'ready')}>
+                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Prête')}>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       <span>Marquer comme prête</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'shipped')}>
+                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'En livraison')}>
                       <Truck className="mr-2 h-4 w-4" />
                       <span>Marquer en livraison</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>
+                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Livrée')}>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       <span>Marquer comme livrée</span>
                     </DropdownMenuItem>
@@ -199,25 +199,25 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice }: {
 // Statistiques des commandes
 const OrderStats = ({ orders }: { orders: any[] }) => {
   // Calculer les statistiques à partir des commandes réelles
-  const newOrders = orders.filter(order => order.status_fr === 'Nouvelle').length;
-  const processingOrders = orders.filter(order => order.status_fr === 'En préparation').length;
-  const shippingOrders = orders.filter(order => order.status_fr === 'En livraison').length;
+  const newOrders = orders.filter(order => order.status === 'Nouvelle').length;
+  const processingOrders = orders.filter(order => order.status === 'En préparation').length;
+  const shippingOrders = orders.filter(order => order.status === 'En livraison').length;
   
   // Calculer les commandes livrées aujourd'hui
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const deliveredToday = orders.filter(order => {
-    return order.status_fr === 'Livrée' && new Date(order.created_at) >= today;
+    return order.status === 'Livrée' && new Date(order.created_at) >= today;
   }).length;
   
-  const delayedOrders = orders.filter(order => order.status_fr === 'Retardée').length;
+  const delayedOrders = orders.filter(order => order.status === 'Annulée').length;
   
   const stats = [
     { label: 'Nouvelles', value: newOrders, color: 'text-blue-600' },
     { label: 'En préparation', value: processingOrders, color: 'text-yellow-600' },
     { label: 'En livraison', value: shippingOrders, color: 'text-indigo-600' },
     { label: 'Livrées (aujourd\'hui)', value: deliveredToday, color: 'text-green-600' },
-    { label: 'Retardées', value: delayedOrders, color: 'text-red-600' },
+    { label: 'Annulées', value: delayedOrders, color: 'text-red-600' },
   ];
 
   return (
@@ -280,17 +280,9 @@ export default function OrdersPage() {
         // Mettre à jour l'état local pour refléter le changement
         setOrders(prevOrders => prevOrders.map(order => {
           if (order.id === orderId) {
-            const statusFr = status === 'processing' ? 'En préparation' :
-                           status === 'ready' ? 'Prête' :
-                           status === 'shipped' ? 'En livraison' :
-                           status === 'delivered' ? 'Livrée' :
-                           status === 'delayed' ? 'Retardée' :
-                           status === 'cancelled' ? 'Annulée' : 'Nouvelle';
-            
             return {
               ...order,
-              status,
-              status_fr: statusFr
+              status // Le statut est déjà en français
             };
           }
           return order;
@@ -300,16 +292,12 @@ export default function OrdersPage() {
         if (order && order.customers?.phone && whapiService.isConfigured()) {
           const customerName = `${order.customers.first_name || ''} ${order.customers.last_name || ''}`.trim() || 'Client';
           const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase();
-          const statusFr = status === 'processing' ? 'En préparation' :
-                         status === 'ready' ? 'Prête' :
-                         status === 'shipped' ? 'En livraison' :
-                         status === 'delivered' ? 'Livrée' : status;
           
           // Envoyer la notification en arrière-plan (ne pas bloquer l'UI)
           whapiService.sendStatusNotification(
             order.customers.phone,
             orderNumber,
-            statusFr,
+            status, // Le statut est déjà en français
             customerName
           ).then(result => {
             if (result.sent) {
@@ -432,7 +420,7 @@ export default function OrdersPage() {
                   <SelectItem value="Prête">Prête</SelectItem>
                   <SelectItem value="En livraison">En livraison</SelectItem>
                   <SelectItem value="Livrée">Livrée</SelectItem>
-                  <SelectItem value="Retardée">Retardée</SelectItem>
+                  <SelectItem value="Annulée">Annulée</SelectItem>
                 </SelectContent>
               </Select>
             </div>
