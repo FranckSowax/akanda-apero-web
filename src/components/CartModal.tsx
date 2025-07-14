@@ -215,10 +215,10 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
-                          className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                          className="flex items-start gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                         >
                           {/* Image */}
-                          <div className="relative w-12 h-12 xs:w-16 xs:h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="relative w-20 h-20 sm:w-16 sm:h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                             <Image
                               src={imageErrors.has(String(item.product.id)) 
                                 ? '/images/placeholder-product.svg' 
@@ -240,11 +240,11 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           </div>
 
                           {/* Info */}
-                          <div className="flex-1 min-w-0 w-full xs:w-auto">
-                            <h4 className="text-sm sm:text-base font-semibold text-gray-900 break-words">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm sm:text-base font-semibold text-gray-900 break-words line-clamp-2 mb-1">
                               {item.product.name}
                             </h4>
-                            <div className="text-xs sm:text-sm text-gray-500 flex flex-col xs:flex-row xs:items-center xs:gap-2">
+                            <div className="text-xs sm:text-sm text-gray-500 mb-2">
                               {item.product.discount && item.product.discount > 0 ? (
                                 <div className="flex flex-col xs:flex-row xs:items-center xs:gap-2">
                                   <span className="font-semibold text-[#f5a623] whitespace-nowrap">
@@ -260,41 +260,41 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                                 </span>
                               )}
                             </div>
-                          </div>
+                            
+                            {/* Quantity Controls */}
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateCartItemQuantity(item.product.id, Math.max(0, item.quantity - 1))}
+                                  className="h-8 w-8 p-0 rounded-full"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-8 text-center font-semibold text-sm">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateCartItemQuantity(item.product.id, item.quantity + 1)}
+                                  className="h-8 w-8 p-0 rounded-full"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
 
-                          {/* Quantity Controls */}
-                          <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto mt-2 sm:mt-0">
-                            <div className="flex items-center gap-2">
+                              {/* Remove */}
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                onClick={() => updateCartItemQuantity(item.product.id, Math.max(0, item.quantity - 1))}
-                                className="h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full"
+                                onClick={() => removeFromCart(item.product.id)}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
                               >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <span className="w-8 sm:w-10 text-center font-semibold text-sm">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => updateCartItemQuantity(item.product.id, item.quantity + 1)}
-                                className="h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full"
-                              >
-                                <Plus className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
-
-                          {/* Remove */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFromCart(item.product.id)}
-                              className="h-8 w-8 sm:h-9 sm:w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full ml-auto sm:ml-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
                           </div>
                         </motion.div>
                       ))}
