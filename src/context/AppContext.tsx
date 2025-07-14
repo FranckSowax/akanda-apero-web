@@ -131,22 +131,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return total + itemPrice * item.quantity;
     }, 0);
 
-    // Coût de livraison selon l'option sélectionnée
-    let deliveryCost = 2000; // Standard par défaut (2000 FCFA)
-    
-    // Ajuster selon l'option choisie
-    if (state.cart.deliveryOption === 'express') {
-      deliveryCost = 3000; // Express (3000 FCFA)
-    } else if (state.cart.deliveryOption === 'night') {
-      deliveryCost = 3500; // Livraison de nuit après 22H30 (3500 FCFA)
-    }
+    // Plus de coût de livraison - la livraison sera gérée au checkout
+    const deliveryCost = 0;
 
     // Réduction du code promo
     const discount = state.cart.promoDiscount > 0
       ? (subtotal * state.cart.promoDiscount) / 100
       : 0;
 
-    const total = subtotal + deliveryCost - discount;
+    const total = subtotal - discount;
 
     return { subtotal, deliveryCost, discount, total };
   };

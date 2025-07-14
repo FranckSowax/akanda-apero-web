@@ -313,11 +313,13 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                             <span className="whitespace-nowrap">-{Math.round(discount).toLocaleString()} F CFA</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-xs sm:text-sm">
-                          <span className="text-gray-600">Livraison</span>
-                          <span className="font-medium whitespace-nowrap">
-                            {deliveryCost === 0 ? 'Gratuite' : `${Math.round(deliveryCost).toLocaleString()} F CFA`}
-                          </span>
+                        <div className="bg-blue-50 p-2 sm:p-3 rounded text-xs sm:text-sm border border-blue-200">
+                          <div className="flex items-center gap-1 sm:gap-2 text-blue-700">
+                            <svg className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium leading-tight">Options de livraison disponibles à l'étape suivante</span>
+                          </div>
                         </div>
                         <div className="flex justify-between text-base sm:text-lg font-bold border-t pt-2">
                           <span>Total</span>
@@ -333,7 +335,11 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                         <Alert className="border-[#f5a623]/20 bg-[#f5a623]/5">
                           <LogIn className="h-4 w-4 text-[#f5a623]" />
                           <AlertDescription className="text-sm">
-                            <Link href="/auth" className="text-[#f5a623] hover:underline font-semibold">
+                            <Link 
+                              href="/auth" 
+                              className="text-[#f5a623] hover:underline font-semibold"
+                              onClick={onClose}
+                            >
                               Connectez-vous
                             </Link> pour finaliser votre commande
                           </AlertDescription>

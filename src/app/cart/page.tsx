@@ -14,12 +14,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { Header } from '../../components/layout/Header';
 
-// Delivery options
-const deliveryOptions = [
-  { id: 'standard', name: 'Livraison Standard', price: 2000, description: 'Livraison en moins de 45 min', icon: Truck },
-  { id: 'express', name: 'Livraison Express', price: 3000, description: 'Livraison en moins de 25 min', icon: Truck },
-  { id: 'night', name: 'Livraison nuit', price: 3500, description: 'Après 22H30', icon: Truck },
-];
+
 
 export default function CartPage() {
   // Utiliser le contexte du panier pour accéder aux articles et fonctions
@@ -42,9 +37,8 @@ export default function CartPage() {
     console.log('🛒 Cart - État auth:', { user, isLoggedIn, authLoading });
   }, [user, isLoggedIn, authLoading]);
   
-  // État local pour le code promo et la livraison
+  // État local pour le code promo
   const [promoCode, setPromoCode] = useState('');
-  const [selectedDelivery, setSelectedDelivery] = useState('standard');
   
   // Récupérer les éléments du panier depuis le contexte
   const cartItems = state.cart.items;
@@ -336,58 +330,6 @@ export default function CartPage() {
               <CardTitle>Récapitulatif</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Subtotal */}
-              <div className="flex justify-between">
-                <span className="text-gray-600">Sous-total</span>
-                <span className="font-medium">{formatPrice(subtotal)}</span>
-              </div>
-              
-              {/* Delivery Options */}
-              <div className="space-y-3">
-                <Label className="text-gray-600 font-medium">Options de livraison</Label>
-                {deliveryOptions.map((option) => {
-                  // Vérifier si cette option est la livraison de nuit et si elle est disponible
-                  const isNightOption = option.id === 'night';
-                  const isDisabled = isNightOption && !isNightDeliveryAvailable;
-                  
-                  return (
-                    <div 
-                      key={option.id}
-                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg transition-all duration-200 ${
-                        selectedDelivery === option.id 
-                          ? 'border-primary bg-primary/5 shadow-sm' 
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      } ${
-                        isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                      onClick={() => {
-                        if (!isDisabled) {
-                          setSelectedDelivery(option.id);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center w-full sm:w-auto">
-                        <div className={`p-2 rounded-full ${
-                          selectedDelivery === option.id ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          <option.icon className="h-5 w-5" />
-                        </div>
-                        <div className="ml-3">
-                          <div className="font-medium">{option.name}</div>
-                          <div className="text-sm text-gray-500">
-                            {option.description}
-                            {isNightOption && !isNightDeliveryAvailable && (
-                              <span className="text-amber-600 block">Disponible uniquement après 22h30</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="font-medium mt-2 sm:mt-0 ml-7 sm:ml-0">{formatPrice(option.price)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              
               {/* Promo Code */}
               <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <Label htmlFor="promo-code" className="text-gray-700 font-medium">Code Promo</Label>
@@ -419,6 +361,19 @@ export default function CartPage() {
               </div>
               
               <Separator />
+              
+              {/* Delivery Note */}
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 text-blue-700">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium">Options de livraison</span>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  Vous pourrez choisir votre mode de livraison à l'étape suivante
+                </p>
+              </div>
               
               {/* Discount */}
               {promoApplied && (

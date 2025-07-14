@@ -484,13 +484,13 @@ export default function CheckoutPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="city" className="text-sm font-medium text-gray-700">Ville</Label>
+              <Label htmlFor="district" className="text-sm font-medium text-gray-700">Quartier</Label>
               <Input 
-                id="city" 
-                name="city" 
-                value={deliveryInfo.city} 
+                id="district" 
+                name="district" 
+                value={deliveryInfo.district || ''} 
                 onChange={handleDeliveryInfoChange} 
-                placeholder="Ex: Libreville, Port-Gentil..." 
+                placeholder="Ex: Akanda, Glass, Nombakele..." 
                 required 
                 className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
               />
@@ -530,17 +530,7 @@ export default function CheckoutPage() {
               )}
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="district" className="text-sm font-medium text-gray-700">Quartier</Label>
-              <Input 
-                id="district" 
-                name="district" 
-                value={deliveryInfo.district || ''} 
-                onChange={handleDeliveryInfoChange} 
-                placeholder="Ex: Akanda, Glass, Nombakele..."
-                className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
-              />
-            </div>
+
             
             <div className="space-y-2">
               <Label htmlFor="additionalInfo" className="text-sm font-medium text-gray-700">Informations supplémentaires (optionnel)</Label>
