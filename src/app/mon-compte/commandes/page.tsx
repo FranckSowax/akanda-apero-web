@@ -96,7 +96,7 @@ export default function OrdersPage() {
               )
             )
           `)
-          .eq('customer_id', user.id)
+          .eq('customer_email', user.email)
           .order('created_at', { ascending: false });
         
         if (error) {
