@@ -73,31 +73,45 @@ export default function OrdersPage() {
       setIsLoading(true);
       
       try {
+        // D'abord, récupérer l'ID du customer basé sur l'email
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('email', user.email)
+          .single();
+
+        if (customerError || !customerData) {
+          console.error('Erreur lors de la récupération du customer:', customerError);
+          setOrders([]);
+          return;
+        }
+
         // Récupérer les commandes avec les détails des produits
         const { data, error } = await supabase
           .from('orders')
           .select(`
             id,
             order_number,
-            created_at,
+            order_date,
             status,
             total_amount,
-            delivery_option,
+            delivery_address,
             order_items (
               id,
               product_id,
               quantity,
-              price,
+              unit_price,
+              product_name,
               products (
                 id,
                 name,
                 price,
-                image_url
+                imageUrl
               )
             )
           `)
-          .eq('customer_email', user.email)
-          .order('created_at', { ascending: false });
+          .eq('customer_id', customerData.id)
+          .order('order_date', { ascending: false });
         
         if (error) {
           console.error('Erreur lors de la récupération des commandes:', error);
@@ -107,11 +121,22 @@ export default function OrdersPage() {
           const transformedOrders: Order[] = (data || []).map(order => ({
             id: order.id,
             order_number: order.order_number,
-            created_at: order.created_at,
+            created_at: order.order_date, // Utiliser order_date au lieu de created_at
             status: order.status,
             total_amount: order.total_amount,
-            delivery_option: order.delivery_option,
-            items: [] // Simplifié pour éviter les erreurs de type
+            delivery_option: order.delivery_address || 'Livraison', // Utiliser delivery_address
+            items: (order.order_items || []).map((item: any) => ({
+              id: item.id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              price: item.unit_price, // Mapper unit_price vers price
+              product: {
+                id: item.products?.id || item.product_id,
+                name: item.product_name || item.products?.name || 'Produit',
+                price: item.products?.price || item.unit_price,
+                image_url: item.products?.imageUrl || '/placeholder-product.jpg'
+              }
+            }))
           }));
           setOrders(transformedOrders);
         }
