@@ -102,10 +102,30 @@ export default function UserProfilePage() {
     
     try {
       setLoadingOrders(true);
+      
+      // D'abord récupérer le customer_id
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+
+      if (customerError || !customerData) {
+        console.error('Erreur lors de la récupération du customer_id:', customerError);
+        return;
+      }
+
+      // Ensuite récupérer les commandes avec les items
       const { data, error } = await supabase
         .from('orders')
-        .select('id, created_at, total_amount, status')
-        .eq('customer_email', user.email)
+        .select(`
+          id,
+          created_at,
+          total_amount,
+          status,
+          order_items(id)
+        `)
+        .eq('customer_id', customerData.id)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -114,7 +134,16 @@ export default function UserProfilePage() {
         return;
       }
 
-      setRecentOrders(data || []);
+      // Transformer les données pour inclure items_count
+      const transformedData = data?.map(order => ({
+        id: order.id,
+        created_at: order.created_at,
+        total_amount: order.total_amount,
+        status: order.status,
+        items_count: Array.isArray(order.order_items) ? order.order_items.length : 0
+      })) || [];
+
+      setRecentOrders(transformedData);
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
