@@ -94,6 +94,10 @@ export default function CheckoutPage() {
   // Récupérer les fonctions du hook useOrders
   const { createOrder, loading: orderLoading } = useOrders();
 
+  // État pour suivre si la commande a été placée
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
+
   // Rediriger vers la page panier si le panier est vide ou vers la page d'authentification si l'utilisateur n'est pas connecté
   useEffect(() => {
     // Attendre que l'authentification soit complètement chargée
@@ -257,8 +261,7 @@ export default function CheckoutPage() {
     }));
   };
 
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderNumber, setOrderNumber] = useState('');
+
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
