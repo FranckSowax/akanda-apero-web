@@ -122,6 +122,7 @@ export default function CocktailKitsPage() {
     recipe: '',
     image_url: '',
     video_url: '',
+    video_type: '',
     alcohol_percentage: 0,
     is_active: true,
     is_featured: false
@@ -363,6 +364,7 @@ export default function CocktailKitsPage() {
       recipe: item.recipe || '',
       image_url: item.image_url || '',
       video_url: item.video_url || '',
+      video_type: (item as any).video_type || '',
       alcohol_percentage: (item as Cocktail).alcohol_percentage || 0,
       is_active: item.is_active,
       is_featured: item.is_featured
@@ -409,6 +411,7 @@ export default function CocktailKitsPage() {
       recipe: '',
       image_url: '',
       video_url: '',
+      video_type: '',
       alcohol_percentage: 0,
       is_active: true,
       is_featured: false
