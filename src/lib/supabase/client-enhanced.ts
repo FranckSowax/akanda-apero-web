@@ -156,22 +156,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         }
       },
     },
-    // Gestion des erreurs de refresh token
-    onAuthStateChange: (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email || 'No user');
-      
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        // Nettoyer le localStorage en cas de déconnexion
-        try {
-          localStorage.removeItem('akanda-supabase-auth');
-        } catch (error) {
-          console.warn('Erreur lors du nettoyage:', error);
-        }
-      }
-    },
+    // Configuration de debug pour les erreurs de refresh
+    debug: process.env.NODE_ENV === 'development',
   },
   global: {
     headers: {
