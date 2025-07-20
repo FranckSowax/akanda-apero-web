@@ -1,903 +1,793 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../lib/supabase/client';
 import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash, 
-  Wine,
-  GlassWater,
-  X,
-  Upload,
-  Loader2 
+  Package, Plus, Search, Edit, Trash2, X, 
+  Star, AlertCircle, Save, Eye, EyeOff, 
+  ChevronDown, ChevronUp, Image as ImageIcon
 } from 'lucide-react';
-import Image from 'next/image';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Textarea } from '../../../components/ui/textarea';
-import { Label } from '../../../components/ui/label';
-import { Badge } from '../../../components/ui/badge';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Card, CardContent } from '../../../components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { useCocktailKits } from '../../../hooks/supabase/useCocktailKits';
-import { CocktailKit, CocktailKitIngredient } from '../../../types/supabase';
-import { toast } from '../../../components/ui/use-toast';
-import { formatPrice } from '../../../lib/utils/formatters';
 
-// Implémentation locale de slugify pour résoudre l'erreur de build Netlify
-function slugify(text: string): string {
-  return text
-    .toString()                           // Convert to string
-    .normalize('NFD')                     // Separate accented characters
-    .replace(/[\u0300-\u036f]/g, '')        // Remove diacritics
-    .toLowerCase()                        // Convert to lowercase
-    .trim()                               // Remove whitespace from ends
-    .replace(/\s+/g, '-')                 // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')             // Remove all non-word chars
-    .replace(/\-\-+/g, '-')               // Replace multiple - with single -
-    .replace(/^-+/, '')                   // Trim - from start of text
-    .replace(/-+$/, '');                  // Trim - from end of text
+// Types
+interface Cocktail {
+  id: string;
+  name: string;
+  description: string;
+  base_price: number;
+  difficulty_level: number;
+  preparation_time_minutes: number;
+  category: string;
+  recipe?: string;
+  image_url?: string;
+  video_url?: string;
+  alcohol_percentage?: number;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
-import { ClientOnly } from '../../../components/ui/client-only';
 
-// Types pour la gestion du formulaire
-interface CocktailKitFormData {
-  kit: {
-    id?: string;
-    name: string;
-    slug: string;
-    description: string;
-    image_url: string;
-    price: number;
-    is_available: boolean;
-    additional_person_price: number;
-    stock_status: string;
-    is_new: boolean;
-    is_popular: boolean;
-    category_id: string;
+interface Mocktail {
+  id: string;
+  name: string;
+  description: string;
+  base_price: number;
+  difficulty_level: number;
+  preparation_time_minutes: number;
+  category: string;
+  recipe?: string;
+  image_url?: string;
+  video_url?: string;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Composants UI simples
+const Button = ({ children, onClick, className = '', variant = 'primary', disabled = false, type = 'button' }: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+  variant?: 'primary' | 'secondary' | 'destructive';
+  disabled?: boolean;
+  type?: 'button' | 'submit';
+}) => {
+  const baseClasses = 'px-4 py-2 rounded-lg font-medium transition-colors';
+  const variants = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
+    destructive: 'bg-red-600 text-white hover:bg-red-700'
   };
-  ingredients: {
-    id?: string;
-    name: string;
-    quantity: string;
-    unit: string;
-  }[];
-}
-
-// Fonction utilitaire pour obtenir une URL d'image fiable
-const getKitImageUrl = (kit: any): string => {
-  if (kit?.image_url && typeof kit.image_url === 'string') {
-    // Gérer les liens blob (temporaires)
-    if (kit.image_url.startsWith('blob:')) {
-      return `https://source.unsplash.com/random/800x600?cocktail&sig=${kit.id}`;
-    }
-    
-    // Convertir les liens Imgur standards en liens directs d'image
-    if (kit.image_url.match(/https?:\/\/imgur\.com\/([a-zA-Z0-9]+)$/)) {
-      const imgurId = kit.image_url.match(/https?:\/\/imgur\.com\/([a-zA-Z0-9]+)$/)[1];
-      return `https://i.imgur.com/${imgurId}.jpg`;
-    }
-    
-    // Pour les autres URL, les utiliser telles quelles
-    return kit.image_url;
-  }
   
-  // Image par défaut si aucune image n'est disponible
-  return 'https://picsum.photos/seed/cocktail/600/600';
+  return (
+    <button 
+      type={type}
+      onClick={onClick} 
+      disabled={disabled}
+      className={`${baseClasses} ${variants[variant]} ${className}`}
+    >
+      {children}
+    </button>
+  );
 };
 
-// Composant principal de la page de gestion des kits de cocktails
-export default function CocktailKitsAdminPage() {
-  // Hook pour accéder aux fonctions de gestion des kits de cocktails
-  const { 
-    getCocktailKits,
-    getCocktailKitById, 
-    createCocktailKit,
-    updateCocktailKit,
-    deleteCocktailKit 
-  } = useCocktailKits();
-  
-  // Requêtes pour les données de kits
-  const { data: cocktailKits, isLoading, isError, error } = getCocktailKits();
-  
-  // Log de débogage pour voir l'erreur spécifique
-  useEffect(() => {
-    if (isError && error) {
-      console.error('Erreur lors du chargement des kits de cocktails:', error);
-    }
-  }, [isError, error]);
-  
-  // États pour la gestion du formulaire et des actions
+const Input = ({ value, onChange, placeholder, className = '', type = 'text', ...props }: {
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  className?: string;
+  type?: string;
+  [key: string]: any;
+}) => (
+  <input
+    type={type}
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    className={`border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+    {...props}
+  />
+);
+
+const Label = ({ children, htmlFor, className = '' }: {
+  children: React.ReactNode;
+  htmlFor?: string;
+  className?: string;
+}) => (
+  <label htmlFor={htmlFor} className={`block text-sm font-medium text-gray-700 mb-1 ${className}`}>
+    {children}
+  </label>
+);
+
+export default function CocktailKitsPage() {
+  // États
+  const [activeTab, setActiveTab] = useState<'cocktails' | 'mocktails'>('cocktails');
+  const [cocktails, setCocktails] = useState<Cocktail[]>([]);
+  const [mocktails, setMocktails] = useState<Mocktail[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [currentKitId, setCurrentKitId] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  // État du formulaire
-  const [formData, setFormData] = useState<CocktailKitFormData>({
-    kit: {
-      name: '',
-      slug: '',
-      description: '',
-      image_url: '',
-      price: 0,
-      is_available: true,
-      additional_person_price: 0,
-      stock_status: 'En stock',
-      is_new: false,
-      is_popular: false,
-      category_id: ''
-    },
-    ingredients: []
+  const [currentId, setCurrentId] = useState<string | null>(null);
+
+  // Données du formulaire
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    base_price: 0,
+    difficulty_level: 1,
+    preparation_time_minutes: 5,
+    category: 'Famille & amis',
+    recipe: '',
+    image_url: '',
+    video_url: '',
+    alcohol_percentage: 0,
+    is_active: true,
+    is_featured: false
   });
 
-  // Filtrer les kits par recherche
-  const filteredKits = cocktailKits?.filter(kit => {
-    if (!searchQuery) return true;
-    return kit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      kit.description.toLowerCase().includes(searchQuery.toLowerCase());
-  }) || [];
-  
-  // Gestionnaire de changement pour les champs du kit
-  const handleKitChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const target = e.target as HTMLInputElement;
-      setFormData(prev => ({
-        ...prev,
-        kit: {
-          ...prev.kit,
-          [name]: target.checked
+  const categories = ['Famille & amis', 'Anniversaire', 'Romantique', 'Local'];
+
+  // Fonctions de chargement des données
+  const loadCocktails = async () => {
+    try {
+      console.log('=== CHARGEMENT DES COCKTAILS ===');
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('cocktails_maison')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Erreur lors du chargement des cocktails:', error);
+        throw error;
+      }
+      
+      console.log('✅ Cocktails récupérés:', data?.length || 0);
+      
+      // Debug: Afficher les données du premier cocktail
+      if (data && data.length > 0) {
+        console.log('Premier cocktail:', data[0]);
+        console.log('Image URL du premier:', data[0].image_url);
+        
+        // Chercher spécifiquement le Mojito
+        const mojito = data.find(c => c.name.toLowerCase().includes('mojito'));
+        if (mojito) {
+          console.log('🍹 Mojito trouvé:', mojito);
+          console.log('🖼️ Image URL du Mojito:', mojito.image_url);
         }
-      }));
-    } else if (type === 'number') {
-      setFormData(prev => ({
-        ...prev,
-        kit: {
-          ...prev.kit,
-          [name]: Number(value)
-        }
-      }));
-    } else if (name === 'name' && !isEditMode) {
-      // Générer automatiquement le slug à partir du nom
-      setFormData(prev => ({
-        ...prev,
-        kit: {
-          ...prev.kit,
-          [name]: value,
-          slug: slugify(value)
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        kit: {
-          ...prev.kit,
-          [name]: value
-        }
-      }));
+      }
+      
+      setCocktails(data || []);
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des cocktails:', error);
+    } finally {
+      setLoading(false);
     }
   };
-  
-  // Gestionnaire pour l'ajout d'ingrédients
-  const handleAddIngredient = () => {
-    setFormData(prev => ({
-      ...prev,
-      ingredients: [
-        ...prev.ingredients,
-        { name: '', quantity: '', unit: 'cl' }
-      ]
-    }));
+
+  const loadMocktails = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('mocktails')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMocktails(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des mocktails:', error);
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  // Gestionnaire de modification d'ingrédient
-  const handleIngredientChange = (index: number, field: string, value: string) => {
-    setFormData(prev => {
-      const newIngredients = [...prev.ingredients];
-      newIngredients[index] = { ...newIngredients[index], [field]: value };
-      return { ...prev, ingredients: newIngredients };
-    });
-  };
-  
-  // Gestionnaire de suppression d'ingrédient
-  const handleRemoveIngredient = (index: number) => {
-    setFormData(prev => {
-      const newIngredients = [...prev.ingredients];
-      newIngredients.splice(index, 1);
-      return { ...prev, ingredients: newIngredients };
-    });
-  };
-  
-  // Gestionnaire d'ajout/modification d'image
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  // Upload d'image (même logique que les produits)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Libérer l'ancienne URL si elle existe
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
+
+    console.log('=== DÉBUT UPLOAD IMAGE ===');
+    console.log('Fichier sélectionné:', file.name, file.size, 'bytes');
+
+    // Vérifier la taille du fichier (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Le fichier est trop volumineux. Taille maximale: 5MB');
+      return;
     }
-    
-    // Créer une URL pour la prévisualisation
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-    
-    setFormData(prev => ({
-      ...prev,
-      kit: {
-        ...prev.kit,
-        image_url: previewUrl
-      }
-    }));
-  };
-  
-  // Fonction pour configurer le formulaire en mode édition
-  const handleEditKit = async (kit: CocktailKit) => {
-    // Afficher un indicateur de chargement
-    toast.loading("Chargement des détails du kit...");
-    
+
+    // Vérifier le type de fichier
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image valide.');
+      return;
+    }
+
     try {
-      // Récupérer les ingrédients existants du kit
-      const result = await getCocktailKitById(kit.id);
-      // Masquer l'indicateur de chargement
-      toast.dismiss();
+      // Créer un nom de fichier unique
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `cocktails/${fileName}`;
       
-      // Trouver le kit complet avec ses ingrédients
-      const kitWithIngredients = result.data?.find((k: any) => k.id === kit.id);
-      
-      if (kitWithIngredients) {
-        // Préparer les ingrédients pour le formulaire
-        const ingredientsData = kitWithIngredients.ingredients?.map((ing: CocktailKitIngredient) => ({
-          id: ing.id,
-          name: ing.name,
-          quantity: ing.quantity || '',
-          unit: ing.unit || 'cl'
-        })) || [];
-        
-        // Mettre à jour le formulaire avec les données du kit et ses ingrédients
-        setFormData({
-          kit: {
-            id: kit.id,
-            name: kit.name,
-            slug: kit.slug,
-            description: kit.description || '',
-            image_url: kit.image_url || '',
-            price: kit.price || 0,
-            is_available: kit.is_available,
-            additional_person_price: 0,
-            stock_status: kit.stock_status || 'en_stock',
-            is_new: false,
-            is_popular: false,
-            category_id: kit.category_id || 'rhum'
-          },
-          ingredients: ingredientsData.length > 0 ? ingredientsData : [{ name: '', quantity: '', unit: 'cl' }]
-        });
-        
-        // Mettre le formulaire en mode édition et l'afficher
-        setIsEditMode(true);
-        setShowForm(true);
-        
-        // S'assurer que la page défile vers le haut pour afficher le formulaire sur mobile
-        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-        
-        toast.success("Kit chargé pour modification");
-      } else {
-        // Gestion du cas où le kit n'est pas trouvé
-        toast.error("Impossible de charger les détails du kit de cocktail");
+      console.log('Chemin de fichier:', filePath);
+
+      // Upload vers Supabase Storage
+      console.log('Upload vers Supabase Storage...');
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('❌ Erreur upload Supabase:', error);
+        alert('Erreur lors de l\'upload de l\'image: ' + error.message);
+        return;
       }
-    } catch (error: any) {
-      toast.dismiss();
-      toast.error("Erreur lors du chargement: " + (error?.message || "Erreur inconnue"));
+
+      console.log('✅ Upload réussi:', data);
+
+      // Obtenir l'URL publique
+      console.log('Génération de l\'URL publique...');
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      console.log('✅ URL publique générée:', publicUrl);
+
+      // Mettre à jour le formData avec l'URL de l'image
+      const updatedFormData = { ...formData, image_url: publicUrl };
+      console.log('FormData avant mise à jour:', formData);
+      console.log('FormData après mise à jour:', updatedFormData);
+      
+      setFormData(updatedFormData);
+      
+      console.log('✅ Upload terminé avec succès');
+      alert('Image uploadée avec succès!');
+      
+    } catch (err) {
+      console.error('❌ Erreur générale lors de l\'upload:', err);
+      alert('Erreur lors de l\'upload de l\'image: ' + (err as Error).message);
     }
   };
-  
-  // Fonction pour réinitialiser le formulaire
-  const resetForm = () => {
-    setFormData({
-      kit: {
-        name: '',
-        slug: '',
-        description: '',
-        image_url: '',
-        price: 0,
-        is_available: true,
-        additional_person_price: 0,
-        stock_status: 'En stock',
-        is_new: false,
-        is_popular: false,
-        category_id: ''
-      },
-      ingredients: []
-    });
-    
-    // Libérer l'URL de prévisualisation
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-      setImagePreview(null);
-    }
-    
-    setCurrentKitId(null);
-    setIsEditMode(false);
-  };
-  
-  // Gestionnaire d'annulation de modification
-  const handleCancelEdit = () => {
-    resetForm();
-    setShowForm(false);
-  };
-  
-  // Soumission du formulaire (création ou mise à jour)
+
+  // Fonctions CRUD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('=== DÉBUT SOUMISSION FORMULAIRE ===');
+    console.log('FormData au moment de la soumission:', formData);
+    console.log('Image URL présente:', !!formData.image_url);
+    console.log('Image URL valeur:', formData.image_url);
+    
     try {
-      // Vérification des données obligatoires
-      if (!formData.kit.name || !formData.kit.description || formData.kit.price <= 0) {
-        toast.error('Veuillez remplir tous les champs obligatoires');
-        return;
-      }
-
-      // Vérifier qu'il y a au moins un ingrédient
-      if (formData.ingredients.length === 0) {
-        toast.error('Veuillez ajouter au moins un ingrédient au kit');
-        return;
-      }
-
-      // Vérifier que tous les ingrédients ont un nom et une quantité
-      const invalidIngredient = formData.ingredients.find(
-        (ing) => !ing.name || !ing.quantity
-      );
-      if (invalidIngredient) {
-        toast.error('Tous les ingrédients doivent avoir un nom et une quantité');
-        return;
-      }
+      const table = activeTab === 'cocktails' ? 'cocktails_maison' : 'mocktails';
+      console.log('Table cible:', table);
+      console.log('Mode édition:', isEditMode, 'ID:', currentId);
       
-      if (isEditMode && currentKitId) {
-        // Mode mise à jour
-        await updateCocktailKit.mutate({
-          id: currentKitId,
-          formData
-        });
-        toast.success('Kit de cocktail mis à jour avec succès');
-      } else {
-        // Mode création
-        try {
-          // Définir correctement les champs obligatoires pour éviter les erreurs
-          const kitData = {
-            ...formData.kit,
-            is_available: formData.kit.is_available !== undefined ? formData.kit.is_available : true
-          };
-          
-          // Créer le kit avec les données correctement formatées
-          await createCocktailKit.mutate({
-            kit: kitData,
-            ingredients: formData.ingredients
-          });
-          
-          toast.success('Kit de cocktail créé avec succès');
-        } catch (createError) {
-          console.error('Erreur détaillée lors de la création:', createError);
-          throw createError; // Relancer l'erreur pour la gestion globale
+      if (isEditMode && currentId) {
+        console.log('Mise à jour en cours...');
+        console.log('ID cible:', currentId);
+        console.log('Données à mettre à jour:', formData);
+        
+        // Vérifier d'abord que l'enregistrement existe
+        const { data: existingRecord, error: checkError } = await supabase
+          .from(table)
+          .select('id, name')
+          .eq('id', currentId)
+          .single();
+        
+        if (checkError || !existingRecord) {
+          console.error('❌ Enregistrement non trouvé:', checkError);
+          throw new Error(`Enregistrement avec l'ID ${currentId} non trouvé`);
         }
+        
+        console.log('✅ Enregistrement trouvé:', existingRecord);
+        
+        // Effectuer la mise à jour
+        const { data, error } = await supabase
+          .from(table)
+          .update({
+            name: formData.name,
+            description: formData.description,
+            base_price: formData.base_price,
+            difficulty_level: formData.difficulty_level,
+            preparation_time_minutes: formData.preparation_time_minutes,
+            category: formData.category,
+            recipe: formData.recipe,
+            image_url: formData.image_url,
+            video_url: formData.video_url,
+            video_type: formData.video_type,
+            alcohol_percentage: formData.alcohol_percentage,
+            is_active: formData.is_active,
+            is_featured: formData.is_featured
+          })
+          .eq('id', currentId)
+          .select();
+        
+        if (error) {
+          console.error('❌ Erreur lors de la mise à jour:', error);
+          throw error;
+        }
+        
+        console.log('✅ Mise à jour réussie:', data);
+        console.log('✅ Image URL dans la réponse:', data?.[0]?.image_url);
+        
+        if (!data || data.length === 0) {
+          throw new Error('Aucune donnée retournée après la mise à jour');
+        }
+        
+        alert(`${activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'} mis à jour avec succès`);
+      } else {
+        console.log('Création en cours...');
+        const { data, error } = await supabase
+          .from(table)
+          .insert([formData])
+          .select();
+        
+        if (error) {
+          console.error('❌ Erreur lors de la création:', error);
+          throw error;
+        }
+        
+        console.log('✅ Création réussie:', data);
+        alert(`${activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'} créé avec succès`);
+      }
+
+      // Recharger les données
+      console.log('Rechargement des données...');
+      if (activeTab === 'cocktails') {
+        await loadCocktails();
+      } else {
+        await loadMocktails();
+      }
+
+      // Fermer le formulaire
+      setShowForm(false);
+      resetForm();
+      
+      console.log('✅ Soumission terminée avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors de la sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde: ' + (error as any).message);
+    }
+  };
+
+  const handleEdit = (item: Cocktail | Mocktail) => {
+    setFormData({
+      name: item.name,
+      description: item.description,
+      base_price: item.base_price,
+      difficulty_level: item.difficulty_level,
+      preparation_time_minutes: item.preparation_time_minutes,
+      category: item.category,
+      recipe: item.recipe || '',
+      image_url: item.image_url || '',
+      video_url: item.video_url || '',
+      alcohol_percentage: (item as Cocktail).alcohol_percentage || 0,
+      is_active: item.is_active,
+      is_featured: item.is_featured
+    });
+    setCurrentId(item.id);
+    setIsEditMode(true);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) return;
+
+    try {
+      const table = activeTab === 'cocktails' ? 'cocktails_maison' : 'mocktails';
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Recharger les données
+      if (activeTab === 'cocktails') {
+        loadCocktails();
+      } else {
+        loadMocktails();
       }
       
-      resetForm();
-      setShowForm(false);
+      alert('Élément supprimé avec succès');
     } catch (error) {
-      console.error(`Erreur lors de la ${isEditMode ? 'mise à jour' : 'création'} du kit:`, error);
-      toast.error(`Erreur lors de la ${isEditMode ? 'mise à jour' : 'création'} du kit`);
+      console.error('Erreur lors de la suppression:', error);
+      alert('Erreur lors de la suppression');
     }
   };
-  
-  // Fonction pour supprimer un kit
-  const handleDeleteKit = async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce kit de cocktail ?')) {
-      try {
-        await deleteCocktailKit.mutate(id);
-        toast.success('Kit de cocktail supprimé avec succès');
-      } catch (error) {
-        console.error('Erreur lors de la suppression du kit:', error);
-        toast.error('Erreur lors de la suppression du kit');
-      }
-    }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      base_price: 0,
+      difficulty_level: 1,
+      preparation_time_minutes: 5,
+      category: 'Famille & amis',
+      recipe: '',
+      image_url: '',
+      video_url: '',
+      alcohol_percentage: 0,
+      is_active: true,
+      is_featured: false
+    });
+    setCurrentId(null);
+    setIsEditMode(false);
   };
+
+  // Charger les données au montage
+  useEffect(() => {
+    loadCocktails();
+    loadMocktails();
+  }, []);
+
+  // Filtrer les données
+  const filteredCocktails = cocktails.filter(cocktail =>
+    cocktail.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cocktail.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredMocktails = mocktails.filter(mocktail =>
+    mocktail.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    mocktail.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const currentItems = activeTab === 'cocktails' ? filteredCocktails : filteredMocktails;
 
   return (
-    <ClientOnly>
-      <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">Gestion des kits de cocktails</h1>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Rechercher un kit..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 w-64"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                if (showForm) {
-                  handleCancelEdit();
-                } else {
-                  resetForm();
-                  setShowForm(true);
-                }
-              }}
-              className="bg-[#f5a623] hover:bg-[#e09000] text-white"
-            >
-              {showForm ? 'Annuler' : <><Plus className="h-4 w-4 mr-2" /> Ajouter un kit</>}
-            </Button>
-          </div>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Gestion des Cocktails</h1>
+        <Button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className="bg-orange-500 hover:bg-orange-600"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nouveau {activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'}
+        </Button>
+      </div>
+
+      {/* Onglets */}
+      <div className="flex space-x-1 mb-6">
+        <button
+          onClick={() => setActiveTab('cocktails')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === 'cocktails'
+              ? 'bg-orange-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          🍹 Cocktails ({cocktails.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('mocktails')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === 'mocktails'
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          🥤 Mocktails ({mocktails.length})
+        </button>
+      </div>
+
+      {/* Barre de recherche */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Rechercher un ${activeTab === 'cocktails' ? 'cocktail' : 'mocktail'}...`}
+            className="pl-10 w-full max-w-md"
+          />
         </div>
-        
-        {/* Formulaire d'ajout ou de modification */}
-        {showForm && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {isEditMode ? 'Modifier le kit de cocktail' : 'Ajouter un kit de cocktail'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nom du kit</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.kit.name}
-                      onChange={handleKitChange}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="category_id">Catégorie</Label>
-                    <Select
-                      name="category_id"
-                      value={formData.kit.category_id}
-                      onValueChange={(value) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          kit: {
-                            ...prev.kit,
-                            category_id: value
-                          }
-                        }));
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez une catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rhum">Rhum</SelectItem>
-                        <SelectItem value="vodka">Vodka</SelectItem>
-                        <SelectItem value="gin">Gin</SelectItem>
-                        <SelectItem value="whisky">Whisky</SelectItem>
-                        <SelectItem value="tequila">Tequila</SelectItem>
-                        <SelectItem value="sans-alcool">Sans alcool</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="slug">Slug</Label>
-                    <Input
-                      id="slug"
-                      name="slug"
-                      value={formData.kit.slug}
-                      onChange={handleKitChange}
-                      disabled={!isEditMode}
-                      required
-                    />
-                    <p className="text-xs text-gray-500">
-                      {isEditMode 
-                        ? "Le slug est utilisé dans l'URL du kit" 
-                        : "Le slug est généré automatiquement à partir du nom"}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={formData.kit.description}
-                      onChange={handleKitChange}
-                      className="min-h-[100px]"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="image_url">URL de l'image</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="image_url"
-                        name="image_url"
-                        value={formData.kit.image_url.startsWith('blob:') ? '' : formData.kit.image_url}
-                        onChange={handleKitChange}
-                        placeholder="https://exemple.com/image.jpg"
-                      />
-                      <label htmlFor="image_upload" className="cursor-pointer">
-                        <div className="flex items-center justify-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">
-                          <Upload className="w-4 h-4 mr-2" />
-                          <span>Parcourir</span>
-                        </div>
-                        <input
-                          type="file"
-                          id="image_upload"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Prix de base (pour 2 personnes) (FCFA)</Label>
-                      <Input
-                        id="price"
-                        name="price"
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={formData.kit.price}
-                        onChange={handleKitChange}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="additional_person_price">Prix par personne supplémentaire</Label>
-                      <Input
-                        id="additional_person_price"
-                        name="additional_person_price"
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={formData.kit.additional_person_price}
-                        onChange={handleKitChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="stock_status">Statut du stock</Label>
-                      <Select
-                        name="stock_status"
-                        value={formData.kit.stock_status}
-                        onValueChange={(value) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            kit: {
-                              ...prev.kit,
-                              stock_status: value
-                            }
-                          }));
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez un statut" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="En stock">En stock</SelectItem>
-                          <SelectItem value="Stock limité">Stock limité</SelectItem>
-                          <SelectItem value="En rupture">En rupture</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-6">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is_new"
-                        name="is_new"
-                        checked={formData.kit.is_new}
-                        onCheckedChange={(checked) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            kit: {
-                              ...prev.kit,
-                              is_new: checked === true
-                            }
-                          }));
-                        }}
-                      />
-                      <label
-                        htmlFor="is_new"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Nouveau
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is_popular"
-                        name="is_popular"
-                        checked={formData.kit.is_popular}
-                        onCheckedChange={(checked) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            kit: {
-                              ...prev.kit,
-                              is_popular: checked === true
-                            }
-                          }));
-                        }}
-                      />
-                      <label
-                        htmlFor="is_popular"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Populaire
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is_available"
-                        name="is_available"
-                        checked={formData.kit.is_available}
-                        onCheckedChange={(checked) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            kit: {
-                              ...prev.kit,
-                              is_available: checked === true
-                            }
-                          }));
-                        }}
-                      />
-                      <label
-                        htmlFor="is_available"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Disponible à la vente
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={formData.kit.description}
-                      onChange={handleKitChange}
-                      className="min-h-[150px]"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="image">Image</Label>
-                    <div className="flex items-start gap-4">
-                      <div className="w-24 h-24 relative border rounded overflow-hidden">
-                        {(formData.kit.image_url || imagePreview) && (
-                          <Image
-                            src={imagePreview || formData.kit.image_url}
-                            alt={formData.kit.name || "Aperçu du kit"}
-                            fill
-                            style={{ objectFit: 'cover' }}
+      </div>
+
+      {/* Tableau (même style que les produits) */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {currentItems.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Catégorie
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Prix
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Difficulté
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Temps
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Statut
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {item.image_url ? (
+                          <img
+                            className="h-10 w-10 rounded-lg object-cover mr-3"
+                            src={item.image_url}
+                            alt={item.name}
                           />
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center mr-3">
+                            <span className="text-lg">{activeTab === 'cocktails' ? '🍹' : '🥤'}</span>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                          <div className="text-sm text-gray-500 truncate max-w-xs">
+                            {item.description}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900">
+                        {item.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-gray-900">
+                        {item.base_price.toLocaleString('fr-FR')} FCFA
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {item.difficulty_level}/5
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900">
+                        {item.preparation_time_minutes}min
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        {item.is_active ? (
+                          <Eye className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        )}
+                        {item.is_featured && (
+                          <Star className="h-4 w-4 text-yellow-500" />
                         )}
                       </div>
-                      <Input
-                        id="image"
-                        name="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Gestion des ingrédients */}
-              <div className="mt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Ingrédients</h3>
-                  <Button 
-                    type="button" 
-                    onClick={handleAddIngredient}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Ajouter un ingrédient
-                  </Button>
-                </div>
-                
-                {formData.ingredients.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <GlassWater className="h-8 w-8 mx-auto mb-2" />
-                    <p>Aucun ingrédient ajouté</p>
-                    <p className="text-sm">Ajoutez des ingrédients pour composer votre kit de cocktail</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {formData.ingredients.map((ingredient, index) => (
-                      <div key={index} className="flex items-center gap-2 p-3 border rounded-md bg-gray-50">
-                        <div className="flex-1">
-                          <Input
-                            placeholder="Nom de l'ingrédient"
-                            value={ingredient.name}
-                            onChange={(e) => handleIngredientChange(index, 'name', e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className="w-20">
-                          <Input
-                            placeholder="Quantité"
-                            value={ingredient.quantity}
-                            onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className="w-20">
-                          <Select 
-                            value={ingredient.unit}
-                            onValueChange={(value) => handleIngredientChange(index, 'unit', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Unité" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cl">cl</SelectItem>
-                              <SelectItem value="ml">ml</SelectItem>
-                              <SelectItem value="g">g</SelectItem>
-                              <SelectItem value="pièce">pièce</SelectItem>
-                              <SelectItem value="cuillère">cuillère</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveIngredient(index)}
-                          className="text-red-500 hover:text-red-700"
+                          variant="secondary"
+                          onClick={() => handleEdit(item)}
+                          className="text-xs px-2 py-1"
                         >
-                          <X className="h-4 w-4" />
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleDelete(item.id)}
+                          className="text-xs px-2 py-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">{activeTab === 'cocktails' ? '🍹' : '🥤'}</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              Aucun {activeTab === 'cocktails' ? 'cocktail' : 'mocktail'} trouvé
+            </h3>
+            <p className="text-gray-500">
+              {searchQuery ? 'Aucun résultat pour votre recherche.' : 'Commencez par créer votre premier élément.'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Formulaire modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">
+                {isEditMode ? 'Éditer' : 'Créer'} un {activeTab === 'cocktails' ? 'cocktail' : 'mocktail'}
+              </h2>
+              <Button
+                variant="secondary"
+                onClick={() => setShowForm(false)}
+                className="p-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Nom</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Nom du cocktail"
+                  className="w-full"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Description du cocktail"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="category">Catégorie</Label>
+                  <select
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="price">Prix (FCFA)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={formData.base_price}
+                    onChange={(e) => setFormData({ ...formData, base_price: Number(e.target.value) })}
+                    placeholder="Prix"
+                    className="w-full"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="difficulty">Difficulté (1-5)</Label>
+                  <Input
+                    id="difficulty"
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={formData.difficulty_level}
+                    onChange={(e) => setFormData({ ...formData, difficulty_level: Number(e.target.value) })}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="time">Temps (minutes)</Label>
+                  <Input
+                    id="time"
+                    type="number"
+                    value={formData.preparation_time_minutes}
+                    onChange={(e) => setFormData({ ...formData, preparation_time_minutes: Number(e.target.value) })}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {activeTab === 'cocktails' && (
+                <div>
+                  <Label htmlFor="alcohol">Pourcentage d'alcool</Label>
+                  <Input
+                    id="alcohol"
+                    type="number"
+                    value={formData.alcohol_percentage}
+                    onChange={(e) => setFormData({ ...formData, alcohol_percentage: Number(e.target.value) })}
+                    placeholder="% d'alcool"
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="recipe">Recette</Label>
+                <textarea
+                  id="recipe"
+                  value={formData.recipe}
+                  onChange={(e) => setFormData({ ...formData, recipe: e.target.value })}
+                  placeholder="Instructions de préparation"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="image">Image</Label>
+                <input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+                {formData.image_url && (
+                  <div className="mt-2">
+                    <img src={formData.image_url} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
                   </div>
                 )}
               </div>
-              
+
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="mr-2"
+                  />
+                  Actif
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_featured}
+                    onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                    className="mr-2"
+                  />
+                  En vedette
+                </label>
+              </div>
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={handleCancelEdit}
+                  variant="secondary"
+                  onClick={() => setShowForm(false)}
                 >
                   Annuler
                 </Button>
-                <Button type="submit" className="bg-[#f5a623] hover:bg-[#e09000] text-white">
-                  {isEditMode ? 'Mettre à jour' : 'Créer le kit'}
+                <Button type="submit">
+                  {isEditMode ? 'Mettre à jour' : 'Créer'}
                 </Button>
               </div>
             </form>
           </div>
-        )}
-        
-        {/* Liste des kits de cocktails */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isLoading ? (
-            <div className="col-span-full flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-[#f5a623]" />
-              <span className="ml-2">Chargement des kits de cocktails...</span>
-            </div>
-          ) : isError ? (
-            <div className="col-span-full text-center py-12 text-red-500">
-              <p>Une erreur est survenue lors du chargement des kits de cocktails.</p>
-              <p className="text-sm mt-2">{error instanceof Error ? error.message : 'Erreur inconnue'}</p>
-              <Button 
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="mt-4"
-              >
-                Essayer à nouveau
-              </Button>
-            </div>
-          ) : filteredKits.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-gray-500">
-              <Wine className="h-12 w-12 mx-auto mb-2" />
-              {searchQuery ? (
-                <>
-                  <p>Aucun kit de cocktail ne correspond à votre recherche</p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => setSearchQuery('')}
-                    className="text-[#f5a623]"
-                  >
-                    Réinitialiser la recherche
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p>Aucun kit de cocktail disponible</p>
-                  <p className="text-sm">Créez votre premier kit en cliquant sur "Ajouter un kit"</p>
-                </>
-              )}
-            </div>
-          ) : (
-            filteredKits.map((kit) => (
-              <Card key={kit.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                <div className="relative h-48">
-                  <Image
-                    src={getKitImageUrl(kit)}
-                    alt={kit.name}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                  />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    {!kit.is_available && (
-                      <Badge variant="secondary" className="bg-gray-200">
-                        Indisponible
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg">{kit.name}</h3>
-                    <div className="text-lg font-medium text-[#f5a623]">
-                      {formatPrice(kit.price)} FCFA
-                    </div>
-                  </div>
-                  <p className="text-gray-500 text-sm line-clamp-2 mb-4">
-                    {kit.description}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <div className="text-xs text-gray-400">
-                      {kit.ingredients?.length || 0} ingrédient(s)
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          // Force scroll to top before editing to ensure form is visible on mobile
-                          window.scrollTo(0, 0);
-                          handleEditKit(kit);
-                        }}
-                        className="h-8 px-2 whitespace-nowrap"
-                      >
-                        <Edit className="h-3.5 w-3.5 mr-1" /> Modifier
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteKit(kit.id)}
-                        className="h-8 px-2 text-red-500 hover:text-red-700 hover:border-red-200"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
         </div>
-      </div>
-    </ClientOnly>
+      )}
+    </div>
   );
 }

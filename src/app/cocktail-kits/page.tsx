@@ -14,6 +14,45 @@ type CocktailCategory = 'Tous' | 'Rhum' | 'Whisky' | 'Vodka' | 'Gin' | 'Tequila'
 type DifficultyLevel = 'Tous' | 'Facile' | 'Moyen' | 'Difficile';
 type SortOption = 'prix-asc' | 'prix-desc' | 'difficulte-asc' | 'difficulte-desc' | 'nom-asc' | 'nom-desc';
 
+// Mapping des images pour les cocktails
+const getCocktailImage = (cocktailName: string): string => {
+  const name = cocktailName.toLowerCase();
+  
+  // Images disponibles dans public/images
+  const imageMap: Record<string, string> = {
+    'mojito': '/images/cocktails/mojito.jpg',
+    'piña colada': '/images/cocktails/pina-colada.jpg',
+    'pina colada': '/images/cocktails/pina-colada.jpg',
+    'cosmopolitan': '/images/cocktails/cosmopolitan.jpg',
+    'margarita': '/images/cocktails/margarita.jpg',
+    'mai tai': '/images/cocktails/mai-tai.jpg',
+    'tequila sunrise': '/images/cocktails/tequila-sunrise.jpg',
+    'whisky sour': '/images/cocktails/whisky-sour.jpg',
+    'french 75': '/images/cocktails/french-75.jpg',
+    'espresso martini': '/images/cocktails/espresso-martini.jpg',
+    'dark n stormy': '/images/cocktails/dark-n-stormy.jpg',
+    "dark 'n' stormy": '/images/cocktails/dark-n-stormy.jpg',
+    // Cocktails signature Akanda
+    'ndoss mix': '/images/cocktails/ndoss-mix.jpg',
+    'lambar cocktail': '/images/cocktails/lambar-cocktail.jpg',
+    'okoumé sunset': '/images/cocktails/okoume-sunset.jpg',
+    'okoume sunset': '/images/cocktails/okoume-sunset.jpg',
+    'bissap breeze': '/images/cocktails/bissap-breeze.jpg',
+    // Mocktails
+    'virgin planteur': '/images/cocktails/virgin-planteur.jpg',
+    'limonade tropicale': '/images/cocktails/limonade-tropicale.jpg',
+    'smoothie cocktail': '/images/cocktails/smoothie-cocktail.jpg',
+    'zébu-fizz': '/images/cocktails/zebu-fizz.jpg',
+    'zebu-fizz': '/images/cocktails/zebu-fizz.jpg',
+    'pink banana': '/images/cocktails/pink-banana.jpg',
+    'mango tango': '/images/cocktails/mango-tango.jpg',
+    'cocokids': '/images/cocktails/cocokids.jpg'
+  };
+  
+  // Retourner l'image correspondante ou une image par défaut
+  return imageMap[name] || '/images/placeholder-product.svg';
+};
+
 interface Cocktail {
   id: string;
   name: string;
@@ -169,7 +208,7 @@ const CocktailShowcase = () => {
           return {
             id: kit.id,
             name: kit.name,
-            image: kit.image_url || 'https://i.imgur.com/cZ5PBHI.jpg', // image par défaut
+            image: kit.image_url || getCocktailImage(kit.name), // utilise le mapping d'images
             description: kit.description,
             ingredients: kitIngredients,
             price: kit.price,

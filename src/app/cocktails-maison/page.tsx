@@ -32,6 +32,45 @@ import {
 import { useCocktailsMaison } from '../../hooks/useCocktailsMaison';
 import { CocktailMaison, Mocktail, CocktailOption } from '../../types/supabase';
 
+// Mapping des images pour les cocktails
+const getCocktailImage = (cocktailName: string): string => {
+  const name = cocktailName.toLowerCase();
+  
+  // Images disponibles dans public/images/cocktails
+  const imageMap: Record<string, string> = {
+    'mojito': '/images/cocktails/mojito.jpg',
+    'piña colada': '/images/cocktails/pina-colada.jpg',
+    'pina colada': '/images/cocktails/pina-colada.jpg',
+    'cosmopolitan': '/images/cocktails/cosmopolitan.jpg',
+    'margarita': '/images/cocktails/margarita.jpg',
+    'mai tai': '/images/cocktails/mai-tai.jpg',
+    'tequila sunrise': '/images/cocktails/tequila-sunrise.jpg',
+    'whisky sour': '/images/cocktails/whisky-sour.jpg',
+    'french 75': '/images/cocktails/french-75.jpg',
+    'espresso martini': '/images/cocktails/espresso-martini.jpg',
+    'dark n stormy': '/images/cocktails/dark-n-stormy.jpg',
+    "dark 'n' stormy": '/images/cocktails/dark-n-stormy.jpg',
+    // Cocktails signature Akanda
+    'ndoss mix': '/images/cocktails/ndoss-mix.jpg',
+    'lambar cocktail': '/images/cocktails/lambar-cocktail.jpg',
+    'okoumé sunset': '/images/cocktails/okoume-sunset.jpg',
+    'okoume sunset': '/images/cocktails/okoume-sunset.jpg',
+    'bissap breeze': '/images/cocktails/bissap-breeze.jpg',
+    // Mocktails
+    'virgin planteur': '/images/cocktails/virgin-planteur.jpg',
+    'limonade tropicale': '/images/cocktails/limonade-tropicale.jpg',
+    'smoothie cocktail': '/images/cocktails/smoothie-cocktail.jpg',
+    'zébu-fizz': '/images/cocktails/zebu-fizz.jpg',
+    'zebu-fizz': '/images/cocktails/zebu-fizz.jpg',
+    'pink banana': '/images/cocktails/pink-banana.jpg',
+    'mango tango': '/images/cocktails/mango-tango.jpg',
+    'cocokids': '/images/cocktails/cocokids.jpg'
+  };
+  
+  // Retourner l'image correspondante ou une image par défaut
+  return imageMap[name] || '/images/placeholder-product.svg';
+};
+
 // Types d'événements pour le filtre
 interface EventType {
   id: string;
@@ -407,8 +446,37 @@ export default function CocktailsMaisonPage() {
                   transition={{ delay: index * 0.1 }}
                   className="bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                    <span className="text-6xl">🍹</span>
+                  <div className="relative h-48 bg-gradient-to-br from-orange-100 to-orange-200 overflow-hidden">
+                    {cocktail.image_url ? (
+                      <Image
+                        src={cocktail.image_url}
+                        alt={cocktail.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 hover:scale-105"
+                        onError={(e) => {
+                          // Fallback vers l'image statique puis emoji si l'image ne charge pas
+                          const target = e.target as HTMLImageElement;
+                          const staticImage = getCocktailImage(cocktail.name);
+                          if (target.src !== staticImage) {
+                            target.src = staticImage;
+                          } else {
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.emoji-fallback')) {
+                              const emojiDiv = document.createElement('div');
+                              emojiDiv.className = 'emoji-fallback absolute inset-0 flex items-center justify-center text-6xl';
+                              emojiDiv.textContent = '🍹';
+                              parent.appendChild(emojiDiv);
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-6xl">
+                        🍹
+                      </div>
+                    )}
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-black text-gray-900 mb-2">{cocktail.name}</h3>
@@ -539,8 +607,37 @@ export default function CocktailsMaisonPage() {
                   transition={{ delay: (index + 5) * 0.1 }}
                   className="bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="h-48 bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
-                    <span className="text-6xl">🥤</span>
+                  <div className="relative h-48 bg-gradient-to-br from-green-100 to-green-200 overflow-hidden">
+                    {mocktail.image_url ? (
+                      <Image
+                        src={mocktail.image_url}
+                        alt={mocktail.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 hover:scale-105"
+                        onError={(e) => {
+                          // Fallback vers l'image statique puis emoji si l'image ne charge pas
+                          const target = e.target as HTMLImageElement;
+                          const staticImage = getCocktailImage(mocktail.name);
+                          if (target.src !== staticImage) {
+                            target.src = staticImage;
+                          } else {
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.emoji-fallback')) {
+                              const emojiDiv = document.createElement('div');
+                              emojiDiv.className = 'emoji-fallback absolute inset-0 flex items-center justify-center text-6xl';
+                              emojiDiv.textContent = '🥤';
+                              parent.appendChild(emojiDiv);
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-6xl">
+                        🥤
+                      </div>
+                    )}
                   </div>
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-3">
