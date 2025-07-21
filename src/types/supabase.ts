@@ -248,6 +248,29 @@ export type CocktailOption = {
 };
 
 // =====================================================
+// TYPES BANNIÈRES
+// =====================================================
+
+export type Banner = {
+  id: string;
+  type: 'hero_slide' | 'cocktail_kit_bg' | 'parallax_section';
+  title: string | null;
+  subtitle: string | null;
+  price: string | null;
+  rating: string | null;
+  year: string | null;
+  gradient: string | null;
+  image_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BannerInsert = Omit<Banner, 'id' | 'created_at' | 'updated_at'>;
+export type BannerUpdate = Partial<BannerInsert>;
+
+// =====================================================
 // TYPES PROMOTIONS
 // =====================================================
 

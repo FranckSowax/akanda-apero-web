@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Clock, MapPin, Star, Wine, Beer, Zap, Plus, ChefHat, Truck, ChevronLeft, ChevronRight, PackageOpen } from 'lucide-react';
 import { supabaseService } from '../services/supabaseService';
 import { useHomePageSync } from '../hooks/useProductSync';
+import { useHomeBanners } from '../hooks/useBanners';
 import { Header } from '../components/layout/Header';
 import AddToCartButton from '../components/AddToCartButton';
 import WeeklyCocktail from '../components/WeeklyCocktail';
@@ -147,48 +148,7 @@ const allCategories: Category[] = [
   }
 ];
 
-const heroSlides = [
-  {
-    id: 1,
-    title: 'COCKTAIL\nTIME!',
-    subtitle: 'Cocktails artisanaux préparés\nspécialement pour vous',
-    price: '2500 XAF',
-    rating: '4.8',
-    year: '2020',
-    gradient: 'from-orange-400/50 to-orange-500/50',
-    bgImage: 'https://i.imgur.com/hr8w6tp.png'
-  },
-  {
-    id: 2,
-    title: 'HAPPY\nHOUR!',
-    subtitle: 'Profitez de nos offres spéciales\ntous les soirs de 17h à 19h',
-    price: '1800 XAF',
-    rating: '4.9',
-    year: '2020',
-    gradient: 'from-purple-400/50 to-purple-500/50',
-    bgImage: 'https://i.imgur.com/9z6CUax.jpg'
-  },
-  {
-    id: 3,
-    title: 'LIVRAISON\nRAPID!',
-    subtitle: 'Vos cocktails livrés en moins\nde 30 minutes à Libreville',
-    price: '1500 XAF',
-    rating: '4.7',
-    year: '2020',
-    gradient: 'from-blue-400/50 to-blue-500/50',
-    bgImage: 'https://i.imgur.com/N7KKA5C.jpg'
-  },
-  {
-    id: 4,
-    title: 'WEEKEND\nSPECIAL!',
-    subtitle: 'Découvrez nos cocktails exclusifs\npour vos soirées du weekend',
-    price: '3200 XAF',
-    rating: '4.8',
-    year: '2020',
-    gradient: 'from-pink-400/50 to-pink-500/50',
-    bgImage: 'https://i.imgur.com/mLt5IU3.jpg'
-  }
-];
+// Les slides hero sont maintenant chargés dynamiquement depuis Supabase
 
 export default function Home() {
   const router = useRouter();
@@ -203,6 +163,9 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [topCategories, setTopCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Hook pour les bannières dynamiques
+  const { heroSlides, cocktailKitBg, parallaxImage, loading: bannersLoading } = useHomeBanners();
 
   // Fonctions de chargement des données
   const loadFeaturedProducts = async () => {
@@ -313,7 +276,7 @@ export default function Home() {
                 key={currentSlide}
                 className="rounded-3xl p-8 text-white relative overflow-hidden h-full"
                 style={{
-                  backgroundImage: `url(${heroSlides[currentSlide].bgImage})`,
+                  backgroundImage: `url(${heroSlides[currentSlide] ? (heroSlides[currentSlide] as any).image_url || (heroSlides[currentSlide] as any).bgImage : 'https://i.imgur.com/hr8w6tp.png'})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat'
@@ -324,7 +287,7 @@ export default function Home() {
                 transition={{ duration: 0.5, ease: "easeInOut" }}
               >
                 {/* Color Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${heroSlides[currentSlide].gradient} rounded-3xl`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${heroSlides[currentSlide]?.gradient || 'from-orange-400/50 to-orange-500/50'} rounded-3xl`}></div>
                 <div className="relative z-10 h-full flex flex-col justify-end pb-8">
                   {/* Slide Indicators */}
                   <div className="absolute top-0 left-0 flex items-center space-x-2 mb-4">
@@ -343,7 +306,7 @@ export default function Home() {
 
                   <div className="mt-auto">
                     <h1 className="text-6xl font-black mb-4 leading-tight">
-                      {heroSlides[currentSlide].title.split('\n').map((line, index) => (
+                      {(heroSlides[currentSlide]?.title || 'COCKTAIL\nTIME!').split('\n').map((line, index) => (
                         <span key={index}>
                           {line}<br />
                         </span>
@@ -351,7 +314,7 @@ export default function Home() {
                     </h1>
                     
                     <p className="text-lg mb-6 opacity-90">
-                      {heroSlides[currentSlide].subtitle.split('\n').map((line, index) => (
+                      {(heroSlides[currentSlide]?.subtitle || 'Cocktails artisanaux préparés\nspécialement pour vous').split('\n').map((line, index) => (
                         <span key={index}>
                           {line}<br />
                         </span>
@@ -360,11 +323,11 @@ export default function Home() {
                     
                     <div className="flex items-center space-x-4">
                       <div className="bg-green-600 text-white px-4 py-2 rounded-full font-bold text-lg">
-                        À PARTIR DE {heroSlides[currentSlide].price}
+                        À PARTIR DE {heroSlides[currentSlide]?.price || '2500 XAF'}
                       </div>
                       <div className="flex items-center space-x-1 text-sm">
                         <Star className="w-4 h-4 fill-current" />
-                        <span>{heroSlides[currentSlide].rating} depuis {heroSlides[currentSlide].year}</span>
+                        <span>{heroSlides[currentSlide]?.rating || '4.8'} depuis {heroSlides[currentSlide]?.year || '2020'}</span>
                       </div>
                     </div>
                   </div>
@@ -392,7 +355,7 @@ export default function Home() {
           <motion.div 
             className="rounded-3xl p-6 text-white relative overflow-hidden h-full"
             style={{
-              backgroundImage: `url(https://i.imgur.com/lmz5VYR.jpg)`,
+              backgroundImage: `url(${cocktailKitBg})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat'
@@ -720,6 +683,46 @@ export default function Home() {
             <p className="text-sm text-gray-600">Toute la commune d'Akanda couverte</p>
           </motion.div>
         </div>
+        
+        {/* Parallax Section */}
+        <motion.div 
+          className="relative h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 rounded-2xl sm:rounded-3xl overflow-hidden my-8 sm:my-10 md:my-12"
+          style={{
+            backgroundImage: `url(${parallaxImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: window.innerWidth > 768 ? 'fixed' : 'scroll',
+            backgroundRepeat: 'no-repeat'
+          }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/40 rounded-2xl sm:rounded-3xl" />
+          
+          {/* Content */}
+          <div className="relative z-10 h-full flex items-center justify-center text-white text-center px-4 sm:px-6 md:px-8">
+            <div className="max-w-4xl mx-auto">
+              <motion.h2 
+                className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 leading-tight"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                L'Art du Cocktail
+              </motion.h2>
+              <motion.p 
+                className="text-sm sm:text-base md:text-lg lg:text-xl opacity-90 leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                Découvrez notre sélection exclusive de cocktails artisanaux
+              </motion.p>
+            </div>
+          </div>
+        </motion.div>
         
         {/* Weekly Cocktail Section */}
         <WeeklyCocktail />

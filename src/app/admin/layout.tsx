@@ -34,7 +34,7 @@ const navigation = [
   { name: 'Cocktail Kits', href: '/admin/cocktail-kits', icon: Megaphone, color: 'text-teal-600' },
   { name: 'Clients', href: '/admin/customers', icon: Users, color: 'text-indigo-600' },
   { name: 'Promotions', href: '/admin/promotions', icon: Gift, color: 'text-pink-600' },
-  { name: 'Bannières', href: '/admin/banners', icon: Image, color: 'text-yellow-600' },
+  { name: 'Bannières', href: '/admin/bannieres', icon: Image, color: 'text-yellow-600' },
   { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp, color: 'text-cyan-600' },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings, color: 'text-gray-600' },
 ];
