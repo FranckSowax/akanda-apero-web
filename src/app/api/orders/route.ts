@@ -222,11 +222,10 @@ export async function POST(request: NextRequest) {
     // 3. Ajouter les articles de la commande
     const orderItems = orderData.items.map(item => ({
       order_id: newOrder.id,
-      product_id: item.id,
-      product_name: item.name,
+      product_id: item.id.toString(), // Convertir en string pour correspondre au type Supabase
       quantity: item.quantity,
       unit_price: item.price,
-      subtotal: item.price * item.quantity
+      total_price: item.price * item.quantity // Utiliser total_price au lieu de subtotal
     }));
     
     const { error: itemsError } = await supabase

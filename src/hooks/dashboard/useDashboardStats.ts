@@ -308,11 +308,11 @@ export const useDashboardStats = () => {
           product_id,
           quantity,
           unit_price,
-          products(
+          total_price,
+          products!inner(
             id,
             name,
             image_url,
-            base_price,
             categories(name)
           )
         `)
@@ -428,7 +428,7 @@ export const useDashboardStats = () => {
           }
           
           acc[productId].total_sold += item.quantity || 0;
-          acc[productId].total_revenue += (item.quantity || 0) * (item.unit_price || product.base_price || 0);
+          acc[productId].total_revenue += item.total_price || 0;
           
           return acc;
         }, {});
@@ -440,7 +440,7 @@ export const useDashboardStats = () => {
 
         setBestSellers(realBestSellers);
         console.log('⭐ Vraies meilleures ventes calculées:', realBestSellers.length);
-        console.log('📊 Top 3:', realBestSellers.slice(0, 3).map(item => `${item.product_name}: ${item.total_sold} vendus`));
+        console.log('📊 Top 3:', realBestSellers.slice(0, 3).map((item: any) => `${item.product_name}: ${item.total_sold} vendus`));
       } else {
         console.log('⚠️ Aucun order_item trouvé, fallback sur les produits populaires');
         // Fallback amélioré: récupérer les produits et simuler une popularité basée sur les caractéristiques
