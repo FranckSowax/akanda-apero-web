@@ -85,7 +85,23 @@ const OrderPreparationModal: React.FC<OrderPreparationModalProps> = ({
 
     try {
       for (const orderItem of order.order_items) {
-        const productName = orderItem.products?.name || orderItem.product_name || '';
+        // Use product_name directly from orderItem or fetch product data if needed
+        let productName = '';
+        
+        // Try to get product name from order item directly
+        if (orderItem.product_id) {
+          const { data: product } = await supabase
+            .from('products')
+            .select('name')
+            .eq('id', orderItem.product_id)
+            .single();
+          productName = product?.name || `Produit ${orderItem.product_id}`;
+        } else if (orderItem.cocktail_kit_id) {
+          // For cocktail kits, we'll handle this in the cocktail/mocktail queries below
+          productName = 'Kit Cocktail';
+        } else {
+          productName = 'Produit inconnu';
+        }
         
         // Vérifier si c'est un cocktail
         const { data: cocktail } = await supabase
@@ -110,7 +126,7 @@ const OrderPreparationModal: React.FC<OrderPreparationModalProps> = ({
               unit: ing.unit,
               is_optional: ing.is_optional
             })) || [],
-            instructions: cocktail.cocktail_instructions?.sort((a, b) => a.step_number - b.step_number).map((inst: CocktailInstruction) => ({
+            instructions: cocktail.cocktail_instructions?.sort((a: any, b: any) => a.step_number - b.step_number).map((inst: CocktailInstruction) => ({
               step_number: inst.step_number,
               instruction: inst.instruction
             })) || [],
