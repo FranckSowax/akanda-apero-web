@@ -178,6 +178,9 @@ export type CocktailMaison = {
   image_url: string | null;
   created_at: string;
   updated_at: string;
+  recipe?: string;
+  video_url?: string;
+  video_type?: string;
   cocktail_ingredients?: CocktailIngredient[];
   cocktail_instructions?: CocktailInstruction[];
 };
@@ -212,6 +215,13 @@ export type Mocktail = {
   image_url: string | null;
   created_at: string;
   updated_at: string;
+  alcohol_percentage?: number;
+  category?: string;
+  difficulty_level?: number;
+  is_featured?: boolean;
+  recipe?: string;
+  video_url?: string;
+  video_type?: string;
   mocktail_ingredients?: MocktailIngredient[];
 };
 

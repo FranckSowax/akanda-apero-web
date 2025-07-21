@@ -3,34 +3,41 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Header } from '../../components/layout/Header';
 import { 
-  Clock, 
   Star, 
+  Clock, 
   Users, 
-  Timer, 
-  ShoppingCart, 
+  ChefHat, 
+  Wine, 
+  Coffee, 
+  Sparkles, 
+  Heart, 
+  Calendar, 
   MapPin, 
-  Truck,
-  ChefHat,
-  Wine,
-  Sparkles,
-  Loader2,
-  Gift,
-  Calculator,
-  Filter,
-  Play,
-  BookOpen,
-  Package,
+  Gift, 
+  Zap, 
+  Filter, 
+  Search, 
+  X, 
+  ChevronDown, 
+  ChevronUp, 
+  BookOpen, 
+  ShoppingCart, 
   Plus,
-  Heart,
-  PartyPopper,
-  Calendar,
-  Home,
-  Briefcase
+  Minus,
+  Check,
+  Loader2,
+  Calculator,
+  Timer
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase/client';
+import AddToCartButton from '../../components/AddToCartButton';
+import { Product } from '../../context/types';
+import { Header } from '../../components/layout/Header';
 import { useCocktailsMaison } from '../../hooks/useCocktailsMaison';
 import { CocktailMaison, Mocktail, CocktailOption } from '../../types/supabase';
+import { useAppContext } from '../../context/AppContext';
+import { useCartModalContext } from '../../context/CartModalContext';
 
 // Mapping des images pour les cocktails
 const getCocktailImage = (cocktailName: string): string => {
@@ -80,50 +87,129 @@ interface EventType {
   description: string;
 }
 
-const eventTypes: EventType[] = [
-  {
-    id: 'all',
-    name: 'Tous les événements',
-    icon: '🎉',
-    color: 'from-orange-100 to-orange-200',
-    description: 'Tous nos cocktails'
-  },
-  {
-    id: 'famille-amis',
-    name: 'Famille & amis',
-    icon: '🏡',
-    color: 'from-green-100 to-green-200',
-    description: 'Cocktails conviviaux pour réunions familiales'
-  },
-  {
-    id: 'anniversaire',
-    name: 'Anniversaire',
-    icon: '🎂',
-    color: 'from-purple-100 to-purple-200',
-    description: 'Cocktails festifs pour anniversaires'
-  },
-  {
-    id: 'romantique',
-    name: 'Romantique',
-    icon: '💕',
-    color: 'from-red-100 to-red-200',
-    description: 'Cocktails pour moments intimes'
-  },
-  {
-    id: 'local',
-    name: 'Local',
-    icon: '🇬🇦',
-    color: 'from-yellow-100 to-yellow-200',
-    description: 'Cocktails inspirés du terroir gabonais'
-  },
-  {
-    id: 'sans-alcool',
-    name: 'Sans alcool',
-    icon: '🚫',
-    color: 'from-blue-100 to-blue-200',
-    description: 'Boissons sans alcool pour enfants et adultes'
+// Configuration dynamique des filtres basée sur les catégories réelles
+const getEventTypes = (cocktails: CocktailMaison[], mocktails: Mocktail[]): EventType[] => {
+  // Récupérer toutes les catégories uniques des cocktails et mocktails
+  const allCategories = new Set<string>();
+  
+  cocktails.forEach(cocktail => {
+    if (cocktail.category) {
+      allCategories.add(cocktail.category);
+    }
+  });
+  
+  // Note: Les mocktails n'ont pas de propriété category dans le type actuel
+  // mocktails.forEach(mocktail => {
+  //   if (mocktail.category) {
+  //     allCategories.add(mocktail.category);
+  //   }
+  // });
+  
+  // Configuration des icônes et couleurs par catégorie
+  const categoryConfig: { [key: string]: { icon: string; color: string; description: string } } = {
+    'signature': {
+      icon: '✨',
+      color: 'from-purple-100 to-purple-200',
+      description: 'Nos cocktails signature exclusifs'
+    },
+    'classique': {
+      icon: '🍸',
+      color: 'from-blue-100 to-blue-200',
+      description: 'Cocktails classiques intemporels'
+    },
+    'tropical': {
+      icon: '🌴',
+      color: 'from-green-100 to-green-200',
+      description: 'Cocktails aux saveurs tropicales'
+    },
+    'fruité': {
+      icon: '🍓',
+      color: 'from-pink-100 to-pink-200',
+      description: 'Cocktails aux fruits frais'
+    },
+    'frais': {
+      icon: '🧊',
+      color: 'from-cyan-100 to-cyan-200',
+      description: 'Cocktails rafraîchissants'
+    },
+    'local': {
+      icon: '🇬🇦',
+      color: 'from-yellow-100 to-yellow-200',
+      description: 'Cocktails inspirés du terroir gabonais'
+    },
+    'festif': {
+      icon: '🎉',
+      color: 'from-indigo-100 to-indigo-200',
+      description: 'Cocktails pour faire la fête'
+    },
+    'romantique': {
+      icon: '💕',
+      color: 'from-rose-100 to-rose-200',
+      description: 'Cocktails pour moments intimes'
+    },
+    'famille': {
+      icon: '🏡',
+      color: 'from-teal-100 to-teal-200',
+      description: 'Cocktails conviviaux pour la famille'
+    },
+    'anniversaire': {
+      icon: '🎂',
+      color: 'from-violet-100 to-violet-200',
+      description: 'Cocktails festifs pour anniversaires'
+    }
+  };
+  
+  // Créer la liste des filtres
+  const filters: EventType[] = [
+    {
+      id: 'all',
+      name: 'Tous les cocktails',
+      icon: '🍹',
+      color: 'from-orange-100 to-orange-200',
+      description: 'Tous nos cocktails et mocktails'
+    }
+  ];
+  
+  // Ajouter un filtre pour chaque catégorie trouvée
+  Array.from(allCategories).sort().forEach(category => {
+    const categoryLower = category.toLowerCase();
+    const config = categoryConfig[categoryLower] || {
+      icon: '🍸',
+      color: 'from-gray-100 to-gray-200',
+      description: `Cocktails de type ${category.toLowerCase()}`
+    };
+    
+    filters.push({
+      id: categoryLower.replace(/\s+/g, '-'),
+      name: category,
+      icon: config.icon,
+      color: config.color,
+      description: config.description
+    });
+  });
+  
+  // Ajouter le filtre sans alcool si on a des mocktails
+  if (mocktails.length > 0) {
+    filters.push({
+      id: 'sans-alcool',
+      name: 'Sans alcool',
+      icon: '🚫',
+      color: 'from-blue-100 to-blue-200',
+      description: 'Boissons sans alcool pour tous'
+    });
   }
-];
+  
+  // Ajouter le filtre pour les accessoires et options
+  filters.push({
+    id: 'accessoires-option',
+    name: 'Accessoires & option',
+    icon: '🧰',
+    color: 'from-amber-100 to-amber-200',
+    description: 'Accessoires et options supplémentaires pour vos cocktails'
+  });
+  
+  return filters;
+};
 
 export default function CocktailsMaisonPage() {
   const { 
@@ -134,11 +220,18 @@ export default function CocktailsMaisonPage() {
     error 
   } = useCocktailsMaison();
 
+  // Hooks pour le panier et modal
+  const { addToCart } = useAppContext();
+  const { openCart } = useCartModalContext();
+
   const [guestCount, setGuestCount] = useState(8);
   const [eventDuration, setEventDuration] = useState('4h');
   const [eventType, setEventType] = useState('all');
   const [expandedRecipes, setExpandedRecipes] = useState<Set<string>>(new Set());
   const [cart, setCart] = useState<any[]>([]);
+
+  // Générer les filtres d'ambiance dynamiquement basés sur les catégories réelles
+  const eventTypes = getEventTypes(cocktails || [], mocktails || []);
 
   // Fonction pour calculer le prix selon le nombre d'invités
   const calculatePriceForGuests = (basePrice: number, guests: number): number => {
@@ -163,18 +256,17 @@ export default function CocktailsMaisonPage() {
     if (!cocktails) return [];
     if (eventType === 'all') return cocktails;
     
-    // Mapping des IDs de filtre vers les catégories de la base de données
-    const categoryMapping: { [key: string]: string } = {
-      'famille-amis': 'Famille & amis',
-      'anniversaire': 'Anniversaire', 
-      'romantique': 'Romantique',
-      'local': 'Local'
-    };
+    // Convertir l'ID du filtre en nom de catégorie
+    const selectedFilter = eventTypes.find(filter => filter.id === eventType);
+    if (!selectedFilter) return cocktails;
     
-    const targetCategory = categoryMapping[eventType];
-    if (!targetCategory) return cocktails;
+    // Si c'est le filtre "sans-alcool", ne pas afficher les cocktails
+    if (eventType === 'sans-alcool') return [];
     
-    return cocktails.filter(cocktail => cocktail.category === targetCategory);
+    // Filtrer par catégorie exacte
+    return cocktails.filter(cocktail => 
+      cocktail.category && cocktail.category.toLowerCase() === selectedFilter.name.toLowerCase()
+    );
   };
   
   // Fonction pour filtrer les mocktails
@@ -184,18 +276,50 @@ export default function CocktailsMaisonPage() {
     if (eventType === 'sans-alcool') return mocktails;
     return [];
   };
+  
+  // Fonction pour filtrer les options
+  const getFilteredOptions = () => {
+    if (!options) return [];
+    if (eventType === 'all') return options;
+    if (eventType === 'accessoires-option') return options;
+    return [];
+  };
+  
+  // Fonction pour déterminer quelles sections afficher
+  const shouldShowCocktails = () => {
+    return eventType === 'all' || (eventType !== 'sans-alcool' && eventType !== 'accessoires-option');
+  };
+  
+  const shouldShowMocktails = () => {
+    return eventType === 'all' || eventType === 'sans-alcool';
+  };
+  
+  const shouldShowOptions = () => {
+    return eventType === 'all' || eventType === 'accessoires-option';
+  };
 
-  // Fonction pour ajouter au panier
-  const addToCart = (item: any, type: 'cocktail' | 'mocktail' | 'option') => {
-    const cartItem = {
-      ...item,
-      type,
-      quantity: 1,
-      calculatedPrice: type === 'option' 
-        ? calculatePriceForGuests(item.price, guestCount)
-        : calculatePriceForGuests(item.base_price, guestCount)
+  // Fonction pour convertir un cocktail/mocktail en format Product
+  const convertToProduct = (item: CocktailMaison | Mocktail | CocktailOption, type: 'cocktail' | 'mocktail' | 'option'): Product => {
+    const basePrice = type === 'option' ? (item as CocktailOption).price : (item as CocktailMaison | Mocktail).base_price;
+    const calculatedPrice = calculatePriceForGuests(basePrice, guestCount);
+    
+    return {
+      id: parseInt(item.id) || Math.floor(Math.random() * 1000000),
+      name: item.name,
+      description: item.description || '',
+      price: Number(calculatedPrice),
+      imageUrl: (item as CocktailMaison | Mocktail).image_url || '',
+      dataAiHint: `${type}: ${item.name}`,
+      bgColor: type === 'cocktail' ? 'orange' : type === 'mocktail' ? 'green' : 'purple',
+      currency: 'FCFA',
+      categorySlug: type,
+      isPromo: false,
+      rating: 5,
+      discount: 0,
+      details: item.description || '',
+      ingredients: '',
+      stock: 100
     };
-    setCart([...cart, cartItem]);
   };
 
   // Calcul du total du panier
@@ -404,7 +528,7 @@ export default function CocktailsMaisonPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {eventTypes.map((type) => (
+                {eventTypes.map((type: EventType) => (
                   <motion.button
                     key={type.id}
                     onClick={() => setEventType(type.id)}
@@ -427,9 +551,9 @@ export default function CocktailsMaisonPage() {
               </div>
             </motion.div>
 
-            {/* Grille des cocktails */}
-            {(eventType === 'all' || ['reunion-familiale', 'anniversaire-festif', 'ambiance-romantique', 'cocktails-gabonais'].includes(eventType)) && (
-              <motion.div 
+            {/* Section Cocktails */}
+            {shouldShowCocktails() && getFilteredCocktails().length > 0 && (
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8"
@@ -510,7 +634,11 @@ export default function CocktailsMaisonPage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => addToCart(cocktail, 'cocktail')}
+                        onClick={() => {
+                          const product = convertToProduct(cocktail, 'cocktail');
+                          addToCart(product, 1);
+                          openCart();
+                        }}
                         className="w-full bg-gradient-to-r from-orange-400 to-orange-600 text-white px-4 py-2 rounded-xl font-bold hover:from-orange-500 hover:to-orange-700 transition-all flex items-center justify-center gap-2"
                       >
                         <ShoppingCart className="w-4 h-4" />
@@ -587,8 +715,8 @@ export default function CocktailsMaisonPage() {
               </motion.div>
             )}
 
-            {/* Grille des mocktails */}
-            {(eventType === 'all' || eventType === 'mocktails-sans-alcool') && (
+            {/* Section Mocktails */}
+            {shouldShowMocktails() && getFilteredMocktails().length > 0 && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -676,7 +804,11 @@ export default function CocktailsMaisonPage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => addToCart(mocktail, 'mocktail')}
+                        onClick={() => {
+                          const product = convertToProduct(mocktail, 'mocktail');
+                          addToCart(product, 1);
+                          openCart();
+                        }}
                         className="w-full bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-xl font-bold hover:from-green-500 hover:to-green-700 transition-all flex items-center justify-center gap-2"
                       >
                         <ShoppingCart className="w-4 h-4" />
@@ -760,17 +892,18 @@ export default function CocktailsMaisonPage() {
             )}
 
             {/* Section Options Supplémentaires */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mt-12"
-            >
-              <h2 className="text-3xl font-black text-gray-900 mb-6 text-center">
-                ✨ Options supplémentaires
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {options?.map((option, index) => (
+            {shouldShowOptions() && getFilteredOptions().length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="mt-12"
+              >
+                <h2 className="text-3xl font-black text-gray-900 mb-6 text-center">
+                  🧰 Accessoires & Options
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {getFilteredOptions().map((option, index) => (
                   <motion.div
                     key={option.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -806,7 +939,11 @@ export default function CocktailsMaisonPage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => addToCart(option, 'option')}
+                        onClick={() => {
+                          const product = convertToProduct(option, 'option');
+                          addToCart(product, 1);
+                          openCart();
+                        }}
                         className="w-full bg-gradient-to-r from-purple-400 to-purple-600 text-white px-4 py-2 rounded-xl font-bold hover:from-purple-500 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
@@ -817,6 +954,7 @@ export default function CocktailsMaisonPage() {
                 ))}
               </div>
             </motion.div>
+          )} 
           </div>
 
 
