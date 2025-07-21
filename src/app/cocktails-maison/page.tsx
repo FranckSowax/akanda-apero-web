@@ -612,10 +612,10 @@ export default function CocktailsMaisonPage() {
                         Prix pour {guestCount} invités
                       </div>
                       <div className="text-2xl font-black text-orange-600">
-                        {formatPrice(calculatePriceForGuests(cocktail.base_price, guestCount))} FCFA
+                        {formatPrice(calculatePriceForGuests(cocktail.base_price, guestCount))}
                       </div>
                       <div className="text-xs text-gray-400">
-                        Base: {formatPrice(cocktail.base_price)} FCFA
+                        Base: {formatPrice(cocktail.base_price)}
                       </div>
                     </div>
 
@@ -782,10 +782,10 @@ export default function CocktailsMaisonPage() {
                         Prix pour {guestCount} invités
                       </div>
                       <div className="text-2xl font-black text-green-600">
-                        {formatPrice(calculatePriceForGuests(mocktail.base_price, guestCount))} FCFA
+                        {formatPrice(calculatePriceForGuests(mocktail.base_price, guestCount))}
                       </div>
                       <div className="text-xs text-gray-400">
-                        Base: {formatPrice(mocktail.base_price)} FCFA
+                        Base: {formatPrice(mocktail.base_price)}
                       </div>
                     </div>
 
@@ -929,10 +929,10 @@ export default function CocktailsMaisonPage() {
                           Prix pour {guestCount} invités
                         </div>
                         <div className="text-xl font-black text-purple-600">
-                          {formatPrice(calculatePriceForGuests(option.price, guestCount))} FCFA
+                          {formatPrice(calculatePriceForGuests(option.price, guestCount))}
                         </div>
                         <div className="text-xs text-gray-400">
-                          Base: {formatPrice(option.price)} FCFA
+                          Base: {formatPrice(option.price)}
                         </div>
                       </div>
 
