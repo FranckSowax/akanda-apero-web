@@ -247,4 +247,30 @@ export type CocktailOption = {
   updated_at: string;
 };
 
+// =====================================================
+// TYPES PROMOTIONS
+// =====================================================
+
+export type Promotion = {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  type: 'percentage' | 'fixed_amount' | 'free_shipping';
+  value: number;
+  min_purchase: number | null;
+  max_discount: number | null;
+  status: 'active' | 'inactive' | 'scheduled' | 'expired';
+  usage_count: number;
+  usage_limit: number | null;
+  start_date: string;
+  end_date: string;
+  applicable_products: string[] | null;
+  applicable_categories: string[] | null;
+  is_stackable: boolean;
+  is_first_order_only: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 // Ajoutez d'autres types selon vos besoins
