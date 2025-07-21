@@ -691,7 +691,6 @@ export default function Home() {
             backgroundImage: `url(${parallaxImage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            backgroundAttachment: window.innerWidth > 768 ? 'fixed' : 'scroll',
             backgroundRepeat: 'no-repeat'
           }}
           initial={{ opacity: 0, scale: 0.95 }}

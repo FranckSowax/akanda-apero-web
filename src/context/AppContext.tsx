@@ -25,36 +25,39 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Récupérer l'état du panier depuis le localStorage si disponible
   const loadInitialState = (): AppState => {
-    if (typeof window === 'undefined') {
-      return initialState;
-    }
+    const initialState: AppState = {
+      cart: [],
+      user: null,
+      isLoading: true,
+    };
 
     try {
-      const savedCart = localStorage.getItem('akandaCart');
-      const savedUser = localStorage.getItem('akandaUser');
-
-      if (savedCart) {
-        const parsedCart = JSON.parse(savedCart);
-        initialState.cart = parsedCart;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const savedCart = localStorage.getItem('akandaCart');
+        const savedUser = localStorage.getItem('akandaUser');
+        
+        if (savedCart) {
+          initialState.cart = JSON.parse(savedCart);
+        }
+        
+        if (savedUser) {
+          initialState.user = JSON.parse(savedUser);
+        }
       }
-
-      if (savedUser) {
-        const parsedUser = JSON.parse(savedUser);
-        initialState.user = parsedUser;
-      }
-
-      return initialState;
+      
+      initialState.isLoading = false;
     } catch (error) {
       console.error('Error loading state from localStorage:', error);
-      return initialState;
     }
+
+    return initialState;
   };
 
   const [state, dispatch] = useReducer(reducer, loadInitialState());
 
   // Sauvegarder l'état du panier dans le localStorage à chaque changement
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem('akandaCart', JSON.stringify(state.cart));
       localStorage.setItem('akandaUser', JSON.stringify(state.user));
     }

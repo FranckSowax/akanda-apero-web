@@ -17,19 +17,23 @@ export const useCart = () => {
 
   // Charger le panier depuis localStorage au démarrage
   useEffect(() => {
-    const savedCart = localStorage.getItem('akanda-cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Erreur lors du chargement du panier:', error);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedCart = localStorage.getItem('akanda-cart');
+      if (savedCart) {
+        try {
+          setCart(JSON.parse(savedCart));
+        } catch (error) {
+          console.error('Erreur lors du chargement du panier:', error);
+        }
       }
     }
   }, []);
 
   // Sauvegarder le panier dans localStorage à chaque modification
   useEffect(() => {
-    localStorage.setItem('akanda-cart', JSON.stringify(cart));
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('akanda-cart', JSON.stringify(cart));
+    }
   }, [cart]);
 
   const addToCart = (product: any, quantity: number = 1) => {
