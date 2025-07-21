@@ -1,708 +1,194 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { ClientOnly } from '../../components/ui/client-only';
 import { 
   ShoppingCart, 
-  ShoppingBag,
-  Package, 
-  Users, 
   TrendingUp, 
-  AlertTriangle, 
-  CheckCircle,
-  Clock,
-  DollarSign,
-  Eye,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  Star,
+  Users, 
+  CreditCard, 
   Truck,
-  Bell,
+  Calendar,
   RefreshCw,
-  Plus,
   BarChart3,
-  UserPlus,
-  PackagePlus
+  Package,
+  AlertTriangle
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase/client';
-
-// Types TypeScript pour la sécurité
-interface DashboardStats {
-  totalOrders: number;
-  totalRevenue: number;
-  totalProducts: number;
-  totalCustomers: number;
-  pendingOrders: number;
-  confirmedOrders: number;
-  deliveredOrders: number;
-  lowStockItems: number;
-  orderGrowth: number;
-  newProducts: number;
-  customerGrowth: number;
-  revenueGrowth: number;
-}
-
-interface Order {
-  id: string;
-  order_number: string;
-  customer_name: string;
-  total_amount: number;
-  status: string;
-  created_at: string;
-}
-
-interface LowStockProduct {
-  id: number;
-  name: string;
-  stock_quantity: number;
-  min_stock_level: number;
-  urgency: 'critique' | 'élevé' | 'moyen';
-}
-
-// Composant moderne pour les cartes de statistiques - Ultra responsive
-function ModernStatCard({ title, value, description, icon: Icon, gradient, textColor }: {
-  title: string;
-  value: string | number;
-  description: string;
-  icon: any;
-  gradient: string;
-  textColor: string;
-}) {
-  return (
-    <div className={`${gradient} rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          {/* Header mobile optimisé */}
-          <div className="flex items-center gap-2 sm:gap-3 mb-2">
-            <div className="flex-shrink-0">
-              <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <h3 className="text-xs sm:text-sm font-medium opacity-90 truncate">{title}</h3>
-          </div>
-          
-          {/* Valeur responsive */}
-          <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${textColor} mb-1 leading-tight`}>
-            {typeof value === 'string' && value.includes('XAF') ? (
-              <>
-                <span className="block sm:hidden text-lg">{value.replace(' XAF', '')}</span>
-                <span className="hidden sm:block">{value}</span>
-                <span className="block sm:hidden text-xs opacity-80 font-normal">XAF</span>
-              </>
-            ) : (
-              value
-            )}
-          </p>
-          
-          {/* Description responsive */}
-          <p className="text-xs sm:text-sm opacity-80 leading-tight">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Composant moderne pour les commandes récentes - Ultra responsive
-function ModernOrderCard({ order }: { order: Order }) {
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'pending': return { 
-        label: 'En attente', 
-        shortLabel: 'Attente',
-        color: 'bg-amber-100 text-amber-800 border-amber-200', 
-        icon: <Clock className="w-3 h-3 sm:w-4 sm:h-4" /> 
-      };
-      case 'confirmed': return { 
-        label: 'Confirmée', 
-        shortLabel: 'OK',
-        color: 'bg-blue-100 text-blue-800 border-blue-200', 
-        icon: <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" /> 
-      };
-      case 'preparing': return { 
-        label: 'En préparation', 
-        shortLabel: 'Prép.',
-        color: 'bg-orange-100 text-orange-800 border-orange-200', 
-        icon: <Package className="w-3 h-3 sm:w-4 sm:h-4" /> 
-      };
-      case 'delivered': return { 
-        label: 'Livrée', 
-        shortLabel: 'Livrée',
-        color: 'bg-green-100 text-green-800 border-green-200', 
-        icon: <Truck className="w-3 h-3 sm:w-4 sm:h-4" /> 
-      };
-      case 'cancelled': return { 
-        label: 'Annulée', 
-        shortLabel: 'Annulée',
-        color: 'bg-red-100 text-red-800 border-red-200', 
-        icon: <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" /> 
-      };
-      default: return { 
-        label: status, 
-        shortLabel: status,
-        color: 'bg-gray-100 text-gray-800 border-gray-200', 
-        icon: <Clock className="w-3 h-3 sm:w-4 sm:h-4" /> 
-      };
-    }
-  };
-
-  const statusInfo = getStatusInfo(order.status);
-  const orderDate = new Date(order.created_at).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  return (
-    <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 hover:shadow-md transition-all duration-200">
-      {/* Header avec numéro et statut */}
-      <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
-        <div className="flex-1 min-w-0">
-          <span className="font-bold text-gray-900 text-sm sm:text-lg truncate block">
-            #{order.order_number}
-          </span>
-          {/* Date sur mobile sous le numéro */}
-          <p className="text-xs text-gray-500 sm:hidden mt-1">{orderDate}</p>
-        </div>
-        
-        {/* Statut responsive */}
-        <div className="flex-shrink-0">
-          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 ${statusInfo.color}`}>
-            {statusInfo.icon}
-            <span className="hidden sm:inline">{statusInfo.label}</span>
-            <span className="sm:hidden">{statusInfo.shortLabel}</span>
-          </span>
-        </div>
-      </div>
-      
-      {/* Contenu principal */}
-      <div className="space-y-2">
-        <p className="text-gray-600 font-medium text-sm sm:text-base truncate">{order.customer_name}</p>
-        
-        {/* Prix et date */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">
-              <span className="block sm:hidden">{order.total_amount.toLocaleString('fr-FR')}</span>
-              <span className="hidden sm:block">{order.total_amount.toLocaleString('fr-FR')} XAF</span>
-            </p>
-            <p className="text-xs text-gray-500 sm:hidden">XAF</p>
-          </div>
-          
-          {/* Date cachée sur mobile (affichée en haut) */}
-          <p className="text-sm text-gray-500 hidden sm:block flex-shrink-0">{orderDate}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Composant pour les produits en stock faible - Ultra responsive
-function LowStockCard({ product }: { product: LowStockProduct }) {
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'critique': return 'bg-red-100 text-red-800 border-red-200';
-      case 'élevé': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'moyen': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getUrgencyIcon = (urgency: string) => {
-    switch (urgency) {
-      case 'critique': return <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />;
-      case 'élevé': return <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />;
-      case 'moyen': return <Clock className="w-3 h-3 sm:w-4 sm:h-4" />;
-      default: return <Package className="w-3 h-3 sm:w-4 sm:h-4" />;
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 hover:shadow-md transition-all duration-200">
-      {/* Header avec nom et urgence */}
-      <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
-        <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-gray-900 text-sm sm:text-lg leading-tight truncate">{product.name}</h4>
-        </div>
-        
-        {/* Badge d'urgence responsive */}
-        <div className="flex-shrink-0">
-          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 ${getUrgencyColor(product.urgency)}`}>
-            {getUrgencyIcon(product.urgency)}
-            <span className="hidden sm:inline capitalize">{product.urgency}</span>
-            <span className="sm:hidden capitalize">{product.urgency.charAt(0).toUpperCase()}</span>
-          </span>
-        </div>
-      </div>
-      
-      {/* Informations de stock */}
-      <div className="space-y-1 sm:space-y-2">
-        {/* Version mobile compacte */}
-        <div className="sm:hidden">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Stock:</span>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-red-600">{product.stock_quantity}</span>
-              <span className="text-gray-400">/</span>
-              <span className="font-medium text-gray-900">{product.min_stock_level}</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Version desktop détaillée */}
-        <div className="hidden sm:block space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Stock actuel:</span>
-            <span className="font-bold text-red-600">{product.stock_quantity}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Stock minimum:</span>
-            <span className="font-medium text-gray-900">{product.min_stock_level}</span>
-          </div>
-        </div>
-        
-        {/* Barre de progression du stock */}
-        <div className="mt-2">
-          <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-            <div 
-              className="bg-red-500 h-1.5 sm:h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${Math.min((product.stock_quantity / product.min_stock_level) * 100, 100)}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { Button } from '../../components/ui/button';
+import { useDashboardStats } from '../../hooks/dashboard/useDashboardStats';
+import {
+  StatCard,
+  RecentOrdersModule,
+  BestSellersModule,
+  StockAlertsModule,
+  ActiveDeliveriesModule,
+  TopCustomersModule,
+  QuickReportModule
+} from '../../components/dashboard/DashboardModules';
 
 export default function AdminDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalOrders: 0,
-    totalRevenue: 0,
-    totalProducts: 0,
-    totalCustomers: 0,
-    pendingOrders: 0,
-    confirmedOrders: 0,
-    deliveredOrders: 0,
-    lowStockItems: 0,
-    orderGrowth: 12,
-    newProducts: 3,
-    customerGrowth: 8,
-    revenueGrowth: 15
-  });
+  const {
+    stats,
+    recentOrders,
+    bestSellers,
+    stockAlerts,
+    topCustomers,
+    activeDeliveries,
+    loading,
+    error,
+    refreshData
+  } = useDashboardStats();
 
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
-
-  // Fonction pour charger les données depuis Supabase
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Requêtes parallèles pour optimiser les performances
-      const [
-        ordersResult,
-        productsResult,
-        customersResult,
-        recentOrdersResult
-      ] = await Promise.all([
-        // Récupérer toutes les commandes avec calculs
-        supabase.from('orders').select('*'),
-        // Récupérer tous les produits
-        supabase.from('products').select('*'),
-        // Récupérer tous les clients
-        supabase.from('customers').select('*'),
-        // Récupérer les commandes récentes avec les noms des clients
-        supabase
-          .from('orders')
-          .select(`
-            id,
-            order_number,
-            total_amount,
-            status,
-            created_at,
-            customers!inner(first_name, last_name)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(5)
-      ]);
-
-      if (ordersResult.error) throw ordersResult.error;
-      if (productsResult.error) throw productsResult.error;
-      if (customersResult.error) throw customersResult.error;
-      if (recentOrdersResult.error) throw recentOrdersResult.error;
-
-      const orders = ordersResult.data || [];
-      const products = productsResult.data || [];
-      const customers = customersResult.data || [];
-
-      // Calculer les statistiques dynamiquement
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-      const pendingOrders = orders.filter(order => order.status === 'pending').length;
-      const confirmedOrders = orders.filter(order => order.status === 'confirmed').length;
-      const deliveredOrders = orders.filter(order => order.status === 'delivered').length;
-      
-      // Identifier les produits en stock faible
-      const lowStock = products
-        .filter(product => product.stock_quantity <= product.min_stock_level)
-        .map(product => {
-          const ratio = product.stock_quantity / product.min_stock_level;
-          let urgency: 'critique' | 'élevé' | 'moyen';
-          
-          if (ratio <= 0.2) urgency = 'critique';
-          else if (ratio <= 0.5) urgency = 'élevé';
-          else urgency = 'moyen';
-          
-          return {
-            id: product.id,
-            name: product.name,
-            stock_quantity: product.stock_quantity,
-            min_stock_level: product.min_stock_level,
-            urgency
-          };
-        })
-        .sort((a, b) => {
-          const urgencyOrder = { critique: 0, élevé: 1, moyen: 2 };
-          return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
-        });
-
-      // Formater les commandes récentes
-      const formattedRecentOrders: Order[] = recentOrdersResult.data?.map(order => ({
-        id: order.id,
-        order_number: order.order_number,
-        customer_name: `${order.customers[0]?.first_name || ''} ${order.customers[0]?.last_name || ''}`.trim(),
-        total_amount: order.total_amount,
-        status: order.status,
-        created_at: order.created_at
-      })) || [];
-
-      // Mettre à jour les états
-      setStats({
-        totalOrders: orders.length,
-        totalRevenue,
-        totalProducts: products.length,
-        totalCustomers: customers.length,
-        pendingOrders,
-        confirmedOrders,
-        deliveredOrders,
-        lowStockItems: lowStock.length,
-        orderGrowth: 12,
-        newProducts: 3,
-        customerGrowth: 8,
-        revenueGrowth: 15
-      });
-
-      setRecentOrders(formattedRecentOrders);
-      setLowStockProducts(lowStock);
-
-    } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
-      setError('Impossible de charger les données du tableau de bord');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#f5a623]"></div>
-          <h1 className="text-xl font-semibold mt-4 text-gray-700">Chargement du tableau de bord...</h1>
-        </div>
-      </div>
-    );
-  }
-
+  // Configuration des cartes de statistiques principales
+  const mainStats = [
+    { 
+      title: 'Commandes aujourd\'hui', 
+      value: stats.ordersToday, 
+      icon: <ShoppingCart className="h-5 w-5 text-white" />, 
+      color: 'bg-fuchsia-500',
+      growth: stats.ordersGrowth,
+      subtitle: `${stats.ordersWeek} cette semaine`
+    },
+    { 
+      title: 'Chiffre d\'affaires', 
+      value: `${stats.revenueToday.toLocaleString()} XAF`, 
+      icon: <CreditCard className="h-5 w-5 text-white" />, 
+      color: 'bg-green-500',
+      growth: stats.revenueGrowth,
+      subtitle: `${stats.revenueWeek.toLocaleString()} XAF cette semaine`
+    },
+    { 
+      title: 'Nouveaux clients', 
+      value: stats.newCustomersToday, 
+      icon: <Users className="h-5 w-5 text-white" />, 
+      color: 'bg-purple-500',
+      growth: stats.customersGrowth,
+      subtitle: `${stats.newCustomersWeek} cette semaine`
+    },
+    { 
+      title: 'Livraisons actives', 
+      value: stats.activeDeliveries, 
+      icon: <Truck className="h-5 w-5 text-white" />, 
+      color: 'bg-blue-500',
+      subtitle: 'En cours de traitement'
+    },
+  ];
+  
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center max-w-md">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">Erreur de chargement</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={loadDashboardData}
-            className="bg-[#f5a623] text-white px-6 py-2 rounded-lg hover:bg-[#e6951f] transition-colors flex items-center gap-2 mx-auto"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Réessayer
-          </button>
+      <ClientOnly>
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <h3 className="text-red-800 font-medium">Erreur de chargement</h3>
+            </div>
+            <p className="text-red-700 mt-2">{error}</p>
+            <Button 
+              onClick={refreshData} 
+              className="mt-4 bg-red-600 hover:bg-red-700 text-white"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Réessayer
+            </Button>
+          </div>
         </div>
-      </div>
+      </ClientOnly>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header ultra responsive */}
-      <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 sm:py-6 gap-3 sm:gap-0">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-                <span className="block sm:hidden">Dashboard</span>
-                <span className="hidden sm:block lg:hidden">Tableau de bord</span>
-                <span className="hidden lg:block">Tableau de bord Akanda Apéro</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">
-                {new Date().toLocaleDateString('fr-FR', { 
-                  weekday: window.innerWidth < 640 ? 'short' : 'long', 
-                  year: 'numeric', 
-                  month: window.innerWidth < 640 ? 'short' : 'long', 
-                  day: 'numeric' 
-                })}
-              </p>
-            </div>
-            
-            {/* Bouton actualiser responsive */}
-            <div className="flex-shrink-0">
-              <button 
-                onClick={loadDashboardData}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline">Actualiser</span>
-                <span className="sm:hidden">Actualiser</span>
-              </button>
-            </div>
+    <ClientOnly>
+      <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+        {/* En-tête */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
+            <p className="text-gray-600 mt-1">Vue d'ensemble de votre activité</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={refreshData}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+            <Button className="bg-[#f5a623] hover:bg-[#e09000] text-white flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Rapports détaillés
+            </Button>
           </div>
         </div>
+
+        {/* Statistiques principales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {loading ? (
+            Array(4).fill(null).map((_, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+                <div className="flex items-center space-x-4">
+                  <div className="bg-gray-300 rounded-lg p-3 w-12 h-12"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-300 rounded w-2/3 mb-2"></div>
+                    <div className="h-6 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            mainStats.map((stat, index) => (
+              <StatCard 
+                key={index}
+                title={stat.title}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                growth={stat.growth}
+                subtitle={stat.subtitle}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Modules principaux */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* Commandes récentes */}
+          <div className="lg:col-span-1">
+            <RecentOrdersModule orders={recentOrders} loading={loading} />
+          </div>
+          
+          {/* Meilleures ventes */}
+          <div className="lg:col-span-1">
+            <BestSellersModule bestSellers={bestSellers} loading={loading} />
+          </div>
+          
+          {/* Rapport rapide */}
+          <div className="lg:col-span-1">
+            <QuickReportModule stats={stats} loading={loading} onRefresh={refreshData} />
+          </div>
+        </div>
+
+        {/* Modules secondaires */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* Alertes stock */}
+          <div className="lg:col-span-1">
+            <StockAlertsModule stockAlerts={stockAlerts} loading={loading} />
+          </div>
+          
+          {/* Livraisons en cours */}
+          <div className="lg:col-span-1">
+            <ActiveDeliveriesModule deliveries={activeDeliveries} loading={loading} />
+          </div>
+          
+          {/* Meilleurs clients */}
+          <div className="lg:col-span-1">
+            <TopCustomersModule customers={topCustomers} loading={loading} />
+          </div>
+        </div>
+
       </div>
-
-      {/* Container principal ultra responsive */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-        {/* Statistiques principales - Grille responsive optimisée */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <ModernStatCard
-            title="Commandes totales"
-            value={stats.totalOrders.toLocaleString()}
-            description={`+${stats.orderGrowth}% ce mois`}
-            icon={ShoppingBag}
-            gradient="bg-gradient-to-br from-blue-500 to-blue-600"
-            textColor="text-white"
-          />
-          <ModernStatCard
-            title="Produits"
-            value={stats.totalProducts.toLocaleString()}
-            description={`+${stats.newProducts} nouveaux`}
-            icon={Package}
-            gradient="bg-gradient-to-br from-green-500 to-green-600"
-            textColor="text-white"
-          />
-          <ModernStatCard
-            title="Clients"
-            value={stats.totalCustomers.toLocaleString()}
-            description={`+${stats.customerGrowth}% ce mois`}
-            icon={Users}
-            gradient="bg-gradient-to-br from-purple-500 to-purple-600"
-            textColor="text-white"
-          />
-          <ModernStatCard
-            title="Revenus"
-            value={`${(stats.totalRevenue / 1000000).toFixed(1)}M`}
-            description={`+${stats.revenueGrowth}% ce mois`}
-            icon={TrendingUp}
-            gradient="bg-gradient-to-br from-orange-500 to-orange-600"
-            textColor="text-white"
-          />
-        </div>
-
-        {/* Alertes et actions rapides - Layout responsive */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {/* Alertes - Version mobile optimisée */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border border-gray-100">
-            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg sm:rounded-xl">
-                <AlertTriangle className="w-4 h-4 sm:w-6 sm:h-6 text-red-600" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Alertes</h2>
-            </div>
-            
-            <div className="space-y-3 sm:space-y-4">
-              {stats.pendingOrders > 0 && (
-                <div className="flex items-center justify-between p-3 sm:p-4 bg-amber-50 rounded-xl sm:rounded-2xl border border-amber-200">
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-                    <span className="font-medium text-amber-800 text-sm sm:text-base truncate">
-                      <span className="sm:hidden">{stats.pendingOrders} cmd en attente</span>
-                      <span className="hidden sm:inline">{stats.pendingOrders} commande{stats.pendingOrders > 1 ? 's' : ''} en attente</span>
-                    </span>
-                  </div>
-                  <button className="text-amber-600 hover:text-amber-800 font-medium text-xs sm:text-sm flex-shrink-0">
-                    <span className="hidden sm:inline">Voir →</span>
-                    <span className="sm:hidden">→</span>
-                  </button>
-                </div>
-              )}
-              
-              {stats.lowStockItems > 0 && (
-                <div className="flex items-center justify-between p-3 sm:p-4 bg-red-50 rounded-xl sm:rounded-2xl border border-red-200">
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
-                    <span className="font-medium text-red-800 text-sm sm:text-base truncate">
-                      <span className="sm:hidden">{stats.lowStockItems} stock faible</span>
-                      <span className="hidden sm:inline">{stats.lowStockItems} produit{stats.lowStockItems > 1 ? 's' : ''} en stock faible</span>
-                    </span>
-                  </div>
-                  <button className="text-red-600 hover:text-red-800 font-medium text-xs sm:text-sm flex-shrink-0">
-                    <span className="hidden sm:inline">Voir →</span>
-                    <span className="sm:hidden">→</span>
-                  </button>
-                </div>
-              )}
-              
-              {stats.pendingOrders === 0 && stats.lowStockItems === 0 && (
-                <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-green-50 rounded-xl sm:rounded-2xl border border-green-200">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                  <span className="font-medium text-green-800 text-sm sm:text-base">
-                    <span className="sm:hidden">Aucune alerte</span>
-                    <span className="hidden sm:inline">Aucune alerte pour le moment</span>
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border border-gray-100">
-            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-              <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg sm:rounded-xl">
-                <Star className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Actions rapides</h2>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              <button className="bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-2 border-blue-200 rounded-2xl p-4 sm:p-6 text-center transition-all duration-300 group hover:shadow-lg">
-                <div className="bg-blue-500 rounded-2xl p-2 sm:p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                  <PackagePlus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <p className="font-bold text-blue-900 text-sm sm:text-base">Ajouter produit</p>
-              </button>
-              <button className="bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border-2 border-green-200 rounded-2xl p-4 sm:p-6 text-center transition-all duration-300 group hover:shadow-lg">
-                <div className="bg-green-500 rounded-2xl p-2 sm:p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                  <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <p className="font-bold text-green-900 text-sm sm:text-base">Nouvelle commande</p>
-              </button>
-              <button className="bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 border-2 border-purple-200 rounded-2xl p-4 sm:p-6 text-center transition-all duration-300 group hover:shadow-lg">
-                <div className="bg-purple-500 rounded-2xl p-2 sm:p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                  <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <p className="font-bold text-purple-900 text-sm sm:text-base">Ajouter client</p>
-              </button>
-              <button className="bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border-2 border-orange-200 rounded-2xl p-4 sm:p-6 text-center transition-all duration-300 group hover:shadow-lg">
-                <div className="bg-orange-500 rounded-2xl p-2 sm:p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <p className="font-bold text-orange-900 text-sm sm:text-base">Voir analytics</p>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Sections commandes récentes et stock faible - Ultra responsive */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
-          {/* Commandes récentes - Mobile optimisé */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
-                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                <span className="hidden sm:inline">Commandes récentes</span>
-                <span className="sm:hidden">Commandes</span>
-              </h2>
-              <button className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium bg-blue-50 px-2 sm:px-3 py-1 rounded-full">
-                <span className="hidden sm:inline">Voir tout</span>
-                <span className="sm:hidden">Tout</span>
-              </button>
-            </div>
-            <div className="space-y-3 sm:space-y-4">
-              {recentOrders.length > 0 ? (
-                recentOrders.map((order) => (
-                  <ModernOrderCard key={order.id} order={order} />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <div className="bg-gray-100 rounded-full p-6 w-20 h-20 mx-auto mb-4">
-                    <ShoppingCart className="w-8 h-8 text-gray-400 mx-auto" />
-                  </div>
-                  <p className="text-gray-500 font-medium">Aucune commande récente</p>
-                  <p className="text-gray-400 text-sm mt-1">Les nouvelles commandes apparaîtront ici</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Stock faible - Mobile optimisé */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                <span className="hidden sm:inline">Produits en stock faible</span>
-                <span className="sm:hidden">Stock faible</span>
-              </h2>
-              <button className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium bg-red-50 px-2 sm:px-3 py-1 rounded-full">
-                <span className="hidden sm:inline">Voir tout</span>
-                <span className="sm:hidden">Tout</span>
-              </button>
-            </div>
-            <div className="space-y-3 sm:space-y-4">
-              {lowStockProducts.length > 0 ? (
-                lowStockProducts.map((product) => (
-                  <LowStockCard key={product.id} product={product} />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <div className="bg-gray-100 rounded-full p-6 w-20 h-20 mx-auto mb-4">
-                    <Package className="w-8 h-8 text-gray-400 mx-auto" />
-                  </div>
-                  <p className="text-gray-500 font-medium">Aucun produit en stock faible</p>
-                  <p className="text-gray-400 text-sm mt-1">Tous vos produits ont un stock suffisant</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200 p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <Star className="w-6 h-6 text-yellow-500" />
-            Actions rapides
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-2 border-blue-200 rounded-2xl p-6 text-center transition-all duration-300 group hover:shadow-lg">
-              <div className="bg-blue-500 rounded-2xl p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                <PackagePlus className="w-6 h-6 text-white" />
-              </div>
-              <p className="font-bold text-blue-900">Ajouter produit</p>
-            </button>
-            <button className="bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border-2 border-green-200 rounded-2xl p-6 text-center transition-all duration-300 group hover:shadow-lg">
-              <div className="bg-green-500 rounded-2xl p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <p className="font-bold text-green-900">Nouvelle commande</p>
-            </button>
-            <button className="bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 border-2 border-purple-200 rounded-2xl p-6 text-center transition-all duration-300 group hover:shadow-lg">
-              <div className="bg-purple-500 rounded-2xl p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                <UserPlus className="w-6 h-6 text-white" />
-              </div>
-              <p className="font-bold text-purple-900">Ajouter client</p>
-            </button>
-            <button className="bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border-2 border-orange-200 rounded-2xl p-6 text-center transition-all duration-300 group hover:shadow-lg">
-              <div className="bg-orange-500 rounded-2xl p-3 w-fit mx-auto mb-3 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <p className="font-bold text-orange-900">Voir analytics</p>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </ClientOnly>
   );
 }
