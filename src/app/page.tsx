@@ -211,12 +211,14 @@ export default function Home() {
 
   // Auto-slide functionality
   useEffect(() => {
+    if (heroSlides.length === 0) return; // Ne pas démarrer si pas de slides
+    
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 5000); // Change slide every 5 seconds
 
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]); // Redémarrer quand les slides sont chargés
 
   // Countdown timer for daily promotion
   useEffect(() => {
@@ -243,15 +245,21 @@ export default function Home() {
   }, []);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    if (heroSlides.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    if (heroSlides.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    }
   };
 
   const goToSlide = (index: number) => {
-    setCurrentSlide(index);
+    if (index >= 0 && index < heroSlides.length) {
+      setCurrentSlide(index);
+    }
   };
 
   // Navigation vers la page produits avec filtre de catégorie
