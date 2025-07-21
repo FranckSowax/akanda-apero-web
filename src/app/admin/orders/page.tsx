@@ -13,7 +13,8 @@ import {
   RefreshCw,
   MoreHorizontal,
   Eye,
-  FileText
+  FileText,
+  ChefHat
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../../../components/ui/button';
@@ -37,6 +38,7 @@ import {
 
 import { useOrders } from '../../../hooks/supabase/useOrders';
 import OrderDetailsModal from '../../../components/admin/OrderDetailsModal';
+import OrderPreparationModal from '../../../components/admin/OrderPreparationModal';
 import InvoiceModal from '../../../components/admin/InvoiceModal';
 import { Order } from '../../../types/supabase';
 import { whapiService } from '../../../services/whapi';
@@ -65,12 +67,39 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
 };
 
 // Tableau des commandes
-const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice }: { 
+const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onViewPreparation }: { 
   orders: any[],
   onStatusChange: (orderId: string, status: string) => void,
   onViewOrder: (orderId: string) => void,
-  onViewInvoice: (orderId: string) => void
+  onViewInvoice: (orderId: string) => void,
+  onViewPreparation: (orderId: string) => void
 }) => {
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  const toggleDropdown = (orderId: string) => {
+    setOpenDropdownId(openDropdownId === orderId ? null : orderId);
+  };
+
+  const closeDropdown = () => {
+    setOpenDropdownId(null);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId) {
+        const target = event.target as Element;
+        if (!target.closest('.custom-dropdown')) {
+          closeDropdown();
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId]);
   if (orders.length === 0) {
     return (
       <div className="bg-white p-8 rounded-lg border border-gray-200 text-center">
@@ -147,46 +176,124 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice }: {
                 </Badge>
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-right text-sm">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white border shadow-lg">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onViewOrder(order.id)}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      <span>Voir les détails</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'En préparation')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>Marquer en préparation</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Prête')}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      <span>Marquer comme prête</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'En livraison')}>
-                      <Truck className="mr-2 h-4 w-4" />
-                      <span>Marquer en livraison</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Livrée')}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      <span>Marquer comme livrée</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onViewInvoice(order.id)}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Facture</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
-                      <AlertCircle className="mr-2 h-4 w-4" />
-                      <span>Signaler un problème</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="custom-dropdown relative">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => toggleDropdown(order.id)}
+                    aria-haspopup="menu"
+                    aria-expanded={openDropdownId === order.id}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                  
+                  {openDropdownId === order.id && (
+                    <div className="absolute right-0 top-8 z-50 min-w-[12rem] overflow-hidden rounded-md border bg-white p-1 shadow-lg">
+                      <div className="px-2 py-1.5 text-sm font-semibold text-gray-900">Actions</div>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onViewOrder(order.id);
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        <span>Voir les détails</span>
+                      </button>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm text-[#f5a623] font-medium hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onViewPreparation(order.id);
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <ChefHat className="mr-2 h-4 w-4" />
+                        <span>Guide de préparation</span>
+                      </button>
+                      
+                      <div className="my-1 h-px bg-gray-200"></div>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onStatusChange(order.id, 'En préparation');
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        <span>Marquer en préparation</span>
+                      </button>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onStatusChange(order.id, 'Prête');
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        <span>Marquer comme prête</span>
+                      </button>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onStatusChange(order.id, 'En livraison');
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <Truck className="mr-2 h-4 w-4" />
+                        <span>Marquer en livraison</span>
+                      </button>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onStatusChange(order.id, 'Livrée');
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        <span>Marquer comme livrée</span>
+                      </button>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          onViewInvoice(order.id);
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Facture</span>
+                      </button>
+                      
+                      <div className="my-1 h-px bg-gray-200"></div>
+                      
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 focus:bg-gray-100"
+                        onClick={() => {
+                          // Handle problem reporting
+                          closeDropdown();
+                        }}
+                        role="menuitem"
+                      >
+                        <AlertCircle className="mr-2 h-4 w-4" />
+                        <span>Signaler un problème</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -241,8 +348,10 @@ export default function OrdersPage() {
   const [statusUpdateOrderId, setStatusUpdateOrderId] = useState<string | null>(null);
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<any | null>(null);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<any | null>(null);
+  const [selectedOrderForPreparation, setSelectedOrderForPreparation] = useState<any | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
+  const [isPreparationModalOpen, setIsPreparationModalOpen] = useState<boolean>(false);
 
   const { getAllOrders, updateOrderStatus, loading: ordersLoading } = useOrders();
 
@@ -341,6 +450,15 @@ export default function OrdersPage() {
     }
   };
 
+  // Gérer l'ouverture du modal de préparation
+  const handleViewPreparation = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setSelectedOrderForPreparation(order);
+      setIsPreparationModalOpen(true);
+    }
+  };
+
   // Fermer les modals
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false);
@@ -350,6 +468,11 @@ export default function OrdersPage() {
   const handleCloseInvoiceModal = () => {
     setIsInvoiceModalOpen(false);
     setSelectedOrderForInvoice(null);
+  };
+
+  const handleClosePreparationModal = () => {
+    setIsPreparationModalOpen(false);
+    setSelectedOrderForPreparation(null);
   };
 
   // Filtrer les commandes par statut et recherche
@@ -431,6 +554,7 @@ export default function OrdersPage() {
             onStatusChange={handleStatusChange} 
             onViewOrder={handleViewOrder}
             onViewInvoice={handleViewInvoice}
+            onViewPreparation={handleViewPreparation}
           />
           
           {filteredOrders.length > 0 && (
@@ -454,6 +578,12 @@ export default function OrdersPage() {
         order={selectedOrderForInvoice}
         isOpen={isInvoiceModalOpen}
         onClose={handleCloseInvoiceModal}
+      />
+      
+      <OrderPreparationModal
+        order={selectedOrderForPreparation}
+        isOpen={isPreparationModalOpen}
+        onClose={handleClosePreparationModal}
       />
     </div>
   );
