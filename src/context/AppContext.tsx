@@ -26,9 +26,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Récupérer l'état du panier depuis le localStorage si disponible
   const loadInitialState = (): AppState => {
     const initialState: AppState = {
-      cart: [],
-      user: null,
-      isLoading: true,
+      cart: {
+        items: [] as CartItem[],
+        promoCode: '',
+        promoDiscount: 0,
+        deliveryOption: 'standard'
+      },
+      user: {
+        id: '',
+        email: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        isLoggedIn: false
+      },
+      orders: [],
+      ui: {
+        isCartOpen: false,
+        isMenuOpen: false,
+        isLoading: false,
+        toast: {
+          message: '',
+          type: null
+        }
+      }
     };
 
     try {
@@ -45,7 +66,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       }
       
-      initialState.isLoading = false;
+      initialState.ui.isLoading = false;
     } catch (error) {
       console.error('Error loading state from localStorage:', error);
     }
