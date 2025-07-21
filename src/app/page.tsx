@@ -282,7 +282,7 @@ export default function Home() {
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentSlide}
-                className="rounded-3xl p-8 text-white relative overflow-hidden h-full"
+                className="rounded-3xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden h-full"
                 style={{
                   backgroundImage: `url(${heroSlides[currentSlide] ? (heroSlides[currentSlide] as any).image_url || (heroSlides[currentSlide] as any).bgImage : 'https://i.imgur.com/hr8w6tp.png'})`,
                   backgroundSize: 'cover',
@@ -313,7 +313,7 @@ export default function Home() {
                   </div>
 
                   <div className="mt-auto">
-                    <h1 className="text-6xl font-black mb-4 leading-tight">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-3 sm:mb-4 leading-tight">
                       {(heroSlides[currentSlide]?.title || 'COCKTAIL\nTIME!').split('\n').map((line, index) => (
                         <span key={index}>
                           {line}<br />
@@ -321,7 +321,7 @@ export default function Home() {
                       ))}
                     </h1>
                     
-                    <p className="text-lg mb-6 opacity-90">
+                    <p className="text-sm sm:text-base md:text-lg mb-4 sm:mb-6 opacity-90 leading-relaxed">
                       {(heroSlides[currentSlide]?.subtitle || 'Cocktails artisanaux préparés\nspécialement pour vous').split('\n').map((line, index) => (
                         <span key={index}>
                           {line}<br />
@@ -329,12 +329,12 @@ export default function Home() {
                       ))}
                     </p>
                     
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-green-600 text-white px-4 py-2 rounded-full font-bold text-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                      <div className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-full font-bold text-sm sm:text-base md:text-lg">
                         À PARTIR DE {heroSlides[currentSlide]?.price || '2500 XAF'}
                       </div>
-                      <div className="flex items-center space-x-1 text-sm">
-                        <Star className="w-4 h-4 fill-current" />
+                      <div className="flex items-center space-x-1 text-xs sm:text-sm">
+                        <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
                         <span>{heroSlides[currentSlide]?.rating || '4.8'} depuis {heroSlides[currentSlide]?.year || '2020'}</span>
                       </div>
                     </div>
