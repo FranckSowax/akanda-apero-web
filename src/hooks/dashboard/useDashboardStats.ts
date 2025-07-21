@@ -281,46 +281,223 @@ export const useDashboardStats = () => {
 
   const fetchBestSellers = async () => {
     try {
-      console.log('⭐ Récupération des meilleures ventes...');
-      // Récupérer les produits avec leurs catégories
-      const { data: products, error: productsError } = await supabase
-        .from('products')
+      console.log('⭐ Récupération des vraies meilleures ventes...');
+      
+      // Débug: Vérifier d'abord si la table order_items existe et contient des données
+      console.log('🔍 Debug: Test de la table order_items...');
+      const { data: orderItemsTest, error: testError } = await supabase
+        .from('order_items')
+        .select('id, product_id, quantity')
+        .limit(5);
+      
+      if (testError) {
+        console.log('❌ Debug: Erreur accès order_items:', testError);
+        console.log('💡 La table order_items n\'existe peut-être pas ou n\'est pas accessible');
+      } else {
+        console.log(`🔍 Debug: ${orderItemsTest?.length || 0} order_items basiques trouvés`);
+        if (orderItemsTest && orderItemsTest.length > 0) {
+          console.log('🔍 Exemple order_items:', orderItemsTest.slice(0, 2));
+        }
+      }
+      
+      // Récupérer les order_items avec les produits et catégories
+      console.log('🔍 Debug: Tentative de jointure order_items + products...');
+      const { data: orderItems, error: orderItemsError } = await supabase
+        .from('order_items')
         .select(`
-          id, 
-          name, 
-          image_url, 
-          base_price,
-          categories(name)
+          product_id,
+          quantity,
+          unit_price,
+          products(
+            id,
+            name,
+            image_url,
+            base_price,
+            categories(name)
+          )
         `)
-        .eq('is_active', true)
-        .limit(10);
+        .not('product_id', 'is', null);
 
-      if (productsError) {
-        console.log('❌ Erreur produits:', productsError);
+      if (orderItemsError) {
+        console.log('❌ Erreur order_items avec jointure:', orderItemsError);
+        console.log('💡 Tentative sans jointure pour isoler le problème...');
+        
+        // Essayer sans jointure pour isoler le problème
+        const { data: simpleOrderItems, error: simpleError } = await supabase
+          .from('order_items')
+          .select('product_id, quantity, unit_price')
+          .not('product_id', 'is', null)
+          .limit(10);
+        
+        if (simpleError) {
+          console.log('❌ Erreur même sans jointure:', simpleError);
+        } else {
+          console.log(`✅ ${simpleOrderItems?.length || 0} order_items simples trouvés`);
+          if (simpleOrderItems && simpleOrderItems.length > 0) {
+            console.log('🔍 Exemples:', simpleOrderItems.slice(0, 3));
+          }
+        }
+        
+        // Continuer vers le fallback
+      }
+
+      // Forcer l'utilisation du fallback si pas d'order_items
+      if (!orderItems || orderItems.length === 0) {
+        console.log('⚠️ Pas d\'order_items trouvés, utilisation du fallback intelligent');
+        
+        // Fallback direct: récupérer les produits populaires
+        const { data: fallbackProducts, error: fallbackError } = await supabase
+          .from('products')
+          .select(`
+            id, 
+            name, 
+            image_url, 
+            base_price,
+            rating,
+            rating_count,
+            is_featured,
+            categories(name)
+          `)
+          .eq('is_active', true)
+          .order('rating', { ascending: false })
+          .limit(10);
+        
+        if (fallbackError) {
+          console.log('❌ Erreur fallback produits:', fallbackError);
+          setBestSellers([]);
+          return;
+        }
+        
+        if (fallbackProducts && fallbackProducts.length > 0) {
+          console.log(`✅ Fallback: ${fallbackProducts.length} produits trouvés pour simulation`);
+          const simulatedBestSellers: BestSeller[] = fallbackProducts.map((product, index) => {
+            const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
+            const basePopularity = product.is_featured ? 50 : 20;
+            const ratingBonus = (product.rating || 0) * 5;
+            const ratingCountBonus = Math.min((product.rating_count || 0) * 2, 30);
+            const positionPenalty = index * 5;
+            const simulatedSold = Math.max(1, Math.floor(basePopularity + ratingBonus + ratingCountBonus - positionPenalty));
+            
+            return {
+              product_id: product.id,
+              product_name: product.name,
+              category: category?.name || 'Non catégorisé',
+              total_sold: simulatedSold,
+              total_revenue: simulatedSold * (product.base_price || 0),
+              image_url: product.image_url,
+              is_alcoholic: category?.name?.toLowerCase().includes('alcool') || 
+                           category?.name?.toLowerCase().includes('spiritueux') || 
+                           category?.name?.toLowerCase().includes('vin') || 
+                           category?.name?.toLowerCase().includes('bière') || false,
+            };
+          }).sort((a, b) => b.total_sold - a.total_sold).slice(0, 5);
+          
+          setBestSellers(simulatedBestSellers);
+          console.log('📊 Meilleures ventes simulées (fallback forcé):', simulatedBestSellers.map(item => `${item.product_name}: ${item.total_sold}`));
+        } else {
+          console.log('❌ Aucun produit trouvé même pour le fallback');
+          setBestSellers([]);
+        }
         return;
       }
 
-      if (products) {
-        console.log(`✅ ${products.length} produits trouvés pour meilleures ventes`);
-        // Simuler des meilleures ventes avec les produits disponibles
-        const mockBestSellers: BestSeller[] = products.map((product, index) => {
-          const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
-          return {
-            product_id: product.id,
-            product_name: product.name,
-            category: category?.name || 'Non catégorisé',
-            total_sold: Math.floor(Math.random() * 50) + 10, // Simulation
-            total_revenue: (Math.floor(Math.random() * 50) + 10) * product.base_price,
-            image_url: product.image_url,
-            is_alcoholic: category?.name?.toLowerCase().includes('alcool') || false,
-          };
-        }).sort((a, b) => b.total_sold - a.total_sold).slice(0, 5);
+      if (orderItems && orderItems.length > 0) {
+        console.log(`✅ ${orderItems.length} order_items trouvés pour calcul des meilleures ventes`);
+        
+        // Grouper par produit et calculer les totaux réels
+        const productStats = orderItems.reduce((acc: any, item) => {
+          const productId = item.product_id;
+          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+          
+          if (!product || !productId) return acc;
+          
+          if (!acc[productId]) {
+            const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
+            acc[productId] = {
+              product_id: productId,
+              product_name: product.name,
+              category: category?.name || 'Non catégorisé',
+              total_sold: 0,
+              total_revenue: 0,
+              image_url: product.image_url,
+              is_alcoholic: category?.name?.toLowerCase().includes('alcool') || 
+                           category?.name?.toLowerCase().includes('spiritueux') || 
+                           category?.name?.toLowerCase().includes('vin') || 
+                           category?.name?.toLowerCase().includes('bière') || false,
+            };
+          }
+          
+          acc[productId].total_sold += item.quantity || 0;
+          acc[productId].total_revenue += (item.quantity || 0) * (item.unit_price || product.base_price || 0);
+          
+          return acc;
+        }, {});
 
-        setBestSellers(mockBestSellers);
-        console.log('⭐ Meilleures ventes mises à jour:', mockBestSellers.length);
+        // Trier par quantité vendue et prendre les 5 premiers
+        const realBestSellers = Object.values(productStats)
+          .sort((a: any, b: any) => b.total_sold - a.total_sold)
+          .slice(0, 5) as BestSeller[];
+
+        setBestSellers(realBestSellers);
+        console.log('⭐ Vraies meilleures ventes calculées:', realBestSellers.length);
+        console.log('📊 Top 3:', realBestSellers.slice(0, 3).map(item => `${item.product_name}: ${item.total_sold} vendus`));
       } else {
-        console.log('⚠️ Aucun produit trouvé');
-        setBestSellers([]);
+        console.log('⚠️ Aucun order_item trouvé, fallback sur les produits populaires');
+        // Fallback amélioré: récupérer les produits et simuler une popularité basée sur les caractéristiques
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select(`
+            id, 
+            name, 
+            image_url, 
+            base_price,
+            rating,
+            rating_count,
+            is_featured,
+            categories(name)
+          `)
+          .eq('is_active', true)
+          .order('rating', { ascending: false })
+          .limit(10);
+        
+        if (productsError) {
+          console.log('❌ Erreur fallback produits:', productsError);
+          setBestSellers([]);
+          return;
+        }
+        
+        if (products && products.length > 0) {
+          console.log(`✅ Fallback: ${products.length} produits trouvés pour simulation des meilleures ventes`);
+          const fallbackBestSellers: BestSeller[] = products.map((product, index) => {
+            const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
+            // Simuler une popularité basée sur le rating, featured status, et position
+            const basePopularity = product.is_featured ? 50 : 20;
+            const ratingBonus = (product.rating || 0) * 5;
+            const ratingCountBonus = Math.min((product.rating_count || 0) * 2, 30);
+            const positionPenalty = index * 5; // Les premiers sont plus populaires
+            
+            const simulatedSold = Math.max(1, Math.floor(basePopularity + ratingBonus + ratingCountBonus - positionPenalty));
+            
+            return {
+              product_id: product.id,
+              product_name: product.name,
+              category: category?.name || 'Non catégorisé',
+              total_sold: simulatedSold,
+              total_revenue: simulatedSold * (product.base_price || 0),
+              image_url: product.image_url,
+              is_alcoholic: category?.name?.toLowerCase().includes('alcool') || 
+                           category?.name?.toLowerCase().includes('spiritueux') || 
+                           category?.name?.toLowerCase().includes('vin') || 
+                           category?.name?.toLowerCase().includes('bière') || false,
+            };
+          }).sort((a, b) => b.total_sold - a.total_sold).slice(0, 5);
+          
+          setBestSellers(fallbackBestSellers);
+          console.log('📊 Meilleures ventes simulées (fallback):', fallbackBestSellers.map(item => `${item.product_name}: ${item.total_sold} (simulé)`));
+        } else {
+          console.log('❌ Aucun produit trouvé pour le fallback');
+          setBestSellers([]);
+        }
       }
     } catch (err) {
       console.error('Erreur lors du chargement des meilleures ventes:', err);
