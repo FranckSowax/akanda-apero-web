@@ -45,10 +45,10 @@ import { whapiService } from '../../../services/whapi';
 
 // Statut des commandes avec leur couleur et icône respectifs
 const orderStatuses: Record<string, { color: string; icon: React.ReactNode }> = {
-  'Nouvelle': { color: 'bg-blue-100 text-blue-800', icon: <AlertCircle className="h-4 w-4" /> },
-  'En préparation': { color: 'bg-yellow-100 text-yellow-800', icon: <Package className="h-4 w-4" /> },
-  'Prête': { color: 'bg-purple-100 text-purple-800', icon: <ShoppingBag className="h-4 w-4" /> },
-  'En livraison': { color: 'bg-indigo-100 text-indigo-800', icon: <Truck className="h-4 w-4" /> },
+  'Nouvelle': { color: 'bg-fuchsia-100 text-fuchsia-800', icon: <AlertCircle className="h-4 w-4" /> },
+  'En préparation': { color: 'bg-orange-100 text-orange-800', icon: <Package className="h-4 w-4" /> },
+  'Prête': { color: 'bg-yellow-100 text-yellow-800', icon: <ShoppingBag className="h-4 w-4" /> },
+  'En livraison': { color: 'bg-blue-100 text-blue-800', icon: <Truck className="h-4 w-4" /> },
   'Livrée': { color: 'bg-green-100 text-green-800', icon: <CheckCircle2 className="h-4 w-4" /> },
   'Retardée': { color: 'bg-red-100 text-red-800', icon: <Clock className="h-4 w-4" /> },
   'Annulée': { color: 'bg-gray-100 text-gray-800', icon: <AlertCircle className="h-4 w-4" /> },
@@ -320,9 +320,9 @@ const OrderStats = ({ orders }: { orders: any[] }) => {
   const delayedOrders = orders.filter(order => order.status === 'Annulée').length;
   
   const stats = [
-    { label: 'Nouvelles', value: newOrders, color: 'text-blue-600' },
-    { label: 'En préparation', value: processingOrders, color: 'text-yellow-600' },
-    { label: 'En livraison', value: shippingOrders, color: 'text-indigo-600' },
+    { label: 'Nouvelles', value: newOrders, color: 'text-fuchsia-600' },
+    { label: 'En préparation', value: processingOrders, color: 'text-orange-600' },
+    { label: 'En livraison', value: shippingOrders, color: 'text-blue-600' },
     { label: 'Livrées (aujourd\'hui)', value: deliveredToday, color: 'text-green-600' },
     { label: 'Annulées', value: delayedOrders, color: 'text-red-600' },
   ];
