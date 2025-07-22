@@ -147,12 +147,18 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    // Vérifier les coordonnees GPS
-    if (!orderData.deliveryInfo.location?.lat || !orderData.deliveryInfo.location?.lng) {
-      return NextResponse.json({
-        error: 'Coordonnées GPS requises pour la livraison.'
-      }, { status: 400 });
+    // Vérifier et corriger les coordonnées GPS
+    let gpsLat = orderData.deliveryInfo.location?.lat;
+    let gpsLng = orderData.deliveryInfo.location?.lng;
+    
+    // Si pas de coordonnées GPS valides, utiliser les coordonnées par défaut de Libreville
+    if (!gpsLat || !gpsLng || gpsLat === 0 || gpsLng === 0) {
+      console.log('⚠️ Coordonnées GPS manquantes, utilisation des coordonnées par défaut de Libreville');
+      gpsLat = 0.4162; // Latitude de Libreville
+      gpsLng = 9.4167; // Longitude de Libreville
     }
+    
+    console.log('📍 Coordonnées GPS utilisées:', { lat: gpsLat, lng: gpsLng });
     
     // 1. Créer ou récupérer le client
     const { data: existingCustomer } = await supabase
@@ -203,8 +209,8 @@ export async function POST(request: NextRequest) {
         delivery_district: orderData.deliveryInfo.district,
         delivery_notes: orderData.deliveryInfo.additionalInfo,
         delivery_option: orderData.deliveryInfo.deliveryOption,
-        gps_latitude: orderData.deliveryInfo.location.lat,
-        gps_longitude: orderData.deliveryInfo.location.lng
+        gps_latitude: gpsLat,
+        gps_longitude: gpsLng
       })
       .select('id, order_number')
       .single();
