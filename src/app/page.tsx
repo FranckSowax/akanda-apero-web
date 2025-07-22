@@ -12,6 +12,7 @@ import { useHomeBanners } from '../hooks/useBanners';
 import { Header } from '../components/layout/Header';
 import AddToCartButton from '../components/AddToCartButton';
 import WeeklyCocktail from '../components/WeeklyCocktail';
+import CustomerReviews from '../components/CustomerReviews';
 
 interface Product {
   id: string;
@@ -735,6 +736,9 @@ export default function Home() {
         <WeeklyCocktail />
         
       </main>
+      
+      {/* Customer Reviews Section */}
+      <CustomerReviews />
 
     </div>
   );
