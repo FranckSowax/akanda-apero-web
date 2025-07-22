@@ -156,6 +156,11 @@ const getEventTypes = (cocktails: CocktailMaison[], mocktails: Mocktail[]): Even
       icon: '🎂',
       color: 'from-violet-100 to-violet-200',
       description: 'Cocktails festifs pour anniversaires'
+    },
+    'detox': {
+      icon: '🥒',
+      color: 'from-green-100 to-green-200',
+      description: 'Cocktails détox et bien-être'
     }
   };
   
