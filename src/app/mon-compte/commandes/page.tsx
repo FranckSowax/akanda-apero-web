@@ -260,13 +260,55 @@ export default function OrdersPage() {
     setReorderingId(order.id);
     
     try {
-      // Fonction simplifiée - les items sont vides pour éviter les erreurs de type
-      // TODO: Implémenter la logique de recommande quand les types seront corrigés
-      
-      toast({
-        title: "✨ Commande ajoutée au panier !",
-        description: `Votre commande #${order.order_number} a été ajoutée au panier.`
-      });
+      // Logique de recommande complète implémentée
+      if (order.items && order.items.length > 0) {
+        // Ajouter chaque produit de la commande au panier
+        for (const item of order.items) {
+          if (item.product) {
+            const productToAdd = {
+              id: parseInt(item.product.id),
+              name: item.product.name,
+              price: item.product.price,
+              image_url: item.product.image_url || '',
+              category: 'aperos', // Valeur par défaut
+              description: '',
+              stock_quantity: 999, // Assumé disponible
+              is_featured: false,
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            // Utiliser le contexte du panier pour ajouter le produit
+            if (typeof window !== 'undefined' && (window as any).addToCart) {
+              (window as any).addToCart(productToAdd, item.quantity);
+            } else {
+              // Fallback: ajouter au localStorage
+              const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+              const existingItemIndex = existingCart.findIndex((cartItem: any) => cartItem.id === productToAdd.id);
+              
+              if (existingItemIndex > -1) {
+                existingCart[existingItemIndex].quantity += item.quantity;
+              } else {
+                existingCart.push({ ...productToAdd, quantity: item.quantity });
+              }
+              
+              localStorage.setItem('cart', JSON.stringify(existingCart));
+            }
+          }
+        }
+        
+        toast({
+          title: "✨ Commande ajoutée au panier !",
+          description: `${order.items.length} produit(s) de la commande #${order.order_number} ajouté(s) au panier.`
+        });
+      } else {
+        toast({
+          title: "⚠️ Commande vide",
+          description: "Cette commande ne contient aucun produit à ajouter.",
+          variant: "destructive"
+        });
+      }
       
       // Rediriger vers le panier après un court délai
       setTimeout(() => {

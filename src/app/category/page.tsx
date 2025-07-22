@@ -59,15 +59,70 @@ const CategoryPage: FC = () => {
   // Filter products based on the slug
   const products = allProducts.filter(p => p.categorySlug === slug || (slug === 'promos' && p.isPromo));
 
-  // TODO: Implement actual cart logic and currency formatting
+  // Logique de panier et formatage de devise implémentés
+  const addToCart = (product: Product) => {
+    try {
+      // Utiliser le contexte global du panier si disponible
+      if (typeof window !== 'undefined') {
+        const cartEvent = new CustomEvent('addToCart', {
+          detail: {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image_url: product.imageUrl,
+            category: product.categorySlug,
+            description: product.description,
+            quantity: 1
+          }
+        });
+        window.dispatchEvent(cartEvent);
+        
+        // Fallback: localStorage
+        const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
+        
+        if (existingItemIndex > -1) {
+          existingCart[existingItemIndex].quantity += 1;
+        } else {
+          existingCart.push({ ...product, quantity: 1 });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(existingCart));
+        
+        // Notification de succès
+        const toast = (window as any).toast;
+        if (toast) {
+          toast({
+            title: "✨ Produit ajouté au panier !",
+            description: `${product.name} a été ajouté à votre panier.`
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout au panier:', error);
+    }
+  };
+
   const formatPrice = (price: number, currency: string = 'XAF', discount?: number) => {
-     const finalPrice = discount ? price * (1 - discount / 100) : price;
-     const formattedPrice = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(finalPrice);
-     if (discount) {
-        const originalFormattedPrice = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(price);
-        return (
-            <>
-                <span className="text-destructive line-through mr-2 text-sm">{originalFormattedPrice}</span>
+    const finalPrice = discount ? price * (1 - discount / 100) : price;
+    
+    // Formatage optimisé pour le Franc CFA
+    const formatOptions: Intl.NumberFormatOptions = {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    };
+    
+    // Utiliser le locale français pour le CFA
+    const locale = currency === 'XAF' ? 'fr-CF' : 'fr-FR';
+    const formattedPrice = new Intl.NumberFormat(locale, formatOptions).format(finalPrice);
+    
+    if (discount) {
+      const originalFormattedPrice = new Intl.NumberFormat(locale, formatOptions).format(price);
+      return (
+        <>
+          <span className="text-destructive line-through mr-2 text-sm">{originalFormattedPrice}</span>
                 <span className="text-primary font-bold">{formattedPrice}</span>
             </>
         );
