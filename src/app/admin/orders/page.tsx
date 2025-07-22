@@ -54,6 +54,27 @@ const orderStatuses: Record<string, { color: string; icon: React.ReactNode }> = 
   'Annulée': { color: 'bg-gray-100 text-gray-800', icon: <AlertCircle className="h-4 w-4" /> },
 };
 
+// Fonction utilitaire pour déterminer automatiquement le statut de paiement
+const getPaymentStatus = (paymentMethod: string, orderStatus: string): string => {
+  // Si le mode de paiement est mobile money ou carte bancaire, le paiement est immédiatement "Payé"
+  if (paymentMethod === 'mobile_money' || paymentMethod === 'card') {
+    return 'Payé';
+  }
+  
+  // Si le mode de paiement est "paiement à la livraison"
+  if (paymentMethod === 'cash') {
+    // Si la commande est livrée, alors le paiement est "Payé"
+    if (orderStatus === 'Livrée') {
+      return 'Payé';
+    }
+    // Sinon, le paiement reste "En attente"
+    return 'En attente';
+  }
+  
+  // Par défaut, en attente
+  return 'En attente';
+};
+
 // Composant pour le statut de commande
 const OrderStatusBadge = ({ status }: { status: string }) => {
   const statusInfo = orderStatuses[status] || orderStatuses['Nouvelle'];
@@ -62,6 +83,27 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
     <Badge className={`${statusInfo.color} flex items-center gap-1 px-2.5 py-1 rounded-full font-medium`}>
       {statusInfo.icon}
       <span>{status}</span>
+    </Badge>
+  );
+};
+
+// Composant pour le statut de paiement
+const PaymentStatusBadge = ({ paymentMethod, orderStatus, paymentStatus }: { 
+  paymentMethod: string, 
+  orderStatus: string,
+  paymentStatus?: string 
+}) => {
+  // Calculer automatiquement le statut de paiement selon les règles métier
+  const calculatedStatus = getPaymentStatus(paymentMethod, orderStatus);
+  
+  // Utiliser le statut calculé ou celui fourni en fallback
+  const finalStatus = calculatedStatus;
+  
+  const isPayé = finalStatus === 'Payé';
+  
+  return (
+    <Badge className={isPayé ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+      {finalStatus}
     </Badge>
   );
 };
@@ -171,9 +213,11 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onView
                 <OrderStatusBadge status={order.status || 'Nouvelle'} />
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
-                <Badge className={order.payment_status === 'Payé' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-                  {order.payment_status || 'En attente'}
-                </Badge>
+                <PaymentStatusBadge 
+                  paymentMethod={order.payment_method || 'cash'}
+                  orderStatus={order.status || 'Nouvelle'}
+                  paymentStatus={order.payment_status}
+                />
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-right text-sm">
                 <div className="custom-dropdown relative">
