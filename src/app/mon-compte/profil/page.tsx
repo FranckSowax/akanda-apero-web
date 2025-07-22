@@ -85,11 +85,21 @@ export default function UserProfilePage() {
       }
 
       if (data) {
+        // Reconstituer le nom complet à partir de first_name et last_name
+        const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+        
+        console.log('📝 Profil chargé:', {
+          first_name: data.first_name,
+          last_name: data.last_name,
+          full_name: fullName,
+          phone: data.phone
+        });
+        
         setProfile({
-          full_name: data.full_name || '',
+          full_name: fullName,
           phone: data.phone || '',
-          whatsapp: data.whatsapp || '',
-          address: data.address || ''
+          whatsapp: '', // Champ non disponible dans la DB
+          address: ''  // Champ non disponible dans la DB
         });
       }
     } catch (error) {
@@ -156,14 +166,25 @@ export default function UserProfilePage() {
     
     setSaving(true);
     try {
+      // Séparer le nom complet en prénom et nom
+      const nameParts = profile.full_name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      console.log('💾 Sauvegarde profil:', {
+        email: user.email,
+        first_name: firstName,
+        last_name: lastName,
+        phone: profile.phone
+      });
+      
       const { error } = await supabase
         .from('customers')
         .upsert({
           email: user.email,
-          full_name: profile.full_name,
+          first_name: firstName,
+          last_name: lastName,
           phone: profile.phone,
-          whatsapp: profile.whatsapp,
-          address: profile.address,
           updated_at: new Date().toISOString()
         });
 
