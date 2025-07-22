@@ -55,7 +55,7 @@ CREATE POLICY "Banners are manageable by admin" ON public.banners
 INSERT INTO public.banners (type, title, subtitle, price, rating, year, gradient, image_url, sort_order) VALUES
 ('hero_slide', 'COCKTAIL\nTIME!', 'Cocktails artisanaux préparés\nspécialement pour vous', '2500 XAF', '4.8', '2020', 'from-orange-400/50 to-orange-500/50', 'https://i.imgur.com/hr8w6tp.png', 1),
 ('hero_slide', 'HAPPY\nHOUR!', 'Profitez de nos offres spéciales\ntous les soirs de 17h à 19h', '1800 XAF', '4.9', '2020', 'from-purple-400/50 to-purple-500/50', 'https://i.imgur.com/9z6CUax.jpg', 2),
-('hero_slide', 'LIVRAISON\nRAPID!', 'Vos cocktails livrés en moins\nde 30 minutes à Libreville', '1500 XAF', '4.7', '2020', 'from-blue-400/50 to-blue-500/50', 'https://i.imgur.com/N7KKA5C.jpg', 3),
+('hero_slide', 'LIVRAISON\nRAPIDE!', 'Vos cocktails livrés en moins\nde 30 minutes à Libreville', '1500 XAF', '4.7', '2020', 'from-blue-400/50 to-blue-500/50', 'https://i.imgur.com/N7KKA5C.jpg', 3),
 ('hero_slide', 'WEEKEND\nSPECIAL!', 'Découvrez nos cocktails exclusifs\npour vos soirées du weekend', '3200 XAF', '4.8', '2020', 'from-pink-400/50 to-pink-500/50', 'https://i.imgur.com/mLt5IU3.jpg', 4),
 ('cocktail_kit_bg', 'Cocktail Kits', 'Image de fond du module cocktail kits', NULL, NULL, NULL, NULL, 'https://i.imgur.com/lmz5VYR.jpg', 1),
 ('parallax_section', 'Section Parallax', 'Image parallax avant le cocktail de la semaine', NULL, NULL, NULL, NULL, 'https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-4.0.3', 1)

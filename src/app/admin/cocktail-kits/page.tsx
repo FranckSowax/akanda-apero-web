@@ -44,6 +44,18 @@ interface Mocktail {
   updated_at?: string;
 }
 
+interface CocktailOption {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string;
+  price: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Composants UI simples
 const Button = ({ children, onClick, className = '', variant = 'primary', disabled = false, type = 'button' }: {
   children: React.ReactNode;
@@ -102,9 +114,10 @@ const Label = ({ children, htmlFor, className = '' }: {
 
 export default function CocktailKitsPage() {
   // États
-  const [activeTab, setActiveTab] = useState<'cocktails' | 'mocktails'>('cocktails');
+  const [activeTab, setActiveTab] = useState<'cocktails' | 'mocktails' | 'options'>('cocktails');
   const [cocktails, setCocktails] = useState<Cocktail[]>([]);
   const [mocktails, setMocktails] = useState<Mocktail[]>([]);
+  const [cocktailOptions, setCocktailOptions] = useState<CocktailOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -180,6 +193,23 @@ export default function CocktailKitsPage() {
       setMocktails(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des mocktails:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCocktailOptions = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('cocktail_options')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+      setCocktailOptions(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des options:', error);
     } finally {
       setLoading(false);
     }
@@ -261,7 +291,8 @@ export default function CocktailKitsPage() {
     console.log('Image URL valeur:', formData.image_url);
     
     try {
-      const table = activeTab === 'cocktails' ? 'cocktails_maison' : 'mocktails';
+      const table = activeTab === 'cocktails' ? 'cocktails_maison' : 
+                   activeTab === 'mocktails' ? 'mocktails' : 'cocktail_options';
       console.log('Table cible:', table);
       console.log('Mode édition:', isEditMode, 'ID:', currentId);
       
@@ -285,9 +316,20 @@ export default function CocktailKitsPage() {
         console.log('✅ Enregistrement trouvé:', existingRecord);
         
         // Effectuer la mise à jour
-        const { data, error } = await supabase
-          .from(table)
-          .update({
+        let updateData: any;
+        
+        if (activeTab === 'options') {
+          // Mise à jour pour les options de cocktails
+          updateData = {
+            name: formData.name,
+            description: formData.description,
+            price: formData.base_price, // Map base_price to price for options
+            is_active: formData.is_active,
+            sort_order: 1 // Default sort order
+          };
+        } else {
+          // Mise à jour pour les cocktails et mocktails
+          updateData = {
             name: formData.name,
             description: formData.description,
             base_price: formData.base_price,
@@ -301,7 +343,12 @@ export default function CocktailKitsPage() {
             alcohol_percentage: formData.alcohol_percentage,
             is_active: formData.is_active,
             is_featured: formData.is_featured
-          })
+          };
+        }
+        
+        const { data, error } = await supabase
+          .from(table)
+          .update(updateData)
           .eq('id', currentId)
           .select();
         
@@ -311,18 +358,36 @@ export default function CocktailKitsPage() {
         }
         
         console.log('✅ Mise à jour réussie:', data);
-        console.log('✅ Image URL dans la réponse:', data?.[0]?.image_url);
-        
-        if (!data || data.length === 0) {
-          throw new Error('Aucune donnée retournée après la mise à jour');
+        if (data && data.length > 0) {
+          console.log('✅ Image URL dans la réponse:', data[0]?.image_url);
+        } else {
+          console.log('⚠️ Aucune donnée retournée, mais mise à jour probablement réussie');
         }
         
-        alert(`${activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'} mis à jour avec succès`);
+        alert(`${activeTab === 'cocktails' ? 'Cocktail' : activeTab === 'mocktails' ? 'Mocktail' : 'Option'} mis à jour avec succès`);
       } else {
         console.log('Création en cours...');
+        
+        let insertData: any;
+        
+        if (activeTab === 'options') {
+          // Insertion pour les options de cocktails
+          insertData = {
+            name: formData.name,
+            description: formData.description,
+            price: formData.base_price, // Map base_price to price for options
+            is_active: formData.is_active,
+            sort_order: 1, // Default sort order
+            emoji: '🧰' // Default emoji
+          };
+        } else {
+          // Insertion pour les cocktails et mocktails
+          insertData = formData;
+        }
+        
         const { data, error } = await supabase
           .from(table)
-          .insert([formData])
+          .insert([insertData])
           .select();
         
         if (error) {
@@ -331,15 +396,17 @@ export default function CocktailKitsPage() {
         }
         
         console.log('✅ Création réussie:', data);
-        alert(`${activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'} créé avec succès`);
+        alert(`${activeTab === 'cocktails' ? 'Cocktail' : activeTab === 'mocktails' ? 'Mocktail' : 'Option'} créé avec succès`);
       }
 
       // Recharger les données
       console.log('Rechargement des données...');
       if (activeTab === 'cocktails') {
         await loadCocktails();
-      } else {
+      } else if (activeTab === 'mocktails') {
         await loadMocktails();
+      } else {
+        await loadCocktailOptions();
       }
 
       // Fermer le formulaire
@@ -424,6 +491,7 @@ export default function CocktailKitsPage() {
   useEffect(() => {
     loadCocktails();
     loadMocktails();
+    loadCocktailOptions();
   }, []);
 
   // Filtrer les données
@@ -437,7 +505,12 @@ export default function CocktailKitsPage() {
     mocktail.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentItems = activeTab === 'cocktails' ? filteredCocktails : filteredMocktails;
+  const filteredOptions = cocktailOptions.filter(option =>
+    option.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (option.description && option.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const currentItems = activeTab === 'cocktails' ? filteredCocktails : activeTab === 'mocktails' ? filteredMocktails : filteredOptions;
 
   return (
     <div className="p-6">
@@ -451,7 +524,7 @@ export default function CocktailKitsPage() {
           className="bg-orange-500 hover:bg-orange-600"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Nouveau {activeTab === 'cocktails' ? 'Cocktail' : 'Mocktail'}
+          Nouveau {activeTab === 'cocktails' ? 'Cocktail' : activeTab === 'mocktails' ? 'Mocktail' : 'Accessoire'}
         </Button>
       </div>
 
@@ -476,6 +549,16 @@ export default function CocktailKitsPage() {
           }`}
         >
           🥤 Mocktails ({mocktails.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('options')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === 'options'
+              ? 'bg-purple-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          🧰 Accessoires & Options ({cocktailOptions.length})
         </button>
       </div>
 
@@ -527,62 +610,104 @@ export default function CocktailKitsPage() {
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {item.image_url ? (
-                          <img
-                            className="h-10 w-10 rounded-lg object-cover mr-3"
-                            src={item.image_url}
-                            alt={item.name}
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center mr-3">
-                            <span className="text-lg">{activeTab === 'cocktails' ? '🍹' : '🥤'}</span>
+                        <div className="flex-shrink-0 h-10 w-10">
+                          {activeTab === 'options' ? (
+                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-lg">
+                              {(item as CocktailOption).emoji || '🧰'}
+                            </div>
+                          ) : (item as Cocktail | Mocktail).image_url ? (
+                            <img
+                              className="h-10 w-10 rounded-full object-cover"
+                              src={(item as Cocktail | Mocktail).image_url}
+                              alt={item.name}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-lg">
+                              {activeTab === 'cocktails' ? '🍹' : '🥤'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {item.name}
                           </div>
-                        )}
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {item.description}
+                          <div className="text-sm text-gray-500">
+                            {activeTab === 'options' 
+                              ? (item as CocktailOption).description
+                              : (item as Cocktail | Mocktail).category
+                            }
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-900">
-                        {item.category}
+                        {activeTab === 'options' 
+                          ? (item as CocktailOption).price.toLocaleString('fr-FR')
+                          : (item as Cocktail | Mocktail).base_price.toLocaleString('fr-FR')
+                        } FCFA
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-medium text-gray-900">
-                        {item.base_price.toLocaleString('fr-FR')} FCFA
-                      </span>
+                      {activeTab === 'options' ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                          Ordre: {(item as CocktailOption).sort_order}
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          {(item as Cocktail | Mocktail).difficulty_level}/5
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {activeTab === 'options' ? (
+                        <span className="text-purple-600">Accessoire</span>
+                      ) : (
+                        `${(item as Cocktail | Mocktail).preparation_time_minutes} min`
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {item.difficulty_level}/5
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        activeTab === 'options'
+                          ? ((item as CocktailOption).is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
+                          : ((item as Cocktail | Mocktail).is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')
+                      }`}>
+                        {activeTab === 'options'
+                          ? ((item as CocktailOption).is_active ? 'Actif' : 'Inactif')
+                          : ((item as Cocktail | Mocktail).is_featured ? 'Vedette' : 'Standard')
+                        }
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
-                        {item.preparation_time_minutes}min
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {item.is_active ? (
-                          <Eye className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-gray-400" />
-                        )}
-                        {item.is_featured && (
-                          <Star className="h-4 w-4 text-yellow-500" />
-                        )}
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <Button
                           variant="secondary"
-                          onClick={() => handleEdit(item)}
+                          onClick={() => {
+                            if (activeTab === 'options') {
+                              // For now, open the same modal but with option-specific fields
+                              const option = item as CocktailOption;
+                              setFormData({
+                                name: option.name,
+                                description: option.description,
+                                base_price: option.price, // Map price to base_price for form compatibility
+                                difficulty_level: 1,
+                                preparation_time_minutes: 0,
+                                category: 'accessoire',
+                                recipe: '',
+                                image_url: '',
+                                video_url: '',
+                                video_type: '',
+                                alcohol_percentage: 0,
+                                is_active: option.is_active,
+                                is_featured: false
+                              });
+                              setCurrentId(option.id || '');
+                              setIsEditMode(true);
+                              setShowForm(true);
+                            } else {
+                              handleEdit(item as Cocktail | Mocktail);
+                            }
+                          }}
                           className="text-xs px-2 py-1"
                         >
                           <Edit className="h-3 w-3" />
