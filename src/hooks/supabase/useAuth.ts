@@ -50,36 +50,87 @@ export function useAuth() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     const getSession = async () => {
-      console.log('🔍 useAuth - Récupération initiale de la session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('❌ useAuth - Erreur lors de la récupération de la session:', error);
-        // Essayer de forcer la récupération
-        setTimeout(() => forceRefreshAuth(), 500);
-        return;
+      try {
+        console.log('🔍 useAuth - Récupération initiale de la session...');
+        
+        // Attendre un peu pour éviter les problèmes de timing
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        if (error) {
+          console.error('❌ useAuth - Erreur lors de la récupération de la session:', error);
+          // Essayer de forcer la récupération
+          if (retryCount < 3) {
+            console.log(`🔄 useAuth - Tentative ${retryCount + 1}/3...`);
+            setTimeout(() => {
+              if (isMounted) {
+                setRetryCount(prev => prev + 1);
+              }
+            }, 1000);
+          } else {
+            setLoading(false);
+          }
+          return;
+        }
+        
+        console.log('📊 useAuth - Session initiale récupérée:', {
+          hasSession: !!session,
+          user: session?.user,
+          email: session?.user?.email,
+          expires_at: session?.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : null,
+          isExpired: session?.expires_at ? (session.expires_at * 1000 < Date.now()) : null
+        });
+        
+        // Vérifier si la session n'est pas expirée
+        if (session && session.expires_at && session.expires_at * 1000 < Date.now()) {
+          console.log('⚠️ useAuth - Session expirée, tentative de refresh...');
+          try {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError && refreshedSession) {
+              console.log('✅ useAuth - Session rafraîchie avec succès');
+              setSession(refreshedSession);
+              setUser(refreshedSession.user);
+            } else {
+              console.log('❌ useAuth - Impossible de rafraîchir la session');
+              setSession(null);
+              setUser(null);
+            }
+          } catch (refreshErr) {
+            console.error('❌ useAuth - Erreur lors du refresh:', refreshErr);
+            setSession(null);
+            setUser(null);
+          }
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+        
+        setLoading(false);
+        setRetryCount(0);
+        
+      } catch (err) {
+        console.error('❌ useAuth - Erreur dans getSession:', err);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      
-      console.log('📊 useAuth - Session initiale récupérée:', {
-        session: session,
-        user: session?.user,
-        email: session?.user?.email,
-        expires_at: session?.expires_at
-      });
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
     };
 
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!isMounted) return;
+        
         console.log('🔄 useAuth - Changement d\'état d\'authentification:', {
           event: event,
-          session: session,
+          hasSession: !!session,
           user: session?.user,
           email: session?.user?.email
         });
@@ -87,11 +138,12 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        setRetryCount(0); // Reset retry count on auth change
+        setRetryCount(0);
       }
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [retryCount]);

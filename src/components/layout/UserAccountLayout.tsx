@@ -192,8 +192,7 @@ const UserAccountLayout: React.FC<UserAccountLayoutProps> = ({ children }) => {
   const menuItems = [
     { icon: User, label: 'Profil', href: '/mon-compte/profil' },
     { icon: ShoppingBag, label: 'Mes commandes', href: '/mon-compte/commandes' },
-    { icon: Award, label: 'Programme fidélité', href: '/mon-compte/fidelite' },
-    { icon: CreditCard, label: 'Moyens de paiement', href: '/mon-compte/paiement' },
+    { icon: Award, label: 'Points Fidélité', href: '/mon-compte/fidelite' },
     { icon: Settings, label: 'Paramètres', href: '/mon-compte/parametres' },
   ];
   

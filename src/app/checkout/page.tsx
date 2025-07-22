@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, Truck, MapPin, Check, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, MapPin, Check, ShoppingCart, Award, Star } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Separator } from '../../components/ui/separator';
@@ -97,6 +97,30 @@ export default function CheckoutPage() {
   // État pour suivre si la commande a été placée
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  
+  // Fonction pour calculer les points de fidélité gagnés
+  const calculateLoyaltyPoints = useCallback(() => {
+    let totalPoints = 0;
+    
+    cartItems.forEach(item => {
+      // Déterminer la catégorie du produit
+      const productName = item.product.name.toLowerCase();
+      const categorySlug = item.product.categorySlug?.toLowerCase() || '';
+      
+      // Règles de points selon la catégorie
+      if (categorySlug.includes('cocktail') || productName.includes('cocktail') || productName.includes('mojito') || productName.includes('margarita')) {
+        // Cocktails Maison : 15 points par produit
+        totalPoints += 15 * item.quantity;
+      } else {
+        // Apéros et autres : 10 points par produit
+        totalPoints += 10 * item.quantity;
+      }
+    });
+    
+    return totalPoints;
+  }, [cartItems]);
+  
+  const loyaltyPointsEarned = calculateLoyaltyPoints();
 
   // Rediriger vers la page panier si le panier est vide ou vers la page d'authentification si l'utilisateur n'est pas connecté
   useEffect(() => {
@@ -143,6 +167,57 @@ export default function CheckoutPage() {
     mobileNumber: '',
     whatsapp: '',
   });
+
+  // Pré-remplir automatiquement les informations depuis le profil utilisateur
+  useEffect(() => {
+    const prefillUserInfo = async () => {
+      if (!user || !user.email) return;
+      
+      try {
+        console.log('🔄 Pré-remplissage des informations utilisateur depuis le profil...');
+        
+        // Récupérer les informations du client depuis Supabase
+        const { supabase } = await import('../../lib/supabase/client');
+        const { data: customer, error } = await supabase
+          .from('customers')
+          .select('full_name, phone, whatsapp')
+          .eq('email', user.email)
+          .single();
+
+        if (error) {
+          console.log('ℹ️ Aucune information de profil trouvée pour pré-remplir le checkout:', error.message);
+          return;
+        }
+
+        if (customer) {
+          console.log('✅ Informations utilisateur récupérées:', customer);
+          
+          // Pré-remplir les champs de livraison si les données existent
+          setDeliveryInfo(prev => ({
+            ...prev,
+            fullName: customer.full_name || prev.fullName,
+            phone: customer.phone || prev.phone,
+          }));
+          
+          // Pré-remplir le champ WhatsApp dans les informations de paiement
+          setPaymentInfo(prev => ({
+            ...prev,
+            whatsapp: customer.whatsapp || prev.whatsapp,
+            mobileNumber: customer.phone || prev.mobileNumber, // Utiliser le téléphone comme numéro mobile par défaut
+          }));
+          
+          console.log('🎯 Champs pré-remplis automatiquement depuis le profil utilisateur');
+        }
+      } catch (error) {
+        console.error('❌ Erreur lors du pré-remplissage des informations utilisateur:', error);
+      }
+    };
+
+    // Exécuter le pré-remplissage seulement si l'utilisateur est connecté et que les champs sont encore vides
+    if (user && !deliveryInfo.fullName && !deliveryInfo.phone) {
+      prefillUserInfo();
+    }
+  }, [user, deliveryInfo.fullName, deliveryInfo.phone]);
 
   // Vérifier si c'est la nuit (après 22h30)
   const [isNightTime, setIsNightTime] = useState(false);
@@ -870,6 +945,43 @@ export default function CheckoutPage() {
           <div className="bg-gray-100 p-3 rounded-md inline-block font-mono text-lg font-bold mb-6 text-gray-900">
             {orderNumber}
           </div>
+          
+          {/* Section Points de Fidélité Gagnés */}
+          {loyaltyPointsEarned > 0 && (
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="p-2 bg-gradient-to-r from-[#f5a623] to-orange-500 rounded-full">
+                  <Award className="h-5 w-5 text-white" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900">Félicitations !</h4>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-700 mb-2">Vous avez gagné</p>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Star className="h-6 w-6 text-[#f5a623]" />
+                  <span className="text-2xl font-bold text-[#f5a623]">{loyaltyPointsEarned}</span>
+                  <span className="text-lg font-semibold text-gray-700">points de fidélité</span>
+                </div>
+                <p className="text-xs text-gray-600">
+                  {loyaltyPointsEarned >= 50 ? (
+                    <span className="text-green-600 font-medium">
+                      🎉 Vous avez débloqué la livraison gratuite !
+                    </span>
+                  ) : (
+                    <span>
+                      Plus que {50 - loyaltyPointsEarned} points pour débloquer la livraison gratuite
+                    </span>
+                  )}
+                </p>
+                <Link href="/mon-compte/fidelite" className="inline-block mt-2">
+                  <Button variant="outline" size="sm" className="text-[#f5a623] border-[#f5a623] hover:bg-[#f5a623] hover:text-white">
+                    Voir mes points
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+          
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <p className="text-sm text-blue-800 flex flex-col items-center gap-2">
               <span className="flex items-center gap-2">
