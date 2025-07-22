@@ -96,15 +96,7 @@ export default function UserButton() {
               Mon Profil
             </Link>
             
-            <Link
-              href="/orders"
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Mes Commandes
-            </Link>
-            
+
             <Link
               href="/settings"
               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

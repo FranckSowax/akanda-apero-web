@@ -120,10 +120,24 @@ export default function UserProfilePage() {
         .eq('email', user.email)
         .single();
 
-      if (customerError || !customerData) {
+      if (customerError) {
+        // Si l'utilisateur n'existe pas encore dans la table customers (PGRST116 = no rows returned)
+        if (customerError.code === 'PGRST116') {
+          console.log('📄 Utilisateur pas encore dans la table customers, aucune commande à afficher');
+          setRecentOrders([]);
+          return;
+        }
         console.error('Erreur lors de la récupération du customer_id:', customerError);
         return;
       }
+      
+      if (!customerData) {
+        console.log('📄 Aucun customer trouvé, aucune commande à afficher');
+        setRecentOrders([]);
+        return;
+      }
+      
+      console.log('👤 Customer ID trouvé:', customerData.id);
 
       // Ensuite récupérer les commandes avec les items
       const { data, error } = await supabase

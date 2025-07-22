@@ -80,11 +80,28 @@ export default function OrdersPage() {
           .eq('email', user.email)
           .single();
 
-        if (customerError || !customerData) {
+        if (customerError) {
+          // Si l'utilisateur n'existe pas encore dans la table customers (PGRST116 = no rows returned)
+          if (customerError.code === 'PGRST116') {
+            console.log('📄 Utilisateur pas encore dans la table customers, aucune commande à afficher');
+            setOrders([]);
+            setIsLoading(false);
+            return;
+          }
           console.error('Erreur lors de la récupération du customer:', customerError);
           setOrders([]);
+          setIsLoading(false);
           return;
         }
+        
+        if (!customerData) {
+          console.log('📄 Aucun customer trouvé, aucune commande à afficher');
+          setOrders([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('👤 Customer ID trouvé pour les commandes:', customerData.id);
 
         // Récupérer les commandes avec les détails des produits
         const { data, error } = await supabase
