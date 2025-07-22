@@ -5,6 +5,7 @@ import { AuthProvider } from "../contexts/AuthContext";
 import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 
 // Ajout de styles globaux pour la compatibilité mobile dans le fichier CSS global
 import "./mobile-optimizations.css";
@@ -26,7 +27,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
         {/* Méta-tags pour améliorer l'expérience mobile */}
         <meta name="format-detection" content="telephone=no" />
@@ -34,14 +35,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <AppProvider>
             <CartModalProvider>
               <ReactQueryProvider>
-                <div className="touch-manipulation">
-                  {children}
-                </div>
+                <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f5a623]"></div></div>}>
+                  <div className="touch-manipulation">
+                    {children}
+                  </div>
+                </Suspense>
                 <ToastNotification />
               </ReactQueryProvider>
             </CartModalProvider>

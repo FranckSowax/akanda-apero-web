@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../hooks/supabase/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -38,8 +37,9 @@ interface Order {
 }
 
 export default function UserProfilePage() {
+  console.log('🚀 UserProfilePage - Composant initialisé');
+  
   const router = useRouter();
-  const { user, loading } = useAuth();
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<UserProfile>({
@@ -53,30 +53,66 @@ export default function UserProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  console.log('📊 UserProfilePage - État initial:', { 
+    hasCurrentUser: !!currentUser,
+    currentUserEmail: currentUser?.email,
+    ordersCount: recentOrders.length,
+    loadingOrders
+  });
 
-  // Redirection si non connecté
+  // Récupérer l'utilisateur actuel depuis Supabase
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth?redirect_to=/mon-compte/profil');
-    }
-  }, [user, loading, router]);
+    console.log('🔄 UserProfilePage - useEffect getCurrentUser déclenché');
+    
+    const getCurrentUser = async () => {
+      try {
+        console.log('🔍 UserProfilePage - Récupération de la session Supabase...');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('📊 UserProfilePage - Session récupérée:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email
+        });
+        
+        if (session && session.user) {
+          console.log('✅ UserProfilePage - Utilisateur défini:', session.user.email);
+          setCurrentUser(session.user);
+        } else {
+          console.log('❌ UserProfilePage - Aucune session utilisateur trouvée');
+          router.push('/auth?redirect_to=/mon-compte/profil');
+        }
+      } catch (error) {
+        console.error('❌ UserProfilePage - Erreur lors de la récupération de l\'utilisateur:', error);
+        router.push('/auth?redirect_to=/mon-compte/profil');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    getCurrentUser();
+  }, [router]);
 
-  // Chargement du profil utilisateur
+  // Chargement du profil utilisateur et des commandes
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
+      console.log('🔄 UserProfilePage - Chargement des données pour:', currentUser.email);
       loadUserProfile();
       loadRecentOrders();
     }
-  }, [user]);
+  }, [currentUser]);
 
   const loadUserProfile = async () => {
-    if (!user) return;
+    if (!currentUser) return;
     
     try {
       const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('email', user.email)
+        .eq('email', currentUser.email)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -108,36 +144,42 @@ export default function UserProfilePage() {
   };
 
   const loadRecentOrders = async () => {
-    if (!user) return;
+    console.log('🔄 UserProfilePage - loadRecentOrders appelé, currentUser:', !!currentUser, currentUser?.email);
+    
+    if (!currentUser) {
+      console.log('⏳ UserProfilePage - Pas d\'utilisateur, arrêt du chargement');
+      return;
+    }
     
     try {
       setLoadingOrders(true);
+      console.log('🔍 UserProfilePage - Recherche du customer_id pour:', currentUser.email);
       
       // D'abord récupérer le customer_id
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
         .select('id')
-        .eq('email', user.email)
+        .eq('email', currentUser.email)
         .single();
 
       if (customerError) {
         // Si l'utilisateur n'existe pas encore dans la table customers (PGRST116 = no rows returned)
         if (customerError.code === 'PGRST116') {
-          console.log('📄 Utilisateur pas encore dans la table customers, aucune commande à afficher');
+          console.log('📄 UserProfilePage - Utilisateur pas encore dans la table customers, aucune commande à afficher');
           setRecentOrders([]);
           return;
         }
-        console.error('Erreur lors de la récupération du customer_id:', customerError);
+        console.error('❌ UserProfilePage - Erreur lors de la récupération du customer_id:', customerError);
         return;
       }
       
       if (!customerData) {
-        console.log('📄 Aucun customer trouvé, aucune commande à afficher');
+        console.log('📄 UserProfilePage - Aucun customer trouvé, aucune commande à afficher');
         setRecentOrders([]);
         return;
       }
       
-      console.log('👤 Customer ID trouvé:', customerData.id);
+      console.log('👤 UserProfilePage - Customer ID trouvé:', customerData.id);
 
       // Ensuite récupérer les commandes avec les items
       const { data, error } = await supabase
@@ -153,8 +195,11 @@ export default function UserProfilePage() {
         .order('created_at', { ascending: false })
         .limit(5);
 
+      console.log('📦 UserProfilePage - Commandes récupérées:', data ? data.length : 0);
+      console.log('📊 UserProfilePage - Données brutes des commandes:', data);
+
       if (error) {
-        console.error('Erreur lors du chargement des commandes:', error);
+        console.error('❌ UserProfilePage - Erreur lors du chargement des commandes:', error);
         return;
       }
 
@@ -167,16 +212,18 @@ export default function UserProfilePage() {
         items_count: Array.isArray(order.order_items) ? order.order_items.length : 0
       })) || [];
 
+      console.log('✅ UserProfilePage - Commandes transformées:', transformedData.length);
+      console.log('📋 UserProfilePage - Détail des commandes transformées:', transformedData);
       setRecentOrders(transformedData);
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('❌ UserProfilePage - Erreur:', error);
     } finally {
       setLoadingOrders(false);
     }
   };
 
   const handleSaveProfile = async () => {
-    if (!user) return;
+    if (!currentUser) return;
     
     setSaving(true);
     try {
@@ -186,7 +233,7 @@ export default function UserProfilePage() {
       const lastName = nameParts.slice(1).join(' ') || '';
       
       console.log('💾 Sauvegarde profil:', {
-        email: user.email,
+        email: currentUser.email,
         first_name: firstName,
         last_name: lastName,
         phone: profile.phone
@@ -195,7 +242,7 @@ export default function UserProfilePage() {
       const { error } = await supabase
         .from('customers')
         .upsert({
-          email: user.email,
+          email: currentUser.email,
           first_name: firstName,
           last_name: lastName,
           phone: profile.phone,
@@ -248,20 +295,18 @@ export default function UserProfilePage() {
     return new Intl.NumberFormat('fr-FR').format(price) + ' XAF';
   };
 
-  if (loading) {
+  // Affichage du loader pendant le chargement
+  if (isLoading) {
     return (
       <UserAccountLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement de votre profil...</p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
         </div>
       </UserAccountLayout>
     );
   }
 
-  if (!user) {
+  if (!currentUser) {
     return null;
   }
 
@@ -278,10 +323,10 @@ export default function UserProfilePage() {
               <h1 className="text-2xl font-bold">
                 {profile.full_name || 'Utilisateur'}
               </h1>
-              <p className="text-green-100">{user.email}</p>
+              <p className="text-green-100">{currentUser.email}</p>
               <div className="flex items-center mt-2">
                 <Crown className="h-4 w-4 mr-1" />
-                <span className="text-sm">Membre depuis {new Date(user.created_at || '').toLocaleDateString('fr-FR')}</span>
+                <span className="text-sm">Membre depuis {new Date(currentUser.created_at || '').toLocaleDateString('fr-FR')}</span>
               </div>
             </div>
           </div>

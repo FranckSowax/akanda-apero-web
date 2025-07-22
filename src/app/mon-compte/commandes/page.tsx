@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../hooks/supabase/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -43,41 +42,81 @@ interface Order {
   total_amount: number;
   items: OrderItem[];
   delivery_option?: string;
+  payment_method?: string;
+  payment_status?: string;
+  subtotal?: number;
+  delivery_fee?: number;
+  delivery_address?: string;
 }
 
 export default function OrdersPage() {
+  console.log('🚀 OrdersPage - Composant initialisé');
+  
   const router = useRouter();
-  const { user, loading } = useAuth();
   const { addToCart } = useAppContext();
   const { toast } = useToast();
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // Rediriger si non connecté
+  console.log('📊 OrdersPage - État initial:', { 
+    ordersCount: orders.length, 
+    isLoading, 
+    hasCurrentUser: !!currentUser,
+    currentUserEmail: currentUser?.email 
+  });
+  
+  // Récupérer l'utilisateur actuel depuis Supabase
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth?redirect_to=/mon-compte/commandes');
-    }
-  }, [user, loading, router]);
+    console.log('🔄 OrdersPage - useEffect getCurrentUser déclenché');
+    
+    const getCurrentUser = async () => {
+      try {
+        console.log('🔍 OrdersPage - Récupération de la session Supabase...');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('📊 OrdersPage - Session récupérée:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email
+        });
+        
+        if (session?.user) {
+          console.log('✅ OrdersPage - Utilisateur défini:', session.user.email);
+          setCurrentUser(session.user);
+        } else {
+          console.log('❌ OrdersPage - Aucune session utilisateur trouvée');
+        }
+      } catch (error) {
+        console.error('❌ OrdersPage - Erreur lors de la récupération de l\'utilisateur:', error);
+      }
+    };
+    
+    getCurrentUser();
+  }, []);
   
   // Charger les commandes
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!user) {
-        router.push('/auth?redirect_to=/mon-compte/commandes');
+      console.log('🔄 fetchOrders appelé, currentUser:', !!currentUser, currentUser?.email);
+      
+      if (!currentUser) {
+        console.log('⏳ Pas d\'utilisateur connecté, attente...');
+        setIsLoading(false);
         return;
       }
       
       setIsLoading(true);
+      console.log('🔍 Recherche des commandes pour:', currentUser.email);
       
       try {
         // D'abord, récupérer l'ID du customer basé sur l'email
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
           .select('id')
-          .eq('email', user.email)
+          .eq('email', currentUser.email)
           .single();
 
         if (customerError) {
@@ -88,7 +127,7 @@ export default function OrdersPage() {
             setIsLoading(false);
             return;
           }
-          console.error('Erreur lors de la récupération du customer:', customerError);
+          console.error('❌ Erreur lors de la récupération du customer:', customerError);
           setOrders([]);
           setIsLoading(false);
           return;
@@ -103,62 +142,75 @@ export default function OrdersPage() {
         
         console.log('👤 Customer ID trouvé pour les commandes:', customerData.id);
 
-        // Récupérer les commandes avec les détails des produits
+        // Récupérer les commandes avec les détails des produits (requête optimisée)
         const { data, error } = await supabase
           .from('orders')
           .select(`
             id,
             order_number,
-            order_date,
+            created_at,
             status,
+            payment_status,
             total_amount,
+            subtotal,
+            delivery_fee,
             delivery_address,
+            delivery_district,
+            delivery_option,
+            payment_method,
             order_items (
               id,
               product_id,
+              product_name,
               quantity,
               unit_price,
-              product_name,
-              products (
-                id,
-                name,
-                price,
-                imageUrl
-              )
+              subtotal,
+              image_url
             )
           `)
           .eq('customer_id', customerData.id)
-          .order('order_date', { ascending: false });
+          .order('created_at', { ascending: false });
+          
+        console.log('📦 Commandes récupérées pour', currentUser.email, ':', data ? data.length : 0);
+        console.log('📊 Données brutes des commandes:', data);
         
         if (error) {
-          console.error('Erreur lors de la récupération des commandes:', error);
+          console.error('❌ Erreur lors de la récupération des commandes:', error);
           setOrders([]);
         } else {
-          // Transformer les données pour correspondre à notre interface
+          // Transformer les données pour correspondre à notre interface (logique améliorée)
           const transformedOrders: Order[] = (data || []).map(order => ({
             id: order.id,
             order_number: order.order_number,
-            created_at: order.order_date, // Utiliser order_date au lieu de created_at
+            created_at: order.created_at, // Utiliser created_at correct
             status: order.status,
             total_amount: order.total_amount,
-            delivery_option: order.delivery_address || 'Livraison', // Utiliser delivery_address
+            delivery_option: order.delivery_option || order.delivery_district || 'Livraison',
+            payment_method: order.payment_method,
+            payment_status: order.payment_status,
+            subtotal: order.subtotal,
+            delivery_fee: order.delivery_fee,
+            delivery_address: order.delivery_address,
             items: (order.order_items || []).map((item: any) => ({
               id: item.id,
               product_id: item.product_id,
               quantity: item.quantity,
               price: item.unit_price, // Mapper unit_price vers price
               product: {
-                id: item.products?.id || item.product_id,
-                name: item.product_name || item.products?.name || 'Produit',
-                price: item.products?.price || item.unit_price,
-                image_url: item.products?.imageUrl || '/placeholder-product.jpg'
+                id: item.product_id,
+                name: item.product_name || 'Produit',
+                price: item.unit_price,
+                image_url: item.image_url || '/placeholder-product.jpg'
               }
             }))
           }));
+          
+          console.log('✅ Commandes transformées:', transformedOrders.length);
+          console.log('📋 Détail des commandes transformées:', transformedOrders);
           setOrders(transformedOrders);
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des commandes:', error);
+        console.error('❌ Erreur lors de la récupération des commandes:', error);
         setOrders([]);
       } finally {
         setIsLoading(false);
@@ -166,7 +218,7 @@ export default function OrdersPage() {
     };
     
     fetchOrders();
-  }, [user, router]);
+  }, [currentUser]); // ✅ Correction: dépendre de currentUser au lieu de router
   
   const getStatusColor = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -233,7 +285,7 @@ export default function OrdersPage() {
     }
   };
   
-  if (loading || isLoading) {
+  if (isLoading) {
     return (
       <UserAccountLayout>
         <div className="flex flex-col items-center justify-center py-12">
@@ -301,6 +353,51 @@ export default function OrdersPage() {
                 </CardHeader>
                 
                 <CardContent className="pt-6">
+                  {/* Informations détaillées de la commande */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-500">Total</p>
+                      <p className="text-lg font-bold text-gray-900">{formatPrice(order.total_amount)}</p>
+                    </div>
+                    {order.subtotal && (
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500">Sous-total</p>
+                        <p className="text-md font-semibold text-gray-700">{formatPrice(order.subtotal)}</p>
+                      </div>
+                    )}
+                    {order.delivery_fee && (
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500">Livraison</p>
+                        <p className="text-md font-semibold text-gray-700">{formatPrice(order.delivery_fee)}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Informations de paiement et livraison */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {order.payment_method && (
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm text-gray-600">Paiement:</span>
+                        <span className="text-sm font-medium">{order.payment_method}</span>
+                        {order.payment_status && (
+                          <Badge className={order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                            {order.payment_status === 'paid' ? 'Payé' : 'En attente'}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    {order.delivery_address && (
+                      <div className="flex items-start gap-2 p-3 bg-green-50 rounded-lg">
+                        <Truck className="h-4 w-4 text-green-600 mt-0.5" />
+                        <div>
+                          <span className="text-sm text-gray-600">Livraison:</span>
+                          <p className="text-sm font-medium text-gray-800">{order.delivery_address}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="space-y-6">
                     {/* Résumé de la commande */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
