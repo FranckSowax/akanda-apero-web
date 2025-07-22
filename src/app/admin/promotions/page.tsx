@@ -522,10 +522,7 @@ export default function PromotionsPage() {
 
       {/* Dialog d'ajout/édition */}
       <Dialog open={isAddEditDialogOpen} onOpenChange={setIsAddEditDialogOpen}>
-        {isAddEditDialogOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" />
-        )}
-        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200 shadow-2xl z-50 mx-4 sm:mx-0">
+        <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingPromotion ? 'Modifier la promotion' : 'Nouvelle promotion'}
