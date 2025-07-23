@@ -86,14 +86,9 @@ export default function ProductClient({ productId }: { productId: string }) {
       setUIProduct(convertedProduct);
       
       // 📊 Tracker la vue produit
-      trackProductView({
-        id: convertedProduct.id,
-        name: convertedProduct.name,
-        category: categoryName || 'Non catégorisé',
-        price: convertedProduct.price
-      });
+      trackViewProduct(convertedProduct.id.toString(), convertedProduct.name);
       
-      trackRender('product_loaded');
+
     }
     
     if (relatedProductsData && !relatedProductsLoading && categoriesData) {

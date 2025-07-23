@@ -181,7 +181,6 @@ export default function CheckoutPage() {
       const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
       
       trackBeginCheckout(cartValue, itemCount);
-      trackRender('checkout_loaded');
     }
     
     const prefillUserInfo = async () => {
