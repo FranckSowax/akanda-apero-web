@@ -94,11 +94,7 @@ export default function CartPage() {
     
     if (item) {
       // 📊 Tracker la suppression du panier
-      trackRemoveFromCart({
-        id: item.product.id.toString(),
-        name: item.product.name,
-        price: item.product.price
-      }, item.quantity);
+      trackRemoveFromCart(item.product.id.toString());
     }
     
     removeFromCart(productId);
