@@ -2,6 +2,7 @@ import "./global.css";
 import { AppProvider } from "../context/AppContext";
 import { CartModalProvider } from "../context/CartModalContext";
 import { AuthProvider } from "../contexts/AuthContext";
+import { MonitoringProvider } from "../components/MonitoringProvider";
 import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata, Viewport } from "next";
@@ -37,18 +38,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <AppProvider>
-            <CartModalProvider>
-              <ReactQueryProvider>
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f5a623]"></div></div>}>
-                  <div className="touch-manipulation">
-                    {children}
-                  </div>
-                </Suspense>
-                <ToastNotification />
-              </ReactQueryProvider>
-            </CartModalProvider>
-          </AppProvider>
+          {/* MonitoringProvider temporairement désactivé pour éviter les erreurs */}
+          {/* <MonitoringProvider> */}
+            <AppProvider>
+              <CartModalProvider>
+                <ReactQueryProvider>
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f5a623]"></div></div>}>
+                    <div className="touch-manipulation">
+                      {children}
+                    </div>
+                  </Suspense>
+                  <ToastNotification />
+                </ReactQueryProvider>
+              </CartModalProvider>
+            </AppProvider>
+          {/* </MonitoringProvider> */}
         </AuthProvider>
       </body>
     </html>

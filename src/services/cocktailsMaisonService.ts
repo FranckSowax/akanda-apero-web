@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase/client';
 import { CocktailMaison, CocktailIngredient, CocktailInstruction, Mocktail, MocktailIngredient, CocktailOption } from '../types/supabase';
+import { logError } from '../utils/error-handler';
 
 // =====================================================
 // SERVICE COCKTAILS MAISON
@@ -30,7 +31,7 @@ export class CocktailsMaisonService {
 
       return data || [];
     } catch (error) {
-      console.error('Erreur service cocktails:', error);
+      logError(error, 'cocktailsMaisonService_getAllCocktails');
       return [];
     }
   }
@@ -48,13 +49,13 @@ export class CocktailsMaisonService {
         .single();
 
       if (error) {
-        console.error('Erreur lors de la récupération du cocktail:', error);
+        logError(error, 'cocktailsMaisonService_getCocktailById_supabase');
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Erreur service cocktail:', error);
+      logError(error, 'cocktailsMaisonService_getCocktailById');
       return null;
     }
   }
@@ -75,13 +76,13 @@ export class CocktailsMaisonService {
         .order('name');
 
       if (error) {
-        console.error('Erreur lors de la récupération des mocktails:', error);
+        logError(error, 'cocktailsMaisonService_getAllMocktails_supabase');
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Erreur service mocktails:', error);
+      logError(error, 'cocktailsMaisonService_getAllMocktails');
       return [];
     }
   }
@@ -98,13 +99,13 @@ export class CocktailsMaisonService {
         .single();
 
       if (error) {
-        console.error('Erreur lors de la récupération du mocktail:', error);
+        logError(error, 'cocktailsMaisonService_getMocktailById_supabase');
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Erreur service mocktail:', error);
+      logError(error, 'cocktailsMaisonService_getMocktailById');
       return null;
     }
   }
@@ -122,13 +123,13 @@ export class CocktailsMaisonService {
         .order('sort_order');
 
       if (error) {
-        console.error('Erreur lors de la récupération des options:', error);
+        logError(error, 'cocktailsMaisonService_getCocktailOptions_supabase');
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Erreur service options:', error);
+      logError(error, 'cocktailsMaisonService_getCocktailOptions');
       return [];
     }
   }

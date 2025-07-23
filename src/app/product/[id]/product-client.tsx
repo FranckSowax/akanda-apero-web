@@ -14,6 +14,7 @@ import { useCategories } from '../../../hooks/supabase/useCategories';
 import { Product as SupabaseProduct } from '../../../types/supabase';
 import { Header } from '../../../components/layout/Header';
 import { getProductImageUrl } from '../../../utils/imageUtils';
+import { useEcommerceTracking, useComponentPerformance } from '../../../components/MonitoringProvider';
 
 interface UIProduct {
   id: string;
@@ -59,6 +60,10 @@ export default function ProductClient({ productId }: { productId: string }) {
   const [relatedProducts, setRelatedProducts] = useState<UIProduct[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   
+  // 📊 Monitoring hooks
+  const { trackProductView, trackAddToCart, trackWishlistAdd } = useEcommerceTracking();
+  const { trackRender } = useComponentPerformance('ProductClient');
+  
   const { getProductById, getRelatedProducts } = useProductDetail();
   const { getCategories } = useCategories();
   
@@ -77,7 +82,18 @@ export default function ProductClient({ productId }: { productId: string }) {
         ? categoriesData.find((c: { id: string; name: string }) => c.id === categoryId)?.name
         : undefined;
       
-      setUIProduct(convertToUIProduct(productData, categoryName));
+      const convertedProduct = convertToUIProduct(productData, categoryName);
+      setUIProduct(convertedProduct);
+      
+      // 📊 Tracker la vue produit
+      trackProductView({
+        id: convertedProduct.id,
+        name: convertedProduct.name,
+        category: categoryName || 'Non catégorisé',
+        price: convertedProduct.price
+      });
+      
+      trackRender('product_loaded');
     }
     
     if (relatedProductsData && !relatedProductsLoading && categoriesData) {
@@ -116,6 +132,13 @@ export default function ProductClient({ productId }: { productId: string }) {
       
       addToCart(adaptedProduct, quantity);
       
+      // 📊 Tracker l'ajout au panier
+      trackAddToCart({
+        id: uiProduct.id,
+        name: uiProduct.name,
+        price: uiProduct.price
+      }, quantity);
+      
       // Afficher une notification ou un feedback visuel
       const toast = document.getElementById('toast-success');
       if (toast) {
@@ -128,7 +151,16 @@ export default function ProductClient({ productId }: { productId: string }) {
   };
 
   const toggleFavorite = () => {
-    setIsFavorite((prev: boolean) => !prev);
+    const newFavoriteState = !isFavorite;
+    setIsFavorite(newFavoriteState);
+    
+    // 📊 Tracker l'ajout/suppression des favoris
+    if (newFavoriteState && uiProduct) {
+      trackWishlistAdd({
+        id: uiProduct.id,
+        name: uiProduct.name
+      });
+    }
   };
 
 

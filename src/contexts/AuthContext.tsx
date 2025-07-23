@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
 import { useAuthPersistence } from '../hooks/useAuthPersistence';
+import { logError, logInfo } from '../utils/error-handler';
 
 interface AuthContextType {
   user: User | null;

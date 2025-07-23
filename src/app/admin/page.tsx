@@ -12,7 +12,12 @@ import {
   RefreshCw,
   BarChart3,
   Package,
-  AlertTriangle
+  AlertTriangle,
+  Settings,
+  FileText,
+  Cocktail,
+  Gift,
+  TestTube
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useDashboardStats } from '../../hooks/dashboard/useDashboardStats';
@@ -116,9 +121,12 @@ export default function AdminDashboard() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Actualiser
             </Button>
-            <Button className="bg-[#f5a623] hover:bg-[#e09000] text-white flex items-center gap-2">
+            <Button 
+              className="bg-[#f5a623] hover:bg-[#e09000] text-white flex items-center gap-2"
+              onClick={() => window.location.href = '/admin/analytics'}
+            >
               <BarChart3 className="h-4 w-4" />
-              Rapports détaillés
+              Analytics & Monitoring
             </Button>
           </div>
         </div>

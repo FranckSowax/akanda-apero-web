@@ -20,6 +20,7 @@ import { useOrders } from '../../hooks/supabase/useOrders';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Header } from '../../components/layout/Header';
+import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
 
 // Types pour la page de checkout
 interface CheckoutCartItem {
@@ -80,6 +81,10 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { state, getCartTotal, clearCart, dispatch } = useAppContext();
   const cartItems = state.cart.items as CartItem[];
+  
+  // 📊 Monitoring hooks
+  const { trackBeginCheckout, trackPurchase } = useEcommerceTracking();
+  const { trackRender } = useComponentPerformance('CheckoutPage');
   
   // Log pour déboguer l'état du panier
   console.log('🛍️ État du panier:', { cartItems, count: cartItems.length });
@@ -168,8 +173,17 @@ export default function CheckoutPage() {
     whatsapp: '',
   });
 
-  // Pré-remplir automatiquement les informations depuis le profil utilisateur
+  // Tracker le début du checkout et pré-remplir automatiquement les informations
   useEffect(() => {
+    // 📊 Tracker le début du checkout
+    if (cartItems.length > 0) {
+      const cartValue = subtotal;
+      const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+      
+      trackBeginCheckout(cartValue, itemCount);
+      trackRender('checkout_loaded');
+    }
+    
     const prefillUserInfo = async () => {
       if (!user || !user.email) return;
       
@@ -410,6 +424,19 @@ export default function CheckoutPage() {
         setOrderNumber(newOrderNumber);
         setOrderPlaced(true);
         setFormStep('confirmation');
+        
+        // 📊 Tracker l'achat finalisé
+        trackPurchase({
+          orderId: newOrderNumber,
+          total: total,
+          items: cartItems.map(item => ({
+            id: item.product.id.toString(),
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity
+          })),
+          paymentMethod: paymentInfo.method
+        });
         
         // Vider le panier après confirmation de la commande (délai plus long pour éviter la redirection)
         setTimeout(() => {

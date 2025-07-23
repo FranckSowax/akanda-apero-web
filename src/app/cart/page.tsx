@@ -13,6 +13,7 @@ import { Label } from '../../components/ui/label';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { Header } from '../../components/layout/Header';
+import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
 
 
 
@@ -27,6 +28,10 @@ export default function CartPage() {
     getCartTotal,
     getCartItemsCount
   } = useAppContext();
+  
+  // 📊 Monitoring hooks
+  const { trackRemoveFromCart, trackBeginCheckout } = useEcommerceTracking();
+  const { trackRender } = useComponentPerformance('CartPage');
   
   // Vérifier si l'utilisateur est connecté
   const { user, loading: authLoading } = useAuth();
@@ -84,6 +89,18 @@ export default function CartPage() {
 
   // Fonction pour supprimer un article
   const handleRemoveItem = (productId: number) => {
+    // Trouver le produit avant de le supprimer pour le tracking
+    const item = cartItems.find(item => item.product.id === productId);
+    
+    if (item) {
+      // 📊 Tracker la suppression du panier
+      trackRemoveFromCart({
+        id: item.product.id.toString(),
+        name: item.product.name,
+        price: item.product.price
+      }, item.quantity);
+    }
+    
     removeFromCart(productId);
   };
 
