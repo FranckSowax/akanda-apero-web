@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '../../../lib/supabase/client';
 
 /**
  * 🚨 API Route pour Error Tracking - Akanda Apéro
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Enrichir les données d'erreur
     const enrichedError = {
       ...errorData,
-      ip: request.ip || 'unknown',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown',
       referer: request.headers.get('referer') || null,
       timestamp: new Date().toISOString(),

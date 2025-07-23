@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '../../../lib/supabase/client';
 
 /**
  * 📊 API Route pour Analytics - Akanda Apéro
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Enrichir les données avec des informations de contexte
     const enrichedData = {
       ...data,
-      ip: request.ip || 'unknown',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown',
       referer: request.headers.get('referer') || null,
       timestamp: new Date().toISOString(),
