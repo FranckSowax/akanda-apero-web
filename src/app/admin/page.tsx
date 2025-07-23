@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   Settings,
   FileText,
-  Cocktail,
   Gift,
   TestTube
 } from 'lucide-react';
@@ -127,6 +126,13 @@ export default function AdminDashboard() {
             >
               <BarChart3 className="h-4 w-4" />
               Analytics & Monitoring
+            </Button>
+            <Button 
+              className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white flex items-center gap-2"
+              onClick={() => window.location.href = '/admin/ab-testing'}
+            >
+              <TestTube className="h-4 w-4" />
+              A/B Testing
             </Button>
           </div>
         </div>

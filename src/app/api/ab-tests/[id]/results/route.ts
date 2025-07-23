@@ -5,14 +5,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '../../../../../lib/supabase/client';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const testId = params.id;
+    const resolvedParams = await params;
+    const testId = resolvedParams.id;
 
     // Récupérer le test et ses variantes
     const { data: test, error: testError } = await supabase

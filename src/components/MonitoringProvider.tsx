@@ -83,9 +83,32 @@ export function useComponentPerformance(componentName: string) {
     return () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
-      trackPerformance(`component_${componentName}`, duration);
+      trackPerformance(`${componentName}_render_time`, duration);
     };
   }, [componentName, trackPerformance]);
+}
+
+// Hook pour le tracking e-commerce
+export function useEcommerceTracking() {
+  const { trackEcommerce, trackEvent } = useMonitoring();
+  
+  return {
+    trackPurchase: (orderId: string, value: number, items: any[]) => {
+      trackEcommerce('purchase', { orderId, value, items });
+    },
+    trackAddToCart: (productId: string, productName: string, price: number) => {
+      trackEcommerce('add_to_cart', { productId, productName, price });
+    },
+    trackRemoveFromCart: (productId: string) => {
+      trackEcommerce('remove_from_cart', { productId });
+    },
+    trackViewProduct: (productId: string, productName: string) => {
+      trackEvent('view_product', { productId, productName });
+    },
+    trackBeginCheckout: (cartValue: number, itemCount: number) => {
+      trackEcommerce('begin_checkout', { cartValue, itemCount });
+    }
+  };
 }
 
 export default MonitoringProvider;
