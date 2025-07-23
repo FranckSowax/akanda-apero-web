@@ -61,8 +61,8 @@ export default function ProductClient({ productId }: { productId: string }) {
   const [isFavorite, setIsFavorite] = useState(false);
   
   // 📊 Monitoring hooks
-  const { trackProductView, trackAddToCart, trackWishlistAdd } = useEcommerceTracking();
-  const { trackRender } = useComponentPerformance('ProductClient');
+  const { trackViewProduct, trackAddToCart } = useEcommerceTracking();
+  useComponentPerformance('ProductClient');
   
   const { getProductById, getRelatedProducts } = useProductDetail();
   const { getCategories } = useCategories();

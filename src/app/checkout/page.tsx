@@ -84,7 +84,7 @@ export default function CheckoutPage() {
   
   // 📊 Monitoring hooks
   const { trackBeginCheckout, trackPurchase } = useEcommerceTracking();
-  const { trackRender } = useComponentPerformance('CheckoutPage');
+  useComponentPerformance('CheckoutPage');
   
   // Log pour déboguer l'état du panier
   console.log('🛍️ État du panier:', { cartItems, count: cartItems.length });

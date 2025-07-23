@@ -31,7 +31,7 @@ export default function CartPage() {
   
   // 📊 Monitoring hooks
   const { trackRemoveFromCart, trackBeginCheckout } = useEcommerceTracking();
-  const { trackRender } = useComponentPerformance('CartPage');
+  useComponentPerformance('CartPage');
   
   // Vérifier si l'utilisateur est connecté
   const { user, loading: authLoading } = useAuth();
