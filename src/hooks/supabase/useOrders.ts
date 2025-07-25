@@ -66,12 +66,15 @@ export function useOrders() {
       });
 
       const result = await response.json();
+      console.log('📋 Réponse API complète:', { status: response.status, result });
 
       if (!response.ok) {
+        console.error('❌ Erreur HTTP:', { status: response.status, error: result.error, details: result.details });
         throw new Error(result.error || `Erreur HTTP: ${response.status}`);
       }
 
       if (!result.success) {
+        console.error('❌ Erreur API:', { error: result.error, details: result.details });
         throw new Error(result.error || 'Erreur lors de la création de la commande');
       }
 
@@ -85,8 +88,27 @@ export function useOrders() {
 
     } catch (error) {
       console.error('❌ Erreur lors de la création de la commande:', error);
-      setError(error as Error);
-      return { success: false, orderNumber: '', error: error as Error };
+      
+      // Créer un message d'erreur explicite
+      let errorMessage = 'Une erreur est survenue lors de la création de la commande';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
+      
+      const detailedError = new Error(errorMessage);
+      console.error('📋 Détails de l\'erreur:', {
+        originalError: error,
+        processedMessage: errorMessage,
+        errorType: typeof error
+      });
+      
+      setError(detailedError);
+      return { success: false, orderNumber: '', error: detailedError };
     } finally {
       setLoading(false);
     }

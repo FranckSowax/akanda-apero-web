@@ -146,26 +146,64 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }, 3000);
   };
 
-  // Calculer le total du panier
+  // Valider le panier et retourner les articles valides
+  const validateCart = () => {
+    const validItems = state.cart.items.filter(item => {
+      const hasValidProduct = item.product && item.product.id != null;
+      const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
+      const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
+      const hasValidQuantity = item.quantity > 0;
+      
+      return hasValidProduct && hasValidName && hasValidPrice && hasValidQuantity;
+    });
+    
+    if (validItems.length !== state.cart.items.length) {
+      console.warn('📊 Validation du panier:', {
+        totalItems: state.cart.items.length,
+        validItems: validItems.length,
+        invalidItems: state.cart.items.length - validItems.length,
+        invalidDetails: state.cart.items.filter(item => !(
+          item.product &&
+          item.product.id != null &&
+          item.product.name &&
+          String(item.product.name).trim().length > 0 &&
+          item.product.price != null &&
+          !isNaN(Number(item.product.price)) &&
+          item.quantity > 0
+        ))
+      });
+    }
+    
+    return validItems;
+  };
+
+  // Calculer le total du panier avec validation
   const getCartTotal = () => {
-    const subtotal = state.cart.items.reduce((total, item) => {
-      const itemPrice = item.product.isPromo && item.product.discount
-        ? item.product.price * (1 - item.product.discount / 100)
-        : item.product.price;
-      return total + itemPrice * item.quantity;
+    const validItems = validateCart();
+    const { promoDiscount, deliveryOption } = state.cart;
+    
+    const subtotal = validItems.reduce((total, item) => {
+      const price = Number(item.product?.price) || 0;
+      return total + (price * item.quantity);
     }, 0);
-
-    // Plus de coût de livraison - la livraison sera gérée au checkout
-    const deliveryCost = 0;
-
-    // Réduction du code promo
-    const discount = state.cart.promoDiscount > 0
-      ? (subtotal * state.cart.promoDiscount) / 100
-      : 0;
-
-    const total = subtotal - discount;
-
-    return { subtotal, deliveryCost, discount, total };
+    
+    const discount = subtotal * (promoDiscount / 100);
+    
+    const deliveryOptions = {
+      pickup: 0,
+      standard: 2000,
+      express: 3000,
+      night: 3500,
+    };
+    
+    const deliveryCost = deliveryOptions[deliveryOption as keyof typeof deliveryOptions] || 2000;
+    
+    return {
+      subtotal,
+      deliveryCost,
+      discount,
+      total: subtotal - discount + deliveryCost,
+    };
   };
 
   // Obtenir le nombre total d'articles dans le panier

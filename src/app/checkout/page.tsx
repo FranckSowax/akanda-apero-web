@@ -71,7 +71,10 @@ interface CartItem {
 // Fonction utilitaire pour extraire le prénom et le nom
 const getFirstAndLastName = (fullName: string): { firstName: string, lastName: string } => {
   const nameParts = fullName.trim().split(/\s+/);
-  if (nameParts.length === 1) return { firstName: nameParts[0], lastName: '' };
+  if (nameParts.length === 1) {
+    // Si un seul nom, utiliser une partie comme prénom et générer un nom de famille par défaut
+    return { firstName: nameParts[0], lastName: 'Client' };
+  }
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ');
   return { firstName, lastName };
@@ -388,38 +391,107 @@ export default function CheckoutPage() {
       // Formater le numéro WhatsApp
       const formattedWhatsApp = formatGabonPhone(paymentInfo.whatsapp);
       
-      // Préparer les données de commande
+      // Validation et diagnostic du panier
+      console.log('🛍️ Analyse du panier:', { 
+        totalItems: cartItems.length,
+        cartItems: cartItems.map(item => ({
+          id: item.product?.id,
+          name: item.product?.name,
+          price: item.product?.price,
+          quantity: item.quantity,
+          hasProduct: !!item.product,
+          isValid: !!(item.product?.id && item.product?.name && item.product?.price != null)
+        }))
+      });
+      
+      // Validation permissive du panier
+      const validCartItems = cartItems.filter(item => {
+        const hasValidProduct = item.product && item.product.id != null;
+        const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
+        const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
+        const hasValidQuantity = item.quantity > 0;
+        
+        return hasValidProduct && hasValidName && hasValidPrice && hasValidQuantity;
+      });
+      
+      console.log('✅ Articles valides détectés:', validCartItems.length);
+      
+      if (validCartItems.length === 0) {
+        const invalidItems = cartItems.filter(item => !(
+          item.product && 
+          item.product.id != null && 
+          String(item.product.name).trim().length > 0 &&
+          item.product.price != null &&
+          !isNaN(Number(item.product.price)) &&
+          item.quantity > 0
+        ));
+        
+        console.error('❌ Articles invalides détectés:', invalidItems);
+        throw new Error(`Aucun article valide dans le panier. ${cartItems.length} articles trouvés, ${invalidItems.length} invalides.`);
+      }
+      
+      if (validCartItems.length !== cartItems.length) {
+        console.warn('⚠️ Articles invalides détectés et filtrés:', cartItems.length - validCartItems.length);
+      }
+      
+      // Préparer les données de commande avec validation stricte des types
       const orderData = {
         customerInfo: {
           email: `${paymentInfo.whatsapp.replace(/[^0-9]/g, '')}@akandaapero.com`,
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           phone: formattedWhatsApp
         },
         deliveryInfo: {
-          address: deliveryInfo.address,
-          city: deliveryInfo.city,
-          district: deliveryInfo.district,
-          additionalInfo: deliveryInfo.additionalInfo,
-          location: deliveryInfo.location,
+          address: deliveryInfo.address.trim(),
+          city: deliveryInfo.city?.trim() || '',
+          district: deliveryInfo.district?.trim() || '',
+          additionalInfo: deliveryInfo.additionalInfo?.trim() || '',
+          location: {
+            lat: Number(deliveryInfo.location?.lat || 0),
+            lng: Number(deliveryInfo.location?.lng || 0),
+            hasLocation: Boolean(deliveryInfo.location?.hasLocation)
+          },
           deliveryOption: deliveryInfo.deliveryOption
         },
-        paymentInfo: paymentInfo,
-        items: cartItems.map(item => ({
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-          imageUrl: item.product.imageUrl
-        })),
-        totalAmount: total,
-        subtotal: subtotal,
-        deliveryCost: deliveryFee,
-        discount: discountAmount
+        paymentInfo: {
+          method: paymentInfo.method,
+          ...(paymentInfo.method === 'mobile_money' && { whatsapp: formattedWhatsApp }),
+          ...(paymentInfo.method === 'card' && {
+            cardNumber: paymentInfo.cardNumber?.trim() || '',
+            cardName: paymentInfo.cardName?.trim() || '',
+            expiryDate: paymentInfo.expiryDate?.trim() || '',
+            cvv: paymentInfo.cvv?.trim() || ''
+          })
+        },
+        items: validCartItems.map(item => {
+            const itemId = Number(item.product.id);
+            if (isNaN(itemId) || itemId <= 0) {
+              throw new Error(`ID d'article invalide: ${item.product.id}`);
+            }
+            return {
+              id: itemId,
+              name: String(item.product.name || '').trim(),
+              price: Number(item.product.price || 0),
+              quantity: Number(item.quantity || 1),
+              imageUrl: String(item.product.imageUrl || '').trim()
+            };
+          }),
+        totalAmount: Number(total),
+        subtotal: Number(subtotal),
+        deliveryCost: Number(deliveryFee),
+        discount: Number(discountAmount)
       };
       
       // Créer la commande et enregistrer le client
       console.log('📦 Création commande avec:', orderData);
+      console.log('🔍 Validation des données avant envoi:');
+      console.log('  - customerInfo:', orderData.customerInfo);
+      console.log('  - deliveryInfo:', orderData.deliveryInfo);
+      console.log('  - paymentInfo:', orderData.paymentInfo);
+      console.log('  - items:', orderData.items);
+      console.log('  - montants:', { totalAmount: orderData.totalAmount, subtotal: orderData.subtotal, deliveryCost: orderData.deliveryCost, discount: orderData.discount });
+      
       const { success, orderNumber: newOrderNumber, error } = await createOrder(orderData);
       console.log('📝 Résultat createOrder:', { success, newOrderNumber, error });
       
@@ -432,7 +504,7 @@ export default function CheckoutPage() {
         trackPurchase(
           newOrderNumber,
           total,
-          cartItems.map(item => ({
+          validCartItems.map(item => ({
             id: item.product.id.toString(),
             name: item.product.name,
             price: item.product.price,
@@ -440,19 +512,33 @@ export default function CheckoutPage() {
           }))
         );
         
-        // Vider le panier après confirmation de la commande (délai plus long pour éviter la redirection)
-        setTimeout(() => {
-          console.log('🧹 Vidage du panier après confirmation');
-          clearCart();
-        }, 5000);
+        // Note: Le panier n'est plus vidé automatiquement pour permettre à l'utilisateur
+        // de rester sur la page de finalisation et voir les détails de sa commande
+        // L'utilisateur peut manuellement vider le panier ou continuer ses achats
         
         window.scrollTo(0, 0);
       } else {
         setOrderError(error?.message || 'Une erreur est survenue lors de la création de la commande');
       }
     } catch (error) {
-      console.error('Erreur lors de la soumission de la commande:', error);
-      setOrderError('Une erreur inattendue est survenue. Veuillez réessayer.');
+      console.error('❌ Erreur lors de la soumission de la commande:', error);
+      
+      // Utiliser l'utilitaire d'erreur pour une gestion robuste
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'Une erreur inattendue est survenue lors de la création de la commande';
+          
+      setOrderError(errorMessage);
+      
+      // Log détaillé pour le debugging
+      console.error('📋 Détails de l\'erreur:', {
+        error,
+        errorType: typeof error,
+        isErrorInstance: error instanceof Error,
+        errorMessage: errorMessage
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -1028,6 +1114,16 @@ export default function CheckoutPage() {
                 Retour à l'accueil
               </Button>
             </Link>
+            <Button 
+              onClick={() => {
+                console.log('🧹 Vidage manuel du panier pour continuer les achats');
+                clearCart();
+                router.push('/');
+              }}
+              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+            >
+              Continuer mes achats
+            </Button>
             <Link href="/mon-compte/commandes">
               <Button className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
                 Suivre ma commande

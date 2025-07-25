@@ -2,7 +2,7 @@ import "./global.css";
 import { AppProvider } from "../context/AppContext";
 import { CartModalProvider } from "../context/CartModalContext";
 import { AuthProvider } from "../contexts/AuthContext";
-import { MonitoringProvider } from "../components/MonitoringProvider";
+// import { MonitoringProvider } from "../components/MonitoringProvider"; // Temporairement désactivé pour éviter ChunkLoadError
 import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata, Viewport } from "next";

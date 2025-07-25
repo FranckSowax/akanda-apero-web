@@ -78,22 +78,41 @@ function validateOrderData(orderData: any): { isValid: boolean; errors: string[]
     }
   }
   
-  // Validation des articles
+  // Validation des articles avec messages plus détaillés
   if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
     errors.push('Aucun article dans la commande');
   } else {
     orderData.items.forEach((item: any, index: number) => {
-      if (!item.id || typeof item.id !== 'number') {
-        errors.push(`Article ${index + 1}: ID invalide`);
+      // Validation stricte de l'ID
+      if (item.id === undefined || item.id === null) {
+        errors.push(`Article ${index + 1}: ID manquant (valeur reçue: ${item.id})`);
+      } else if (typeof item.id !== 'number' || isNaN(item.id)) {
+        errors.push(`Article ${index + 1}: ID invalide - doit être un nombre valide (reçu: ${typeof item.id} ${item.id})`);
+      } else if (item.id <= 0) {
+        errors.push(`Article ${index + 1}: ID invalide - doit être positif (reçu: ${item.id})`);
       }
-      if (!item.name || item.name.trim().length === 0) {
-        errors.push(`Article ${index + 1}: Nom manquant`);
+      
+      // Validation du nom
+      if (!item.name || typeof item.name !== 'string' || item.name.trim().length === 0) {
+        errors.push(`Article ${index + 1}: Nom manquant ou invalide (reçu: ${item.name})`);
       }
-      if (!item.price || typeof item.price !== 'number' || item.price <= 0) {
-        errors.push(`Article ${index + 1}: Prix invalide`);
+      
+      // Validation du prix
+      if (item.price === undefined || item.price === null) {
+        errors.push(`Article ${index + 1}: Prix manquant (reçu: ${item.price})`);
+      } else if (typeof item.price !== 'number' || isNaN(item.price)) {
+        errors.push(`Article ${index + 1}: Prix invalide - doit être un nombre (reçu: ${typeof item.price} ${item.price})`);
+      } else if (item.price <= 0) {
+        errors.push(`Article ${index + 1}: Prix invalide - doit être positif (reçu: ${item.price})`);
       }
-      if (!item.quantity || typeof item.quantity !== 'number' || item.quantity <= 0) {
-        errors.push(`Article ${index + 1}: Quantité invalide`);
+      
+      // Validation de la quantité
+      if (item.quantity === undefined || item.quantity === null) {
+        errors.push(`Article ${index + 1}: Quantité manquante (reçu: ${item.quantity})`);
+      } else if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
+        errors.push(`Article ${index + 1}: Quantité invalide - doit être un nombre (reçu: ${typeof item.quantity} ${item.quantity})`);
+      } else if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+        errors.push(`Article ${index + 1}: Quantité invalide - doit être un entier positif (reçu: ${item.quantity})`);
       }
     });
   }
