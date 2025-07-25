@@ -128,11 +128,11 @@ export default function ProductClient({ productId }: { productId: string }) {
       addToCart(adaptedProduct, quantity);
       
       // 📊 Tracker l'ajout au panier
-      trackAddToCart({
-        id: uiProduct.id,
-        name: uiProduct.name,
-        price: uiProduct.price
-      }, quantity);
+      trackAddToCart(
+        uiProduct.id.toString(),
+        uiProduct.name,
+        uiProduct.price
+      );
       
       // Afficher une notification ou un feedback visuel
       const toast = document.getElementById('toast-success');
@@ -149,13 +149,10 @@ export default function ProductClient({ productId }: { productId: string }) {
     const newFavoriteState = !isFavorite;
     setIsFavorite(newFavoriteState);
     
-    // 📊 Tracker l'ajout/suppression des favoris
-    if (newFavoriteState && uiProduct) {
-      trackWishlistAdd({
-        id: uiProduct.id,
-        name: uiProduct.name
-      });
-    }
+    // 📊 Tracker l'ajout/suppression des favoris (fonction trackWishlistAdd non disponible)
+    // if (newFavoriteState && uiProduct) {
+    //   trackWishlistAdd(uiProduct.id.toString(), uiProduct.name);
+    // }
   };
 
 

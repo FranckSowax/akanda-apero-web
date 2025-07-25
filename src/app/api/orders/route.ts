@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logError, logInfo, safeExecute } from '../../../utils/error-handler';
 
 // Configuration Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,6 +17,7 @@ interface OrderData {
   };
   deliveryInfo: {
     address: string;
+    city?: string; // Champ envoyé par le checkout
     district?: string;
     additionalInfo?: string;
     location: {
@@ -40,6 +42,77 @@ interface OrderData {
   subtotal: number;
   deliveryCost: number;
   discount: number;
+}
+
+// Fonction de validation robuste des données de commande
+function validateOrderData(orderData: any): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Validation des informations client
+  if (!orderData.customerInfo) {
+    errors.push('Informations client manquantes');
+  } else {
+    if (!orderData.customerInfo.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(orderData.customerInfo.email)) {
+      errors.push('Email client invalide ou manquant');
+    }
+    if (!orderData.customerInfo.first_name || orderData.customerInfo.first_name.trim().length < 2) {
+      errors.push('Prénom client invalide ou manquant');
+    }
+    if (!orderData.customerInfo.last_name || orderData.customerInfo.last_name.trim().length < 2) {
+      errors.push('Nom client invalide ou manquant');
+    }
+    if (!orderData.customerInfo.phone || orderData.customerInfo.phone.trim().length < 8) {
+      errors.push('Téléphone client invalide ou manquant');
+    }
+  }
+  
+  // Validation des informations de livraison
+  if (!orderData.deliveryInfo) {
+    errors.push('Informations de livraison manquantes');
+  } else {
+    if (!orderData.deliveryInfo.address || orderData.deliveryInfo.address.trim().length < 5) {
+      errors.push('Adresse de livraison invalide ou manquante');
+    }
+    if (!orderData.deliveryInfo.deliveryOption) {
+      errors.push('Option de livraison manquante');
+    }
+  }
+  
+  // Validation des articles
+  if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+    errors.push('Aucun article dans la commande');
+  } else {
+    orderData.items.forEach((item: any, index: number) => {
+      if (!item.id || typeof item.id !== 'number') {
+        errors.push(`Article ${index + 1}: ID invalide`);
+      }
+      if (!item.name || item.name.trim().length === 0) {
+        errors.push(`Article ${index + 1}: Nom manquant`);
+      }
+      if (!item.price || typeof item.price !== 'number' || item.price <= 0) {
+        errors.push(`Article ${index + 1}: Prix invalide`);
+      }
+      if (!item.quantity || typeof item.quantity !== 'number' || item.quantity <= 0) {
+        errors.push(`Article ${index + 1}: Quantité invalide`);
+      }
+    });
+  }
+  
+  // Validation des montants
+  if (!orderData.totalAmount || typeof orderData.totalAmount !== 'number' || orderData.totalAmount <= 0) {
+    errors.push('Montant total invalide');
+  }
+  if (typeof orderData.subtotal !== 'number' || orderData.subtotal < 0) {
+    errors.push('Sous-total invalide');
+  }
+  if (typeof orderData.deliveryCost !== 'number' || orderData.deliveryCost < 0) {
+    errors.push('Coût de livraison invalide');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
 }
 
 // GET /api/orders - Récupérer les commandes depuis Supabase
@@ -134,16 +207,30 @@ export async function GET(request: NextRequest) {
 
 // POST /api/orders - Créer une nouvelle commande dans Supabase
 export async function POST(request: NextRequest) {
-  try {
-    const orderData: OrderData = await request.json();
+  const result = await safeExecute(async () => {
+    logInfo('POST /api/orders - Début de création de commande');
     
-    console.log('📦 POST /api/orders - Données reçues:', JSON.stringify(orderData, null, 2));
-    
-    // Vérifications de base
-    if (!orderData.customerInfo?.email || !orderData.customerInfo?.phone || 
-        !orderData.items?.length || !orderData.deliveryInfo?.address) {
+    // Récupération et validation des données
+    let orderData: OrderData;
+    try {
+      orderData = await request.json();
+      logInfo(`Données de commande reçues - Email: ${orderData.customerInfo?.email}, Articles: ${orderData.items?.length}, Total: ${orderData.totalAmount}`);
+    } catch (error) {
+      logError(error, 'parsing_json_order_data');
       return NextResponse.json({
-        error: 'Données invalides. Informations client, articles et adresse requis.'
+        success: false,
+        error: 'Format de données invalide'
+      }, { status: 400 });
+    }
+    
+    // Validation robuste des données
+    const validation = validateOrderData(orderData);
+    if (!validation.isValid) {
+      logError(`Validation des données de commande échouée: ${validation.errors.join(', ')}`, 'order_validation');
+      return NextResponse.json({
+        success: false,
+        error: 'Données de commande invalides',
+        details: validation.errors
       }, { status: 400 });
     }
     
@@ -229,9 +316,11 @@ export async function POST(request: NextRequest) {
     const orderItems = orderData.items.map(item => ({
       order_id: newOrder.id,
       product_id: item.id.toString(), // Convertir en string pour correspondre au type Supabase
+      product_name: item.name, // Champ obligatoire dans le schéma Supabase
       quantity: item.quantity,
       unit_price: item.price,
-      total_price: item.price * item.quantity // Utiliser total_price au lieu de subtotal
+      subtotal: item.price * item.quantity // Champ obligatoire dans le schéma Supabase
+      // Note: total_price supprimé car cette colonne n'existe pas dans le schéma Supabase
     }));
     
     const { error: itemsError } = await supabase
@@ -261,6 +350,8 @@ export async function POST(request: NextRequest) {
       console.error('❌ Erreur récupération commande complète:', fetchError);
     }
     
+    logInfo(`Commande ${newOrder.order_number} créée avec succès`);
+    
     return NextResponse.json({
       success: true,
       order: completeOrder || {
@@ -272,12 +363,15 @@ export async function POST(request: NextRequest) {
       message: `Commande ${newOrder.order_number} créée avec succès avec coordonnées GPS`
     }, { status: 201 });
     
-  } catch (error) {
-    console.error('❌ Erreur POST /api/orders:', error);
-    return NextResponse.json({
-      error: 'Erreur serveur lors de la création de la commande'
-    }, { status: 500 });
-  }
+  }, 'post_orders_api', NextResponse.json({
+    success: false,
+    error: 'Erreur serveur lors de la création de la commande'
+  }, { status: 500 }));
+  
+  return result || NextResponse.json({
+    success: false,
+    error: 'Erreur serveur lors de la création de la commande'
+  }, { status: 500 });
 }
 
 // PATCH /api/orders - Mettre à jour une commande

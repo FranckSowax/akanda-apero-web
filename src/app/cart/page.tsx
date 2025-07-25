@@ -29,9 +29,13 @@ export default function CartPage() {
     getCartItemsCount
   } = useAppContext();
   
-  // 📊 Monitoring hooks
-  const { trackRemoveFromCart, trackBeginCheckout } = useEcommerceTracking();
-  useComponentPerformance('CartPage');
+  // 📊 Monitoring hooks - Temporairement désactivé pour le build Netlify
+  // const { trackRemoveFromCart, trackBeginCheckout } = useEcommerceTracking();
+  // useComponentPerformance('CartPage');
+  
+  // Hooks de monitoring désactivés temporairement
+  const trackRemoveFromCart = (productId: string) => console.log('trackRemoveFromCart désactivé:', productId);
+  const trackBeginCheckout = () => console.log('trackBeginCheckout désactivé');
   
   // Vérifier si l'utilisateur est connecté
   const { user, loading: authLoading } = useAuth();

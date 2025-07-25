@@ -5,6 +5,8 @@
  * le tracking des erreurs et l'analytics utilisateur
  */
 
+import React from 'react';
+
 // Types pour le monitoring
 interface PerformanceMetric {
   name: string;
@@ -133,19 +135,12 @@ class MonitoringService {
   }
 
   /**
-   * 📈 Web Vitals (Core Web Vitals)
+   * 📈 Web Vitals (Core Web Vitals) - Temporairement désactivé
    */
   private initWebVitals() {
-    // Lazy load web-vitals pour éviter d'impacter les performances
-    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-      getCLS(this.onWebVital.bind(this));
-      getFID(this.onWebVital.bind(this));
-      getFCP(this.onWebVital.bind(this));
-      getLCP(this.onWebVital.bind(this));
-      getTTFB(this.onWebVital.bind(this));
-    }).catch(() => {
-      console.warn('Web Vitals library not available');
-    });
+    // Temporairement désactivé pour éviter les erreurs de build
+    console.log('Web Vitals monitoring temporairement désactivé');
+    // TODO: Réactiver après correction de la compatibilité web-vitals
   }
 
   /**

@@ -5,6 +5,8 @@
  * et intégration avec le système de monitoring
  */
 
+import React from 'react';
+
 interface ABTestVariant {
   id: string;
   name: string;
