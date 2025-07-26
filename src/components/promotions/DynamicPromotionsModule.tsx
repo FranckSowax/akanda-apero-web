@@ -208,7 +208,7 @@ const DynamicPromotionsModule: React.FC = () => {
         </motion.div>
 
         {/* Code promo moderne */}
-        {featuredPromotion.code && (
+        {featuredPromotion.promo_code && (
           <motion.div 
             className="mb-6"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -216,10 +216,10 @@ const DynamicPromotionsModule: React.FC = () => {
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-red-600 px-4 py-3 rounded-xl font-bold text-center text-base shadow-lg">
-              CODE: {featuredPromotion.code}
+              CODE: {featuredPromotion.promo_code}
             </div>
           </motion.div>
-        )}}
+        )}
 
         {/* Détails promotion moderne */}
         <motion.div 
@@ -230,30 +230,31 @@ const DynamicPromotionsModule: React.FC = () => {
         >
           <div className="flex justify-between items-center mb-3">
             <span className="opacity-90 font-semibold text-lg">Remise</span>
-            <span className="text-2xl font-black">
-              {featuredPromotion.discount_type === 'percentage' 
-                ? `${featuredPromotion.discount_value}%` 
-                : `${featuredPromotion.discount_value}€`}
-            </span>
-          </div>
-          
-          {featuredPromotion.min_order_amount > 0 && (
-            <div className="flex justify-between items-center text-base">
-              <span className="opacity-75">Min. commande</span>
-              <span className="font-bold">{featuredPromotion.min_order_amount}€</span>
+            <div className="text-2xl font-bold mb-2">
+              {featuredPromotion.discount_percentage 
+                ? `${featuredPromotion.discount_percentage}% OFF`
+                : featuredPromotion.discount_amount 
+                ? `${featuredPromotion.discount_amount} FCFA OFF`
+                : 'LIVRAISON GRATUITE'}
             </div>
-          )}
+            
+            {featuredPromotion.min_order_amount && (
+              <div className="text-sm opacity-75">
+                Min: {featuredPromotion.min_order_amount} FCFA
+              </div>
+            )}
+          </div>
         </motion.div>
 
-        {/* Image carrée en pleine largeur */}
+        {/* Image rectangulaire moderne */}
         {featuredPromotion.image_url && (
           <motion.div 
-            className="mb-4 relative flex-grow"
+            className="mb-6 relative"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 overflow-hidden">
+            <div className="aspect-[16/9] bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 overflow-hidden">
               <img
                 src={featuredPromotion.image_url}
                 alt={featuredPromotion.title}
