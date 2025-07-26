@@ -36,9 +36,14 @@ interface FormData {
   code: string;
   start_date: string;
   end_date: string;
+  start_time: string;
+  end_time: string;
   is_active: boolean;
   is_featured: boolean;
   image_url: string;
+  background_color: string;
+  text_color: string;
+  design_style: string;
   min_order_amount: number;
   max_uses: number;
 }
@@ -115,11 +120,16 @@ export default function PromotionsPage() {
     discount_type: 'percentage',
     discount_value: 0,
     code: '',
-    start_date: '',
-    end_date: '',
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    start_time: '00:00',
+    end_time: '23:59',
     is_active: true,
     is_featured: false,
     image_url: '',
+    background_color: 'from-red-400 to-orange-400',
+    text_color: 'text-white',
+    design_style: 'gradient',
     min_order_amount: 0,
     max_uses: 0
   });
@@ -217,8 +227,8 @@ export default function PromotionsPage() {
         discount_type: formData.discount_type,
         discount_value: formData.discount_value,
         code: formData.code,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
+        start_date: formatDateTime(formData.start_date, formData.start_time),
+        end_date: formatDateTime(formData.end_date, formData.end_time),
         is_active: formData.is_active,
         is_featured: formData.is_featured,
         image_url: formData.image_url || null,
@@ -319,8 +329,10 @@ export default function PromotionsPage() {
       discount_type: 'percentage',
       discount_value: 0,
       code: '',
-      start_date: '',
-      end_date: '',
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      start_time: '00:00',
+      end_time: '23:59',
       is_active: true,
       is_featured: false,
       image_url: '',
@@ -347,6 +359,8 @@ export default function PromotionsPage() {
         code: promotion.code || '',
         start_date: promotion.start_date ? promotion.start_date.split('T')[0] : '',
         end_date: promotion.end_date ? promotion.end_date.split('T')[0] : '',
+        start_time: promotion.start_date ? promotion.start_date.split('T')[1].split(':')[0] + ':' + promotion.start_date.split('T')[1].split(':')[1] : '00:00',
+        end_time: promotion.end_date ? promotion.end_date.split('T')[1].split(':')[0] + ':' + promotion.end_date.split('T')[1].split(':')[1] : '23:59',
         is_active: promotion.is_active || false,
         is_featured: promotion.is_featured || false,
         image_url: promotion.image_url || '',
@@ -394,6 +408,29 @@ export default function PromotionsPage() {
 
     return matchesSearch && matchesStatus;
   });
+
+  // Formater la date et l'heure
+  const formatDateTime = (date: string, time: string) => {
+    return `${date}T${time}:00`;
+  };
+
+  // Calculer le temps restant pour le compte à rebours
+  const calculateTimeRemaining = (endDate: string) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const difference = end.getTime() - now.getTime();
+    
+    if (difference <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+    }
+    
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+    
+    return { days, hours, minutes, seconds, expired: false };
+  };
 
   // Formater la date
   const formatDate = (dateString: string) => {
@@ -573,6 +610,16 @@ export default function PromotionsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <Label htmlFor="max_uses">Utilisations max</Label>
+                <Input
+                  id="max_uses"
+                  type="number"
+                  value={formData.max_uses}
+                  onChange={(e) => setFormData({...formData, max_uses: Number(e.target.value)})}
+                  min="0"
+                />
+              </div>
+              <div>
                 <Label htmlFor="start_date">Date de début</Label>
                 <Input
                   id="start_date"
@@ -581,7 +628,16 @@ export default function PromotionsPage() {
                   onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                   required
                 />
+                <Input
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                  className="mt-2"
+                />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="end_date">Date de fin</Label>
                 <Input
@@ -590,6 +646,12 @@ export default function PromotionsPage() {
                   value={formData.end_date}
                   onChange={(e) => setFormData({...formData, end_date: e.target.value})}
                   required
+                />
+                <Input
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({...formData, end_time: e.target.value})}
+                  className="mt-2"
                 />
               </div>
             </div>
