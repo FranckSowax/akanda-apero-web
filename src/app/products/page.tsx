@@ -3,13 +3,14 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Grid, List, ShoppingCart, Star, Heart, Eye, Menu, X } from 'lucide-react';
+import { Search, Filter, Grid, List, ShoppingCart, Star, Eye, Menu, X, Heart, ChevronDown, Package, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabaseService } from '../../services/supabaseService';
 import { useCart } from '../../hooks/useCart';
-import AddToCartButton from '../../components/AddToCartButton';
 import { useProductPageSync } from '../../hooks/useProductSync';
+import { getCategoryEmoji } from '../../utils/categoryEmojis';
+import AddToCartButton from '../../components/AddToCartButton';
 import { Header } from '../../components/layout/Header';
 
 interface Product {
@@ -37,9 +38,12 @@ interface Category {
   name: string;
   description: string;
   icon: string;
+  emoji?: string;
   color: string;
   is_active: boolean;
 }
+
+// La fonction getCategoryEmoji est maintenant importée depuis utils/categoryEmojis
 
 // Composant qui gère les paramètres URL
 function ProductsPageWrapper() {
@@ -254,7 +258,7 @@ function ProductsContent({
                     <option value="all">🏷️ Toutes les catégories</option>
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
-                        {category.icon} {category.name}
+                        {getCategoryEmoji(category.name, category.icon)} {category.name}
                       </option>
                     ))}
                   </select>
@@ -282,7 +286,7 @@ function ProductsContent({
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
                     >
-                      <span className="text-lg">{category.icon}</span>
+                      <span className="text-lg">{getCategoryEmoji(category.name, category.icon)}</span>
                       {category.name}
                     </button>
                   ))}

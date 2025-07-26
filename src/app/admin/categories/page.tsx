@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase/client';
+import { getCategoryEmoji, categoryEmojiOptions } from '../../../utils/categoryEmojis';
 import { 
   Plus, Search, Edit, Trash2, X, Save, AlertCircle, 
   Eye, EyeOff, Package, Wine, Beer, GlassWater, 
@@ -100,19 +101,8 @@ export default function CategoriesPage() {
     image_url: ''
   });
 
-  // Icônes disponibles pour les catégories
-  const iconOptions = [
-    { emoji: '🎁', name: 'Formules' },
-    { emoji: '🍷', name: 'Vins' },
-    { emoji: '🍸', name: 'Liqueurs' },
-    { emoji: '🍺', name: 'Bières' },
-    { emoji: '🥂', name: 'Champagnes' },
-    { emoji: '🍫', name: 'Apéritifs & sucreries' },
-    { emoji: '🥤', name: 'Sodas & jus' },
-    { emoji: '🛒', name: 'Dépannage' },
-    { emoji: '🧊', name: 'Glaçons' },
-    { emoji: '🥃', name: 'Sans Alcool' }
-  ];
+  // Utilisation des options d'emojis partagées pour garantir la cohérence
+  const iconOptions = categoryEmojiOptions;
 
   // Charger les catégories
   const loadCategories = async () => {
@@ -501,7 +491,7 @@ export default function CategoriesPage() {
                             className="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center text-white font-medium"
                             style={{ backgroundColor: category.color }}
                           >
-                            {category.emoji}
+                            {getCategoryEmoji(category.name, category.emoji)}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{category.name}</div>
