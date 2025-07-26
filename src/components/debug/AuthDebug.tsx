@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/supabase/useAuth';
 import { supabase } from '../../lib/supabase/client';
 
 export const AuthDebug: React.FC = () => {
-  const { user, loading, session, forceRefreshAuth } = useAuth();
+  const { user, loading, session } = useAuth();
   const [manualCheck, setManualCheck] = useState<any>(null);
   const [isForcing, setIsForcing] = useState(false);
 
@@ -45,9 +45,8 @@ export const AuthDebug: React.FC = () => {
     setIsForcing(true);
     try {
       console.log('🔄 Forçage de la mise à jour de l\'authentification...');
-      await forceRefreshAuth();
-      // Attendre un peu puis revérifier
-      setTimeout(() => checkManualAuth(), 500);
+      // Re-vérifier la session manuellement
+      await checkManualAuth();
     } catch (err) {
       console.error('❌ Erreur lors du forçage:', err);
     } finally {
