@@ -102,9 +102,8 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   
-  // Récupérer l'état d'authentification de l'utilisateur
-  const { user, loading: authLoading } = useAuth();
-  const isLoggedIn = !!user;
+  // Pas de vérification d'authentification nécessaire pour le checkout
+  const isLoggedIn = false;
   
   // Récupérer les fonctions du hook useOrders
   const { createOrder, loading: orderLoading } = useOrders();
@@ -137,25 +136,23 @@ export default function CheckoutPage() {
   
   const loyaltyPointsEarned = calculateLoyaltyPoints();
 
-  // Rediriger vers la page panier si le panier est vide ou vers la page d'authentification si l'utilisateur n'est pas connecté
+  // Rediriger uniquement si le panier est vide
   useEffect(() => {
-    // Attendre que l'authentification soit complètement chargée
-    if (authLoading) {
-      console.log('🔄 Checkout - Authentification en cours de chargement...');
+    // Ne pas rediriger si on est sur la page de confirmation
+    if (orderPlaced) {
+      console.log('🎯 Checkout - Commande déjà placée');
       return;
     }
     
-    console.log('📊 Checkout - État auth:', { user, isLoggedIn, cartItems: state.cart.items.length, formStep });
-    
-    // Ne pas rediriger si on est sur la page de confirmation, même si le panier est vide
-    if (state.cart.items.length === 0 && formStep !== 'confirmation' && !orderPlaced) {
-      console.log('🛒 Checkout - Panier vide, redirection vers /cart');
-      router.push('/cart');
-    } else if (!isLoggedIn && formStep !== 'confirmation') {
-      console.log('🔐 Checkout - Utilisateur non connecté, redirection vers /auth');
-      router.push('/auth');
+    // Rediriger si le panier est vide
+    if (state.cart.items.length === 0 && !orderPlaced) {
+      console.log('🔄 Checkout - Panier vide, redirection vers /shop');
+      router.push('/shop');
+      return;
     }
-  }, [state.cart.items, router, isLoggedIn, authLoading, user, formStep, orderPlaced]);
+    
+    console.log('✅ Checkout - Accès autorisé');
+  }, [state.cart.items.length, orderPlaced, router]);
 
   // Form state
   const [deliveryInfo, setDeliveryInfo] = useState({
@@ -193,54 +190,9 @@ export default function CheckoutPage() {
       trackBeginCheckout(cartValue, itemCount);
     }
     
-    const prefillUserInfo = async () => {
-      if (!user || !user.email) return;
-      
-      try {
-        console.log('🔄 Pré-remplissage des informations utilisateur depuis le profil...');
-        
-        // Récupérer les informations du client depuis Supabase
-        const { supabase } = await import('../../lib/supabase/client');
-        const { data: customer, error } = await supabase
-          .from('customers')
-          .select('full_name, phone, whatsapp')
-          .eq('email', user.email)
-          .single();
-
-        if (error) {
-          console.log('ℹ️ Aucune information de profil trouvée pour pré-remplir le checkout:', error.message);
-          return;
-        }
-
-        if (customer) {
-          console.log('✅ Informations utilisateur récupérées:', customer);
-          
-          // Pré-remplir les champs de livraison si les données existent
-          setDeliveryInfo(prev => ({
-            ...prev,
-            fullName: customer.full_name || prev.fullName,
-            phone: customer.phone || prev.phone,
-          }));
-          
-          // Pré-remplir le champ WhatsApp dans les informations de paiement
-          setPaymentInfo(prev => ({
-            ...prev,
-            whatsapp: customer.whatsapp || prev.whatsapp,
-            mobileNumber: customer.phone || prev.mobileNumber, // Utiliser le téléphone comme numéro mobile par défaut
-          }));
-          
-          console.log('🎯 Champs pré-remplis automatiquement depuis le profil utilisateur');
-        }
-      } catch (error) {
-        console.error('❌ Erreur lors du pré-remplissage des informations utilisateur:', error);
-      }
-    };
-
-    // Exécuter le pré-remplissage seulement si l'utilisateur est connecté et que les champs sont encore vides
-    if (user && !deliveryInfo.fullName && !deliveryInfo.phone) {
-      prefillUserInfo();
-    }
-  }, [user, deliveryInfo.fullName, deliveryInfo.phone]);
+    // Les champs resteront vides si l'utilisateur n'est pas connecté
+    console.log('ℹ️ Checkout - Champs non pré-remplis (sans authentification)');
+  }, [cartItems]);
 
   // Vérifier si c'est la nuit (après 22h30)
   const [isNightTime, setIsNightTime] = useState(false);
