@@ -9,6 +9,7 @@ import { ShoppingCart, Clock, MapPin, Star, Wine, Beer, Zap, Plus, ChefHat, Truc
 import { supabaseService } from '../services/supabaseService';
 import { useHomePageSync } from '../hooks/useProductSync';
 import { useHomeBanners } from '../hooks/useBanners';
+import { getCategoryEmoji } from '../utils/categoryEmojis';
 import { Header } from '../components/layout/Header';
 import AddToCartButton from '../components/AddToCartButton';
 import WeeklyCocktail from '../components/WeeklyCocktail';
@@ -532,7 +533,7 @@ export default function Home() {
                           product.image_url ? 'hidden' : 'flex'
                         }`}
                       >
-                        {product.emoji || product.categories?.icon || '🍹'}
+                        {product.emoji || getCategoryEmoji(product.categories?.name || '', product.categories?.icon) || '🍹'}
                       </div>
                     </div>
                     
@@ -616,7 +617,7 @@ export default function Home() {
                     whileTap={{ scale: 0.98 }}
                   >
                     <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${category.color || 'from-blue-100 to-blue-200'} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
-                      {category.icon || '🍹'}
+                      {getCategoryEmoji(category.name, category.icon)}
                     </div>
                     
                     <div className="flex-1 min-w-0">
