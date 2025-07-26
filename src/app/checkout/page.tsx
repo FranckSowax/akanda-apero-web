@@ -96,8 +96,11 @@ export default function CheckoutPage() {
   // Log pour déboguer l'état du panier
   console.log('🛍️ État du panier:', { cartItems, count: cartItems.length });
   const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderError, setOrderError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
   // Récupérer l'état d'authentification de l'utilisateur
   const { user, loading: authLoading } = useAuth();
@@ -356,84 +359,60 @@ export default function CheckoutPage() {
     }));
   };
 
-
-
-  const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('🚀 handleSubmitOrder déclenché');
-    console.log('📝 Données actuelles:', { deliveryInfo, paymentInfo, cartItems });
-    
-    // Vérifier la validité du formulaire
-    const form = e.target as HTMLFormElement;
-    console.log('📋 Validité du formulaire:', form.checkValidity());
-    if (!form.checkValidity()) {
-      console.error('❌ Formulaire invalide - champs manquants');
-      form.reportValidity();
+  const handlePlaceOrder = async () => {
+    if (!validateForm()) {
       return;
     }
-    setIsSubmitting(true);
-    setOrderError(null);
-    
+
     try {
-      // Validation WhatsApp simplifiée - juste vérifier que le champ n'est pas vide
-      console.log('📱 Validation WhatsApp pour:', paymentInfo.whatsapp);
-      if (!paymentInfo.whatsapp || paymentInfo.whatsapp.trim() === '') {
-        console.error('❌ Numéro WhatsApp requis');
-        setOrderError('Veuillez entrer un numéro WhatsApp');
-        setIsSubmitting(false);
-        return;
-      }
-      console.log('✅ Validation WhatsApp réussie');
-      
+      setIsProcessing(true);
+      setIsSubmitting(true);
+      setError(null);
+      setSubmitError(null);
+
+      // Validation robuste du panier
+      console.log('🔍 Validation du panier...');
+      console.log('📦 Articles dans le panier:', cartItems.map(item => ({ id: item.product.id, name: item.product.name, price: item.product.price, quantity: item.quantity })));
+
       // Extraire le prénom et le nom du nom complet
       const { firstName, lastName } = getFirstAndLastName(deliveryInfo.fullName);
-      
+
       // Formater le numéro WhatsApp
       const formattedWhatsApp = formatGabonPhone(paymentInfo.whatsapp);
-      
+
       // Validation et diagnostic du panier
-      console.log('🛍️ Analyse du panier:', { 
-        totalItems: cartItems.length,
-        cartItems: cartItems.map(item => ({
-          id: item.product?.id,
-          name: item.product?.name,
-          price: item.product?.price,
-          quantity: item.quantity,
-          hasProduct: !!item.product,
-          isValid: !!(item.product?.id && item.product?.name && item.product?.price != null)
-        }))
-      });
-      
+      console.log('🛍️ Analyse du panier:', { totalItems: cartItems.length, cartItems: cartItems.map(item => ({ id: item.product.id, name: item.product.name, price: item.product.price, quantity: item.quantity })) });
+
       // Validation permissive du panier
       const validCartItems = cartItems.filter(item => {
         const hasValidProduct = item.product && item.product.id != null;
-        const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
-        const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
+        const hasValidName = item.product.name && String(item.product.name).trim().length > 0;
+        const hasValidPrice = item.product.price != null && !isNaN(Number(item.product.price));
         const hasValidQuantity = item.quantity > 0;
-        
+
         return hasValidProduct && hasValidName && hasValidPrice && hasValidQuantity;
       });
-      
+
       console.log('✅ Articles valides détectés:', validCartItems.length);
-      
+
       if (validCartItems.length === 0) {
         const invalidItems = cartItems.filter(item => !(
-          item.product && 
-          item.product.id != null && 
+          item.product &&
+          item.product.id != null &&
           String(item.product.name).trim().length > 0 &&
           item.product.price != null &&
           !isNaN(Number(item.product.price)) &&
           item.quantity > 0
         ));
-        
+
         console.error('❌ Articles invalides détectés:', invalidItems);
         throw new Error(`Aucun article valide dans le panier. ${cartItems.length} articles trouvés, ${invalidItems.length} invalides.`);
       }
-      
+
       if (validCartItems.length !== cartItems.length) {
         console.warn('⚠️ Articles invalides détectés et filtrés:', cartItems.length - validCartItems.length);
       }
-      
+
       // Préparer les données de commande avec validation stricte des types
       const orderData = {
         customerInfo: {
@@ -465,24 +444,24 @@ export default function CheckoutPage() {
           })
         },
         items: validCartItems.map(item => {
-            const itemId = Number(item.product.id);
-            if (isNaN(itemId) || itemId <= 0) {
-              throw new Error(`ID d'article invalide: ${item.product.id}`);
-            }
-            return {
-              id: itemId,
-              name: String(item.product.name || '').trim(),
-              price: Number(item.product.price || 0),
-              quantity: Number(item.quantity || 1),
-              imageUrl: String(item.product.imageUrl || '').trim()
-            };
-          }),
+          const itemId = Number(item.product.id);
+          if (isNaN(itemId) || itemId <= 0) {
+            throw new Error(`ID d'article invalide: ${item.product.id}`);
+          }
+          return {
+            id: itemId,
+            name: String(item.product.name || '').trim(),
+            price: Number(item.product.price || 0),
+            quantity: Number(item.quantity || 1),
+            imageUrl: String(item.product.imageUrl || '').trim()
+          };
+        }),
         totalAmount: Number(total),
         subtotal: Number(subtotal),
         deliveryCost: Number(deliveryFee),
         discount: Number(discountAmount)
       };
-      
+
       // Créer la commande et enregistrer le client
       console.log('📦 Création commande avec:', orderData);
       console.log('🔍 Validation des données avant envoi:');
@@ -491,15 +470,16 @@ export default function CheckoutPage() {
       console.log('  - paymentInfo:', orderData.paymentInfo);
       console.log('  - items:', orderData.items);
       console.log('  - montants:', { totalAmount: orderData.totalAmount, subtotal: orderData.subtotal, deliveryCost: orderData.deliveryCost, discount: orderData.discount });
-      
+
       const { success, orderNumber: newOrderNumber, error } = await createOrder(orderData);
       console.log('📝 Résultat createOrder:', { success, newOrderNumber, error });
-      
+
       if (success) {
         setOrderNumber(newOrderNumber);
         setOrderPlaced(true);
-        setFormStep('confirmation');
-        
+        setIsSubmitting(false);
+        clearCart();
+
         // 📊 Tracker l'achat finalisé
         trackPurchase(
           newOrderNumber,
@@ -511,27 +491,27 @@ export default function CheckoutPage() {
             quantity: item.quantity
           }))
         );
-        
+
         // Note: Le panier n'est plus vidé automatiquement pour permettre à l'utilisateur
         // de rester sur la page de finalisation et voir les détails de sa commande
         // L'utilisateur peut manuellement vider le panier ou continuer ses achats
-        
+
         window.scrollTo(0, 0);
       } else {
-        setOrderError(error?.message || 'Une erreur est survenue lors de la création de la commande');
+        setSubmitError(error?.message || 'Une erreur est survenue lors de la création de la commande');
       }
     } catch (error) {
       console.error('❌ Erreur lors de la soumission de la commande:', error);
-      
+
       // Utiliser l'utilitaire d'erreur pour une gestion robuste
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : typeof error === 'string' 
-          ? error 
+      const errorMessage = error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
           : 'Une erreur inattendue est survenue lors de la création de la commande';
-          
-      setOrderError(errorMessage);
-      
+
+      setSubmitError(errorMessage);
+
       // Log détaillé pour le debugging
       console.error('📋 Détails de l\'erreur:', {
         error,
@@ -540,8 +520,28 @@ export default function CheckoutPage() {
         errorMessage: errorMessage
       });
     } finally {
-      setIsSubmitting(false);
+      setIsProcessing(false);
     }
+  };
+
+  const validateForm = () => {
+    const form = document.getElementById('payment-form') as HTMLFormElement;
+    if (!form.checkValidity()) {
+      console.error('❌ Formulaire invalide - champs manquants');
+      form.reportValidity();
+      return false;
+    }
+
+    // Validation WhatsApp simplifiée - juste vérifier que le champ n'est pas vide
+    console.log('📱 Validation WhatsApp pour:', paymentInfo.whatsapp);
+    if (!paymentInfo.whatsapp || paymentInfo.whatsapp.trim() === '') {
+      console.error('❌ Numéro WhatsApp requis');
+      setSubmitError('Veuillez entrer un numéro WhatsApp');
+      return false;
+    }
+    console.log('✅ Validation WhatsApp réussie');
+
+    return true;
   };
 
   // Render cart summary
@@ -563,14 +563,14 @@ export default function CheckoutPage() {
           {/* Cart Items */}
           <div className="space-y-4 mt-6">
             {cartItems.map((item) => {
-              const itemPrice = item.product.isPromo && item.product.discount 
-                ? item.product.price * (1 - item.product.discount / 100) 
+              const itemPrice = item.product.isPromo && item.product.discount
+                ? item.product.price * (1 - item.product.discount / 100)
                 : item.product.price;
-              
+
               return (
                 <div key={item.product.id} className="flex items-start space-x-4">
                   <div className="relative w-16 h-16 rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                    <Image 
+                    <Image
                       src={item.product.imageUrl && item.product.imageUrl.trim() !== '' ? item.product.imageUrl : '/images/placeholder-product.svg'}
                       alt={item.product.name}
                       fill
@@ -606,9 +606,9 @@ export default function CheckoutPage() {
               );
             })}
           </div>
-          
+
           <Separator />
-          
+
           {/* Subtotal */}
           <div className="space-y-3">
             <div className="flex justify-between">
@@ -631,7 +631,7 @@ export default function CheckoutPage() {
               <span>{formatPriceLocal(total)}</span>
             </div>
           </div>
-        
+
           <div className="text-xs text-gray-500 mt-2">
             Tous les prix incluent la TVA.
           </div>
@@ -660,57 +660,57 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">Nom complet</Label>
-                <Input 
-                  id="fullName" 
-                  name="fullName" 
-                  value={deliveryInfo.fullName} 
-                  onChange={handleDeliveryInfoChange} 
-                  placeholder="Votre nom complet" 
-                  required 
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  value={deliveryInfo.fullName}
+                  onChange={handleDeliveryInfoChange}
+                  placeholder="Votre nom complet"
+                  required
                   className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Téléphone</Label>
-                <Input 
-                  id="phone" 
-                  name="phone" 
-                  value={deliveryInfo.phone} 
-                  onChange={handleDeliveryInfoChange} 
-                  placeholder="Ex: +241 07 12 34 56" 
-                  required 
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={deliveryInfo.phone}
+                  onChange={handleDeliveryInfoChange}
+                  placeholder="Ex: +241 07 12 34 56"
+                  required
                   type="tel"
                   inputMode="tel"
                   className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="district" className="text-sm font-medium text-gray-700">Quartier</Label>
-              <Input 
-                id="district" 
-                name="district" 
-                value={deliveryInfo.district || ''} 
-                onChange={handleDeliveryInfoChange} 
-                placeholder="Ex: Akanda, Glass, Nombakele..." 
-                required 
+              <Input
+                id="district"
+                name="district"
+                value={deliveryInfo.district || ''}
+                onChange={handleDeliveryInfoChange}
+                placeholder="Ex: Akanda, Glass, Nombakele..."
+                required
                 className="h-12 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200"
               />
             </div>
-            
+
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-indigo-600" />
                 Sélectionnez votre position sur la carte
               </Label>
               <div className="rounded-xl overflow-hidden border-2 border-gray-200 hover:border-indigo-300 transition-colors duration-200">
-                <LocationMap 
+                <LocationMap
                   onLocationSelect={handleLocationSelect}
                   initialAddress={deliveryInfo.address}
                 />
               </div>
-              
+
               {deliveryInfo.location.hasLocation && (
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
@@ -732,21 +732,19 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
-            
 
-            
             <div className="space-y-2">
               <Label htmlFor="additionalInfo" className="text-sm font-medium text-gray-700">Informations supplémentaires (optionnel)</Label>
-              <Textarea 
-                id="additionalInfo" 
-                name="additionalInfo" 
-                value={deliveryInfo.additionalInfo} 
-                onChange={handleDeliveryInfoChange} 
-                placeholder="Instructions de livraison, points de repère, étage, code d'accès..." 
+              <Textarea
+                id="additionalInfo"
+                name="additionalInfo"
+                value={deliveryInfo.additionalInfo}
+                onChange={handleDeliveryInfoChange}
+                placeholder="Instructions de livraison, points de repère, étage, code d'accès..."
                 className="min-h-[80px] border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg transition-colors duration-200 resize-none"
               />
             </div>
-            
+
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Truck className="h-4 w-4 text-indigo-600" />
@@ -755,12 +753,12 @@ export default function CheckoutPage() {
               <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {deliveryOptions.map(option => (
                   <div key={option.id} className="relative">
-                    <RadioGroupItem 
-                      value={option.id} 
-                      id={option.id} 
+                    <RadioGroupItem
+                      value={option.id}
+                      id={option.id}
                       className="peer sr-only"
                     />
-                    <Label 
+                    <Label
                       htmlFor={option.id}
                       className="group flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 backdrop-blur-sm p-5 hover:border-indigo-300 hover:bg-indigo-50/50 peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-indigo-50 [&:has([data-state=checked])]:border-indigo-500 [&:has([data-state=checked])]:bg-indigo-50 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                     >
@@ -781,15 +779,15 @@ export default function CheckoutPage() {
           <div className="px-6 pb-6">
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               <Link href="/cart" className="flex-1">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour au panier
                 </Button>
               </Link>
-              <Button 
+              <Button
                 type="submit"
                 className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
               >
@@ -806,7 +804,7 @@ export default function CheckoutPage() {
   // Render payment form
   const renderPaymentForm = () => {
     return (
-      <form onSubmit={handleSubmitOrder}>
+      <form onSubmit={handlePlaceOrder} id="payment-form">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
           <div className="bg-gradient-to-r from-green-500 to-teal-500 p-6">
             <div className="flex items-center gap-3">
@@ -823,18 +821,18 @@ export default function CheckoutPage() {
             <div className="space-y-2 mb-6">
               <Label htmlFor="whatsapp" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.787"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.787" />
                 </svg>
                 Numéro WhatsApp (pour suivi et notifications)
               </Label>
-              <Input 
-                id="whatsapp" 
-                name="whatsapp" 
-                type="tel" 
-                value={paymentInfo.whatsapp} 
-                onChange={handlePaymentInfoChange} 
-                placeholder="+241 XX XX XX XX" 
-                required 
+              <Input
+                id="whatsapp"
+                name="whatsapp"
+                type="tel"
+                value={paymentInfo.whatsapp}
+                onChange={handlePaymentInfoChange}
+                placeholder="+241 XX XX XX XX"
+                required
                 className="h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-lg transition-colors duration-200"
               />
               <p className="text-xs text-gray-500 flex items-center gap-1">
@@ -844,57 +842,57 @@ export default function CheckoutPage() {
                 Nous vous enverrons des notifications WhatsApp pour le suivi de votre commande
               </p>
             </div>
-            
+
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-green-600" />
                 Choisissez votre méthode de paiement
               </Label>
-              <RadioGroup 
-                value={paymentInfo.method} 
+              <RadioGroup
+                value={paymentInfo.method}
                 onValueChange={handlePaymentMethodChange}
                 className="space-y-3"
               >
                 {paymentMethods.map((method) => (
-                  <div 
+                  <div
                     key={method.id}
                     className={`group flex items-center justify-between p-4 border-2 rounded-xl transition-all duration-200 cursor-pointer hover:shadow-md ${
-                      paymentInfo.method === method.id 
-                        ? 'border-green-500 bg-green-50 shadow-sm' 
+                      paymentInfo.method === method.id
+                        ? 'border-green-500 bg-green-50 shadow-sm'
                         : 'border-gray-200 bg-white/50 backdrop-blur-sm hover:border-green-300 hover:bg-green-50/30'
                     }`}
                   >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem 
-                      value={method.id} 
-                      id={method.id}
-                    />
-                    <div>
-                      <Label 
-                        htmlFor={method.id} 
-                        className="font-medium cursor-pointer"
-                      >
-                        {method.name}
-                      </Label>
-                      <p className="text-sm text-gray-500">{method.description}</p>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value={method.id}
+                        id={method.id}
+                      />
+                      <div>
+                        <Label
+                          htmlFor={method.id}
+                          className="font-medium cursor-pointer"
+                        >
+                          {method.name}
+                        </Label>
+                        <p className="text-sm text-gray-500">{method.description}</p>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 flex items-center justify-center">
+                      {method.id === 'cash' && (
+                        <Truck className="h-5 w-5 text-amber-500" />
+                      )}
+                      {method.id === 'mobile_money' && (
+                        <div className="text-lg font-bold text-blue-500">M</div>
+                      )}
+                      {method.id === 'card' && (
+                        <CreditCard className="h-5 w-5 text-gray-500" />
+                      )}
                     </div>
                   </div>
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    {method.id === 'cash' && (
-                      <Truck className="h-5 w-5 text-amber-500" />
-                    )}
-                    {method.id === 'mobile_money' && (
-                      <div className="text-lg font-bold text-blue-500">M</div>
-                    )}
-                    {method.id === 'card' && (
-                      <CreditCard className="h-5 w-5 text-gray-500" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-            
+                ))}
+              </RadioGroup>
+            </div>
+
             {paymentInfo.method === 'mobile_money' && (
               <div className="mt-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
                 <div className="space-y-2">
@@ -904,13 +902,13 @@ export default function CheckoutPage() {
                     </div>
                     Numéro Mobile Money
                   </Label>
-                  <Input 
-                    id="mobileNumber" 
-                    name="mobileNumber" 
-                    value={paymentInfo.mobileNumber} 
-                    onChange={handlePaymentInfoChange} 
-                    placeholder="Ex: +241 07 12 34 56" 
-                    required 
+                  <Input
+                    id="mobileNumber"
+                    name="mobileNumber"
+                    value={paymentInfo.mobileNumber}
+                    onChange={handlePaymentInfoChange}
+                    placeholder="Ex: +241 07 12 34 56"
+                    required
                     type="tel"
                     className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-colors duration-200"
                   />
@@ -928,7 +926,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
             )}
-            
+
             {paymentInfo.method === 'card' && (
               <div className="mt-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
                 <div className="bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 p-4 rounded-xl">
@@ -936,63 +934,63 @@ export default function CheckoutPage() {
                     <CreditCard className="h-4 w-4 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">Informations de carte bancaire</span>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="cardNumber" className="text-sm font-medium text-gray-700">Numéro de carte</Label>
-                      <Input 
-                        id="cardNumber" 
-                        name="cardNumber" 
-                        value={paymentInfo.cardNumber} 
-                        onChange={handlePaymentInfoChange} 
-                        placeholder="1234 5678 9012 3456" 
-                        required 
+                      <Input
+                        id="cardNumber"
+                        name="cardNumber"
+                        value={paymentInfo.cardNumber}
+                        onChange={handlePaymentInfoChange}
+                        placeholder="1234 5678 9012 3456"
+                        required
                         className="h-12 border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg transition-colors duration-200 font-mono"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="cardName" className="text-sm font-medium text-gray-700">Nom sur la carte</Label>
-                      <Input 
-                        id="cardName" 
-                        name="cardName" 
-                        value={paymentInfo.cardName} 
-                        onChange={handlePaymentInfoChange} 
-                        placeholder="JEAN DUPONT" 
-                        required 
+                      <Input
+                        id="cardName"
+                        name="cardName"
+                        value={paymentInfo.cardName}
+                        onChange={handlePaymentInfoChange}
+                        placeholder="JEAN DUPONT"
+                        required
                         className="h-12 border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg transition-colors duration-200 uppercase"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="expiryDate" className="text-sm font-medium text-gray-700">Date d'expiration</Label>
-                        <Input 
-                          id="expiryDate" 
-                          name="expiryDate" 
-                          value={paymentInfo.expiryDate} 
-                          onChange={handlePaymentInfoChange} 
-                          placeholder="MM/AA" 
-                          required 
+                        <Input
+                          id="expiryDate"
+                          name="expiryDate"
+                          value={paymentInfo.expiryDate}
+                          onChange={handlePaymentInfoChange}
+                          placeholder="MM/AA"
+                          required
                           className="h-12 border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg transition-colors duration-200 font-mono"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="cvv" className="text-sm font-medium text-gray-700">CVV</Label>
-                        <Input 
-                          id="cvv" 
-                          name="cvv" 
-                          value={paymentInfo.cvv} 
-                          onChange={handlePaymentInfoChange} 
-                          placeholder="123" 
-                          required 
+                        <Input
+                          id="cvv"
+                          name="cvv"
+                          value={paymentInfo.cvv}
+                          onChange={handlePaymentInfoChange}
+                          placeholder="123"
+                          required
                           maxLength={4}
                           className="h-12 border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg transition-colors duration-200 font-mono"
                         />
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
                     <div className="flex items-start gap-2">
                       <div className="p-1 bg-yellow-100 rounded-full mt-0.5">
@@ -1010,8 +1008,8 @@ export default function CheckoutPage() {
           </div>
           <div className="px-6 pb-6">
             <div className="flex flex-col sm:flex-row justify-between gap-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => setFormStep('delivery')}
                 className="flex-1 border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
@@ -1019,13 +1017,22 @@ export default function CheckoutPage() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour à la livraison
               </Button>
-              <Button 
+              <Button
                 type="submit"
                 className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                disabled={isSubmitting}
+                disabled={isProcessing || isSubmitting}
               >
-                {isSubmitting ? 'Traitement...' : 'Finaliser la commande'}
-                <CreditCard className="h-4 w-4 ml-2" />
+                {isProcessing || isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    {isSubmitting ? 'Finalisation...' : 'Traitement...'}
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    Finaliser la commande
+                  </>
+                )}
               </Button>
             </div>
           </div>
