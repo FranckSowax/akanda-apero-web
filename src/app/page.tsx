@@ -14,6 +14,7 @@ import { Header } from '../components/layout/Header';
 import AddToCartButton from '../components/AddToCartButton';
 import WeeklyCocktail from '../components/WeeklyCocktail';
 import CustomerReviews from '../components/CustomerReviews';
+import DynamicPromotionsModule from '../components/promotions/DynamicPromotionsModule';
 
 interface Product {
   id: string;
@@ -155,11 +156,7 @@ const allCategories: Category[] = [
 export default function Home() {
   const router = useRouter();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 0,
-    minutes: 0,
-    seconds: 0
-  });
+
   
   // États pour les données Supabase
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
@@ -222,29 +219,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [heroSlides.length]); // Redémarrer quand les slides sont chargés
 
-  // Countdown timer for daily promotion
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      
-      const difference = tomorrow.getTime() - now.getTime();
-      
-      if (difference > 0) {
-        setTimeLeft({
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        });
-      }
-    };
 
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const nextSlide = () => {
     if (heroSlides.length > 0) {
@@ -412,73 +387,13 @@ export default function Home() {
             </div>
           </motion.div>
           
-          {/* Promotions Section */}
+          {/* Dynamic Promotions Section */}
           <motion.div 
-            className="bg-gradient-to-br from-red-400 to-orange-400 rounded-3xl p-6 text-white relative overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <div className="relative z-10">
-              <div className="flex items-center space-x-2 mb-2">
-                <h2 className="text-2xl font-black">PROMOTIONS</h2>
-                <span className="bg-yellow-400 text-red-600 px-2 py-1 rounded-full text-xs font-bold animate-pulse">
-                  HOT
-                </span>
-              </div>
-              <p className="text-sm mb-4 opacity-90">
-                Offres spéciales de la semaine
-              </p>
-              
-              {/* Daily Promotion Countdown */}
-              <div className="bg-white/20 rounded-2xl p-4 mb-4 backdrop-blur-sm">
-                <div className="text-xs font-semibold mb-2 opacity-90">PROMO DU JOUR - Se termine dans :</div>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-white/30 rounded-lg p-2 sm:p-3 text-center aspect-square flex flex-col justify-center">
-                    <div className="text-lg sm:text-xl font-black">{String(timeLeft.hours).padStart(2, '0')}</div>
-                    <div className="text-xs opacity-75 font-semibold">HEURES</div>
-                  </div>
-                  <div className="bg-white/30 rounded-lg p-2 sm:p-3 text-center aspect-square flex flex-col justify-center">
-                    <div className="text-lg sm:text-xl font-black">{String(timeLeft.minutes).padStart(2, '0')}</div>
-                    <div className="text-xs opacity-75 font-semibold">MINUTES</div>
-                  </div>
-                  <div className="bg-white/30 rounded-lg p-2 sm:p-3 text-center aspect-square flex flex-col justify-center">
-                    <div className="text-lg sm:text-xl font-black">{String(timeLeft.seconds).padStart(2, '0')}</div>
-                    <div className="text-xs opacity-75 font-semibold">SECONDES</div>
-                  </div>
-                </div>
-                <div className="text-sm font-bold">-30% sur tous les cocktails</div>
-              </div>
-              
-              {/* Daily Promotion Image */}
-              <div className="mb-4">
-                <img 
-                  src="https://i.imgur.com/ITqFZGC.jpg" 
-                  alt="Promo du jour" 
-                  className="w-full h-32 object-cover rounded-xl opacity-90 hover:opacity-100 transition-opacity duration-300"
-                />
-              </div>
-              
-              {/* Weekly Promotions */}
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="opacity-90">🍾 Champagnes</span>
-                  <span className="bg-green-500 px-2 py-1 rounded-full text-xs font-bold">-25%</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="opacity-90">🥃 Whiskys Premium</span>
-                  <span className="bg-green-500 px-2 py-1 rounded-full text-xs font-bold">-20%</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="opacity-90">🍺 Pack Bières</span>
-                  <span className="bg-green-500 px-2 py-1 rounded-full text-xs font-bold">-15%</span>
-                </div>
-              </div>
-              
-              <button className="w-full bg-yellow-400 text-red-600 px-4 py-3 rounded-full font-black hover:bg-yellow-300 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                VOIR TOUTES LES PROMOS
-              </button>
-            </div>
+            <DynamicPromotionsModule />
           </motion.div>
           
           {/* Top Picks Section */}

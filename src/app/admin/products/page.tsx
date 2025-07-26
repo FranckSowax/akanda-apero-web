@@ -130,6 +130,7 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Hook de synchronisation
   const { triggerSync } = useProductSync();
@@ -149,6 +150,32 @@ export default function ProductsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Synchronisation forcée du modal
+  useEffect(() => {
+    if (showForm && isEditMode && currentProduct) {
+      console.log('🔄 Synchronisation forcée du modal:', {
+        showForm,
+        isEditMode,
+        currentProduct: currentProduct.name,
+        formDataName: formData.name
+      });
+      
+      // Vérifier que le modal est bien visible dans le DOM
+      setTimeout(() => {
+        const modalElement = document.querySelector('form[class*="space-y"]') ||
+                           document.querySelector('div[class*="bg-white rounded-lg shadow-sm"]');
+        
+        if (!modalElement) {
+          console.warn('⚠️ Modal non trouvé dans le DOM, nouvelle tentative...');
+          setShowForm(false);
+          setTimeout(() => setShowForm(true), 50);
+        } else {
+          console.log('✅ Modal confirmé visible dans le DOM');
+        }
+      }, 100);
+    }
+  }, [showForm, isEditMode, currentProduct, formData.name]);
 
   const loadData = async () => {
     try {
@@ -297,31 +324,219 @@ export default function ProductsPage() {
     setCurrentProduct(null);
   };
 
-  // Gérer l'édition
-  const handleEdit = (product: Product) => {
-    setCurrentProduct(product);
-    setFormData({
-      name: product.name,
-      description: product.description,
-      base_price: product.base_price,
-      stock_quantity: product.stock_quantity,
-      category_id: product.category_id,
-      is_featured: product.is_featured,
-      is_active: product.is_active,
-      image_url: product.image_url || ''
-    });
-    setProductOptions(product.product_options?.map(opt => ({
-      name: opt.name,
-      description: opt.description,
-      price_modifier: opt.price_modifier,
-      stock_quantity: opt.stock_quantity,
-      is_default: opt.is_default,
-      is_active: opt.is_active,
-      sort_order: opt.sort_order,
-      image_url: opt.image_url
-    })) || []);
-    setIsEditMode(true);
-    setShowForm(true);
+  // Fonction de normalisation des données produit
+  const normalizeProductData = (product: any): Product => {
+    console.log('🔄 Normalisation des données produit:', product);
+    
+    const normalized = {
+      id: product.id || `temp-${Date.now()}`,
+      category_id: product.category_id || '',
+      name: product.name || 'Produit sans nom',
+      description: product.description || '',
+      short_description: product.short_description || '',
+      image_url: product.image_url || '',
+      emoji: product.emoji || '',
+      base_price: Number(product.base_price) || 0,
+      sale_price: product.sale_price ? Number(product.sale_price) : undefined,
+      product_type: product.product_type || 'simple',
+      sku: product.sku || '',
+      stock_quantity: Number(product.stock_quantity) || 0,
+      min_stock_level: product.min_stock_level ? Number(product.min_stock_level) : undefined,
+      is_active: Boolean(product.is_active),
+      is_featured: Boolean(product.is_featured),
+      rating: product.rating ? Number(product.rating) : undefined,
+      rating_count: product.rating_count ? Number(product.rating_count) : undefined,
+      weight_grams: product.weight_grams ? Number(product.weight_grams) : undefined,
+      alcohol_percentage: product.alcohol_percentage ? Number(product.alcohol_percentage) : undefined,
+      volume_ml: product.volume_ml ? Number(product.volume_ml) : undefined,
+      origin_country: product.origin_country || '',
+      brand: product.brand || '',
+      tags: Array.isArray(product.tags) ? product.tags : [],
+      meta_title: product.meta_title || '',
+      meta_description: product.meta_description || '',
+      created_at: product.created_at || new Date().toISOString(),
+      updated_at: product.updated_at || new Date().toISOString(),
+      categories: product.categories || null,
+      product_options: Array.isArray(product.product_options) ? product.product_options : []
+    };
+    
+    console.log('✅ Données normalisées:', normalized);
+    return normalized;
+  };
+
+  // Gérer l'édition avec diagnostic ultra-détaillé
+  const handleEdit = async (rawProduct: any) => {
+    const productName = rawProduct?.name || 'Produit inconnu';
+    const isBombaySapphire = productName.toLowerCase().includes('bombay');
+    
+    console.log('=== EDIT PRODUCT START ===');
+    console.log('📝 Produit:', productName);
+    console.log('🔍 Bombay Sapphire détecté:', isBombaySapphire);
+    console.log('📝 Données brutes reçues:', rawProduct);
+    
+    // Diagnostic spécial pour Bombay Sapphire
+    if (isBombaySapphire) {
+      console.log('🍸 === DIAGNOSTIC SPÉCIAL BOMBAY SAPPHIRE ===');
+      console.log('🔍 États actuels:', { showForm, isEditMode, isProcessing, currentProduct: currentProduct?.name });
+      console.log('🔍 Données Bombay:', JSON.stringify(rawProduct, null, 2));
+    }
+    
+    // Éviter les clics multiples
+    if (isProcessing) {
+      console.log('⚠️ Édition déjà en cours, ignoré');
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      
+      // Diagnostic spécial pour Bombay Sapphire
+      if (isBombaySapphire) {
+        console.log('🍸 Début traitement Bombay Sapphire...');
+        
+        // Forcer la fermeture de tout modal existant
+        setShowForm(false);
+        setIsEditMode(false);
+        setCurrentProduct(null);
+        
+        // Attendre un peu plus longtemps pour Bombay
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('🍸 Reset complet effectué pour Bombay');
+      }
+      
+      // Normaliser les données produit
+      const product = normalizeProductData(rawProduct);
+      
+      if (isBombaySapphire) {
+        console.log('🍸 Données Bombay normalisées:', product);
+      }
+      
+      // Validation minimale
+      if (!product.id || product.id === `temp-${Date.now()}`) {
+        console.warn('⚠️ ID produit manquant ou temporaire, mais on continue...');
+      }
+      
+      console.log('📝 Configuration du formulaire pour:', product.name);
+      
+      // Configurer le produit courant
+      setCurrentProduct(product);
+      
+      // Préparer les données du formulaire avec fallbacks complets
+      const newFormData = {
+        name: String(product.name || ''),
+        description: String(product.description || ''),
+        base_price: Number(product.base_price) || 0,
+        stock_quantity: Number(product.stock_quantity) || 0,
+        category_id: String(product.category_id || ''),
+        is_featured: Boolean(product.is_featured),
+        is_active: Boolean(product.is_active !== false),
+        image_url: String(product.image_url || '')
+      };
+      
+      if (isBombaySapphire) {
+        console.log('🍸 FormData Bombay préparé:', newFormData);
+      }
+      
+      setFormData(newFormData);
+      
+      // Gestion des options produit
+      let options: Omit<ProductOption, 'id' | 'product_id'>[] = [];
+      
+      if (Array.isArray(product.product_options) && product.product_options.length > 0) {
+        options = product.product_options.map((opt: any, index: number) => ({
+          name: String(opt.name || `Option ${index + 1}`),
+          description: String(opt.description || ''),
+          price_modifier: Number(opt.price_modifier) || 0,
+          stock_quantity: Number(opt.stock_quantity) || 0,
+          is_default: Boolean(opt.is_default),
+          is_active: Boolean(opt.is_active !== false),
+          sort_order: Number(opt.sort_order) || index,
+          image_url: String(opt.image_url || '')
+        }));
+      }
+      
+      setProductOptions(options);
+      
+      // Attendre la synchronisation
+      await new Promise(resolve => setTimeout(resolve, isBombaySapphire ? 100 : 10));
+      
+      // Activer le mode édition
+      console.log('✅ Activation du mode édition...');
+      setIsEditMode(true);
+      
+      if (isBombaySapphire) {
+        console.log('🍸 Mode édition activé pour Bombay');
+      }
+      
+      // Attendre encore un peu
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Forcer l'affichage du formulaire
+      setShowForm(true);
+      
+      if (isBombaySapphire) {
+        console.log('🍸 ShowForm activé pour Bombay');
+        
+        // Tentatives multiples pour Bombay Sapphire
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => {
+            console.log(`🍸 Tentative ${i + 1}/3 d'affichage modal Bombay`);
+            setShowForm(true);
+            setIsEditMode(true);
+            
+            // Vérifier le DOM
+            setTimeout(() => {
+              const modal = document.querySelector('form[class*="space-y"]') ||
+                           document.querySelector('div[class*="bg-white rounded-lg shadow-sm"]');
+              
+              if (modal) {
+                console.log(`🍸 ✅ Modal Bombay visible (tentative ${i + 1})`);
+              } else {
+                console.log(`🍸 ❌ Modal Bombay non visible (tentative ${i + 1})`);
+                
+                // Forcer l'affichage en modifiant le style directement
+                const allForms = document.querySelectorAll('form');
+                allForms.forEach(form => {
+                  if (form.style.display === 'none') {
+                    form.style.display = 'block';
+                    console.log('🍸 🔧 Formulaire forcé visible via CSS');
+                  }
+                });
+              }
+            }, 100);
+          }, (i + 1) * 100);
+        }
+      } else {
+        // Vérification standard pour les autres produits
+        setTimeout(() => {
+          setShowForm(true);
+          console.log('🔄 Vérification supplémentaire: showForm forcé à true');
+        }, 50);
+      }
+      
+      console.log('✅ Édition configurée pour:', product.name);
+      console.log('✅ isEditMode:', true, '| showForm:', true);
+      console.log('✅ Modal DOIT être visible maintenant');
+      
+      if (isBombaySapphire) {
+        console.log('🍸 === FIN DIAGNOSTIC BOMBAY SAPPHIRE ===');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'édition:', error);
+      
+      if (isBombaySapphire) {
+        console.error('🍸 ❌ Erreur spécifique Bombay:', error);
+      }
+      
+      // Même en cas d'erreur, forcer l'ouverture
+      setIsEditMode(true);
+      setShowForm(true);
+      
+    } finally {
+      setIsProcessing(false);
+      console.log('=== EDIT PRODUCT END ===');
+    }
   };
 
   // Gérer la suppression

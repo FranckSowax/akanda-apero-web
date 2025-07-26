@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Edit Button</title>
+</head>
+<body>
+    <h1>Test Edit Button</h1>
+    <p>Ouvrez la console (F12) et vérifiez les logs</p>
+    <button id="testEdit">Tester le bouton edit</button>
+    
+    <script>
+        document.getElementById('testEdit').addEventListener('click', function() {
+            console.log('=== TEST EDIT BUTTON ===');
+            console.log('Bouton edit cliqué');
+            
+            // Test data
+            const testCocktail = {
+                id: 'test-123',
+                name: 'Test Cocktail',
+                description: 'Description test',
+                base_price: 2500,
+                difficulty_level: 2,
+                preparation_time_minutes: 15,
+                category: 'cocktail',
+                recipe: 'Test recipe',
+                image_url: '',
+                video_url: '',
+                video_type: '',
+                alcohol_percentage: 15,
+                is_active: true,
+                is_featured: false
+            };
+            
+            console.log('Données test:', testCocktail);
+            console.log('handleEdit devrait être appelé avec ces données');
+        });
+    </script>
+</body>
+</html>

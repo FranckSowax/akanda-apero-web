@@ -123,6 +123,7 @@ export default function CocktailKitsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Données du formulaire
   const [formData, setFormData] = useState({
@@ -420,25 +421,110 @@ export default function CocktailKitsPage() {
     }
   };
 
-  const handleEdit = (item: Cocktail | Mocktail) => {
-    setFormData({
-      name: item.name,
-      description: item.description,
-      base_price: item.base_price,
-      difficulty_level: item.difficulty_level,
-      preparation_time_minutes: item.preparation_time_minutes,
-      category: item.category,
-      recipe: item.recipe || '',
-      image_url: item.image_url || '',
-      video_url: item.video_url || '',
-      video_type: (item as any).video_type || '',
-      alcohol_percentage: (item as Cocktail).alcohol_percentage || 0,
-      is_active: item.is_active,
-      is_featured: item.is_featured
-    });
-    setCurrentId(item.id);
-    setIsEditMode(true);
-    setShowForm(true);
+  const handleEdit = async (item: Cocktail | Mocktail) => {
+    console.log('=== EDIT COCKTAIL START ===', item.name, 'Processing:', isProcessing);
+    
+    // Éviter les clics multiples
+    if (isProcessing) {
+      console.log('⚠️ Édition déjà en cours, ignoré');
+      return;
+    }
+    
+    if (!item.id) {
+      console.error('❌ ID manquant');
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      
+      // Configurer les nouvelles données directement
+      console.log('📝 Configuration des données du formulaire...');
+      setFormData({
+        name: item.name || '',
+        description: item.description || '',
+        base_price: item.base_price || 0,
+        difficulty_level: item.difficulty_level || 1,
+        preparation_time_minutes: item.preparation_time_minutes || 0,
+        category: item.category || '',
+        recipe: item.recipe || '',
+        image_url: item.image_url || '',
+        video_url: item.video_url || '',
+        video_type: (item as any).video_type || '',
+        alcohol_percentage: (item as Cocktail).alcohol_percentage || 0,
+        is_active: item.is_active || true,
+        is_featured: item.is_featured || false
+      });
+      
+      setCurrentId(item.id);
+      
+      // Activer le mode édition et afficher le formulaire
+      console.log('✅ Activation du mode édition...');
+      setIsEditMode(true);
+      setShowForm(true);
+      
+      console.log('✅ Cocktail chargé pour édition:', item.name);
+      console.log('✅ Modal devrait être visible maintenant');
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'édition:', error);
+    } finally {
+      setIsProcessing(false);
+      console.log('=== EDIT COCKTAIL END ===');
+    }
+  };
+
+  const handleEditOption = async (option: CocktailOption) => {
+    console.log('=== EDIT OPTION START ===', option.name, 'Processing:', isProcessing);
+    
+    // Éviter les clics multiples
+    if (isProcessing) {
+      console.log('⚠️ Édition déjà en cours, ignoré');
+      return;
+    }
+    
+    if (!option.id) {
+      console.error('❌ ID option manquant');
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      
+      // Configurer les nouvelles données directement
+      console.log('📝 Configuration des données du formulaire...');
+      setFormData({
+        name: option.name || '',
+        description: option.description || '',
+        base_price: option.price || 0,
+        difficulty_level: 1,
+        preparation_time_minutes: 0,
+        category: 'accessoire',
+        recipe: '',
+        image_url: '',
+        video_url: '',
+        video_type: '',
+        alcohol_percentage: 0,
+        is_active: option.is_active || true,
+        is_featured: false
+      });
+      
+      setCurrentId(option.id);
+      
+      // Activer le mode édition et afficher le formulaire
+      console.log('✅ Activation du mode édition...');
+      setIsEditMode(true);
+      setShowForm(true);
+      
+      console.log('✅ Option chargée pour édition:', option.name);
+      console.log('✅ Modal devrait être visible maintenant');
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'édition:', error);
+    } finally {
+      setIsProcessing(false);
+      console.log('=== EDIT OPTION END ===');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -684,27 +770,8 @@ export default function CocktailKitsPage() {
                           variant="secondary"
                           onClick={() => {
                             if (activeTab === 'options') {
-                              // For now, open the same modal but with option-specific fields
-                              const option = item as CocktailOption;
-                              setFormData({
-                                name: option.name,
-                                description: option.description,
-                                base_price: option.price, // Map price to base_price for form compatibility
-                                difficulty_level: 1,
-                                preparation_time_minutes: 0,
-                                category: 'accessoire',
-                                recipe: '',
-                                image_url: '',
-                                video_url: '',
-                                video_type: '',
-                                alcohol_percentage: 0,
-                                is_active: option.is_active,
-                                is_featured: false
-                              });
-                              setCurrentId(option.id || '');
-                              setIsEditMode(true);
-                              setShowForm(true);
-                            } else {
+                              handleEditOption(item as CocktailOption);
+                            } else if (activeTab === 'cocktails' || activeTab === 'mocktails') {
                               handleEdit(item as Cocktail | Mocktail);
                             }
                           }}
