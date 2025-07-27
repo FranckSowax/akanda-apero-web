@@ -5,13 +5,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CreditCard, Truck, MapPin, Check, ShoppingCart, Award, Star } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { Separator } from '../../components/ui/separator';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import MobileLoadingOverlay from '@/components/MobileLoadingOverlay';
 import { LocationMap } from '../../components/ui/location-map';
 import { useAppContext } from '../../context/AppContext';
 import { formatPrice } from '../../lib/utils/formatters';
@@ -98,6 +100,13 @@ export default function CheckoutPage() {
   const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  
+  // États pour le feedback mobile
+  const [mobileOverlay, setMobileOverlay] = useState({
+    visible: false,
+    status: 'loading' as 'loading' | 'success' | 'error',
+    message: ''
+  });
   
   // Récupérer l'état d'authentification de l'utilisateur
   const { user, loading: authLoading } = useAuth();
@@ -374,12 +383,33 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
     setOrderError(null);
     
+    // Afficher l'overlay mobile de chargement
+    setMobileOverlay({
+      visible: true,
+      status: 'loading',
+      message: 'Traitement de votre commande en cours...'
+    });
+    
     try {
       // Validation WhatsApp simplifiée - juste vérifier que le champ n'est pas vide
       console.log('📱 Validation WhatsApp pour:', paymentInfo.whatsapp);
       if (!paymentInfo.whatsapp || paymentInfo.whatsapp.trim() === '') {
         console.error('❌ Numéro WhatsApp requis');
-        setOrderError('Veuillez entrer un numéro WhatsApp');
+        const errorMsg = 'Veuillez entrer un numéro WhatsApp';
+        setOrderError(errorMsg);
+        
+        // Feedback mobile pour erreur de validation
+        setMobileOverlay({
+          visible: true,
+          status: 'error',
+          message: errorMsg
+        });
+        
+        // Vibration sur mobile si disponible
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+        
         setIsSubmitting(false);
         return;
       }
@@ -404,9 +434,9 @@ export default function CheckoutPage() {
         }))
       });
       
-      // Validation permissive du panier
+      // Validation permissive du panier avec support UUID
       const validCartItems = cartItems.filter(item => {
-        const hasValidProduct = item.product && item.product.id != null && Number(item.product.id) > 0;
+        const hasValidProduct = item.product && item.product.id != null && String(item.product.id).trim().length > 0;
         const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
         const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
         const hasValidQuantity = item.quantity > 0;
@@ -465,12 +495,12 @@ export default function CheckoutPage() {
           })
         },
         items: validCartItems.map(item => {
-            const itemId = Number(item.product.id);
-            if (isNaN(itemId) || itemId < 1) {
+            const itemId = String(item.product.id).trim();
+            if (!itemId || itemId.length === 0) {
               throw new Error(`ID d'article invalide: ${item.product.id}`);
             }
             return {
-              id: itemId,
+              id: itemId, // Garder l'UUID comme string
               name: String(item.product.name || '').trim(),
               price: Number(item.product.price || 0),
               quantity: Number(item.quantity || 1),
@@ -496,6 +526,23 @@ export default function CheckoutPage() {
       console.log('📝 Résultat createOrder:', { success, newOrderNumber, error });
       
       if (success) {
+        // Afficher le succès sur mobile
+        setMobileOverlay({
+          visible: true,
+          status: 'success',
+          message: `Commande ${newOrderNumber} créée avec succès !`
+        });
+        
+        // Vibration de succès sur mobile
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]); // Pattern de succès
+        }
+        
+        // Masquer l'overlay après 2 secondes
+        setTimeout(() => {
+          setMobileOverlay({ visible: false, status: 'loading', message: '' });
+        }, 2000);
+        
         setOrderNumber(newOrderNumber);
         setOrderPlaced(true);
         setFormStep('confirmation');
@@ -518,7 +565,15 @@ export default function CheckoutPage() {
         
         window.scrollTo(0, 0);
       } else {
-        setOrderError(error?.message || 'Une erreur est survenue lors de la création de la commande');
+        const errorMsg = error?.message || 'Une erreur est survenue lors de la création de la commande';
+        setOrderError(errorMsg);
+        
+        // Afficher l'erreur sur mobile
+        setMobileOverlay({
+          visible: true,
+          status: 'error',
+          message: errorMsg
+        });
       }
     } catch (error) {
       console.error('❌ Erreur lors de la soumission de la commande:', error);
@@ -531,6 +586,13 @@ export default function CheckoutPage() {
           : 'Une erreur inattendue est survenue lors de la création de la commande';
           
       setOrderError(errorMessage);
+      
+      // Afficher l'erreur sur mobile
+      setMobileOverlay({
+        visible: true,
+        status: 'error',
+        message: errorMessage
+      });
       
       // Log détaillé pour le debugging
       console.error('📋 Détails de l\'erreur:', {
@@ -1225,6 +1287,14 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+      
+      {/* Overlay mobile pour feedback */}
+      <MobileLoadingOverlay
+        isVisible={mobileOverlay.visible}
+        status={mobileOverlay.status}
+        message={mobileOverlay.message}
+        onClose={() => setMobileOverlay({ visible: false, status: 'loading', message: '' })}
+      />
     </>
   );
 }

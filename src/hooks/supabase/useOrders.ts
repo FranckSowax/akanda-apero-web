@@ -31,7 +31,7 @@ export interface OrderData {
     mobileNumber?: string;
   };
   items: Array<{
-    id: number;
+    id: string; // Support UUID
     name: string;
     price: number;
     quantity: number;
