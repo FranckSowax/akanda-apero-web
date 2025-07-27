@@ -56,12 +56,16 @@ export const useUserProfile = () => {
     setError(null);
 
     try {
+      // Utiliser upsert avec onConflict pour gérer les emails existants
       const { data, error } = await supabase
         .from('customers')
         .upsert({
           email: user.email,
           ...updates,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'email',
+          ignoreDuplicates: false
         })
         .select()
         .single();
