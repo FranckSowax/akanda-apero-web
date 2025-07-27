@@ -181,6 +181,137 @@ export default function CheckoutPage() {
         router.push('/');
       }, 3000);
       
+
+      // Validation et diagnostic du panier
+      console.log('🛍️ Analyse du panier:', { 
+        totalItems: cartItems.length,
+        cartItems: cartItems.map(item => ({
+          id: item.product?.id,
+          name: item.product?.name,
+          price: item.product?.price,
+          quantity: item.quantity,
+          hasProduct: !!item.product,
+          isValid: !!(item.product?.id && item.product?.name && item.product?.price != null)
+        }))
+      });
+      
+      // Validation permissive du panier
+      const validCartItems = cartItems.filter(item => {
+        const hasValidProduct = item.product && item.product.id != null && Number(item.product.id) > 0;
+        const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
+        const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
+        const hasValidQuantity = item.quantity > 0;
+        
+        return hasValidProduct && hasValidName && hasValidPrice && hasValidQuantity;
+      });
+      
+      console.log('✅ Articles valides détectés:', validCartItems.length);
+      
+      if (validCartItems.length === 0) {
+        const invalidItems = cartItems.filter(item => !(
+          item.product && 
+          item.product.id != null && 
+          String(item.product.name).trim().length > 0 &&
+          item.product.price != null &&
+          !isNaN(Number(item.product.price)) &&
+          item.quantity > 0
+        ));
+        
+        console.error('❌ Articles invalides détectés:', invalidItems);
+        throw new Error(`Aucun article valide dans le panier. ${cartItems.length} articles trouvés, ${invalidItems.length} invalides.`);
+      }
+      
+      if (validCartItems.length !== cartItems.length) {
+        console.warn('⚠️ Articles invalides détectés et filtrés:', cartItems.length - validCartItems.length);
+      }
+      
+      // Préparer les données de commande avec validation stricte des types
+      const orderData = {
+        customerInfo: {
+          email: `${paymentInfo.whatsapp.replace(/[^0-9]/g, '')}@akandaapero.com`,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: formattedWhatsApp
+        },
+        deliveryInfo: {
+          address: deliveryInfo.address.trim(),
+          city: deliveryInfo.city?.trim() || '',
+          district: deliveryInfo.district?.trim() || '',
+          additionalInfo: deliveryInfo.additionalInfo?.trim() || '',
+          location: {
+            lat: Number(deliveryInfo.location?.lat || 0),
+            lng: Number(deliveryInfo.location?.lng || 0),
+            hasLocation: Boolean(deliveryInfo.location?.hasLocation)
+          },
+          deliveryOption: deliveryInfo.deliveryOption
+        },
+        paymentInfo: {
+          method: paymentInfo.method,
+          ...(paymentInfo.method === 'mobile_money' && { whatsapp: formattedWhatsApp }),
+          ...(paymentInfo.method === 'card' && {
+            cardNumber: paymentInfo.cardNumber?.trim() || '',
+            cardName: paymentInfo.cardName?.trim() || '',
+            expiryDate: paymentInfo.expiryDate?.trim() || '',
+            cvv: paymentInfo.cvv?.trim() || ''
+          })
+        },
+        items: validCartItems.map(item => {
+            const itemId = Number(item.product.id);
+            if (isNaN(itemId) || itemId < 1) {
+              throw new Error(`ID d'article invalide: ${item.product.id}`);
+            }
+            return {
+              id: itemId,
+              name: String(item.product.name || '').trim(),
+              price: Number(item.product.price || 0),
+              quantity: Number(item.quantity || 1),
+              imageUrl: String(item.product.imageUrl || '').trim()
+            };
+          }),
+        totalAmount: Number(total),
+        subtotal: Number(subtotal),
+        deliveryCost: Number(deliveryFee),
+        discount: Number(discountAmount)
+      };
+      
+      // Créer la commande et enregistrer le client
+      console.log('📦 Création commande avec:', orderData);
+      console.log('🔍 Validation des données avant envoi:');
+      console.log('  - customerInfo:', orderData.customerInfo);
+      console.log('  - deliveryInfo:', orderData.deliveryInfo);
+      console.log('  - paymentInfo:', orderData.paymentInfo);
+      console.log('  - items:', orderData.items);
+      console.log('  - montants:', { totalAmount: orderData.totalAmount, subtotal: orderData.subtotal, deliveryCost: orderData.deliveryCost, discount: orderData.discount });
+      
+      const { success, orderNumber: newOrderNumber, error } = await createOrder(orderData);
+      console.log('📝 Résultat createOrder:', { success, newOrderNumber, error });
+      
+      if (success) {
+        setOrderNumber(newOrderNumber);
+        setOrderPlaced(true);
+        setFormStep('confirmation');
+        
+        // 📊 Tracker l'achat finalisé
+        trackPurchase(
+          newOrderNumber,
+          total,
+          validCartItems.map(item => ({
+            id: item.product.id.toString(),
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity
+          }))
+        );
+        
+        // Note: Le panier n'est plus vidé automatiquement pour permettre à l'utilisateur
+        // de rester sur la page de finalisation et voir les détails de sa commande
+        // L'utilisateur peut manuellement vider le panier ou continuer ses achats
+        
+        window.scrollTo(0, 0);
+      } else {
+        setOrderError(error?.message || 'Une erreur est survenue lors de la création de la commande');
+      }
+
     } catch (error) {
       setSubmitError('Erreur lors de la création de la commande');
     } finally {
