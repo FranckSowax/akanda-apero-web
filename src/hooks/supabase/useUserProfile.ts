@@ -56,25 +56,36 @@ export const useUserProfile = () => {
     setError(null);
 
     try {
-      // Essayer d'abord de mettre à jour le profil existant
-      const { data: updateData, error: updateError } = await supabase
+      console.log('🔍 Vérification existence utilisateur:', user.email);
+      
+      // Vérifier d'abord si l'utilisateur existe
+      const { data: existingUser, error: checkError } = await supabase
         .from('customers')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .select('id, email')
         .eq('email', user.email)
-        .select()
         .single();
 
-      // Si la mise à jour réussit, utiliser ces données
-      if (!updateError && updateData) {
+      if (existingUser) {
+        console.log('✅ Utilisateur existant trouvé, mise à jour...');
+        // Utilisateur existe, faire un UPDATE
+        const { data: updateData, error: updateError } = await supabase
+          .from('customers')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', user.email)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
         setProfile(updateData);
         return updateData;
       }
 
-      // Si l'utilisateur n'existe pas, le créer
-      if (updateError?.code === 'PGRST116') {
+      // Utilisateur n'existe pas, le créer
+      if (checkError?.code === 'PGRST116') {
+        console.log('➕ Utilisateur inexistant, création...');
         const { data: insertData, error: insertError } = await supabase
           .from('customers')
           .insert({
@@ -93,7 +104,7 @@ export const useUserProfile = () => {
       }
 
       // Si une autre erreur s'est produite, la relancer
-      throw updateError;
+      throw checkError;
     } catch (err: any) {
       console.error('❌ Erreur lors de la mise à jour du profil:', err);
       setError(err.message);
