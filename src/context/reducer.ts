@@ -107,6 +107,18 @@ export const reducer = (state: AppState, action: AppAction): AppState => {
         },
       };
 
+    case 'SET_CART':
+      return {
+        ...state,
+        cart: {
+          ...state.cart,
+          items: action.payload.items,
+          promoCode: action.payload.promoCode || '',
+          promoDiscount: action.payload.promoDiscount || 0,
+          deliveryOption: action.payload.deliveryOption,
+        },
+      };
+
     case 'APPLY_PROMO_CODE': {
       const { code, discount } = action.payload;
       return {

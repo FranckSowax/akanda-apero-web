@@ -202,23 +202,47 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
             {/* Items de commande */}
             {order.order_items && order.order_items.length > 0 ? (
               <div className="space-y-3">
-                {order.order_items.map((item: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">
-                        {item.products?.name || item.product_name || 'Produit inconnu'}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Quantité: {item.quantity} × {item.unit_price || 0} XAF
-                      </p>
+                {order.order_items.map((item: any, index: number) => {
+                  const productName = item.products?.name || item.product_name || 'Produit inconnu';
+                  const isProductMissing = !item.products && !item.product_name;
+                  const productId = item.product_id || item.products?.id || 'N/A';
+                  
+                  return (
+                    <div key={index} className={`flex justify-between items-center p-3 rounded border ${
+                      isProductMissing ? 'bg-red-50 border-red-200' : 'bg-white'
+                    }`}>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className={`font-medium ${
+                            isProductMissing ? 'text-red-700' : 'text-gray-900'
+                          }`}>
+                            {productName}
+                          </p>
+                          {isProductMissing && (
+                            <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                              Produit supprimé
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          ID: {productId} | Quantité: {item.quantity} × {item.unit_price || 0} XAF
+                        </p>
+                        {isProductMissing && (
+                          <p className="text-xs text-red-600 mt-1">
+                            ⚠️ Ce produit n'existe plus dans la base de données
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-medium ${
+                          isProductMissing ? 'text-red-700' : 'text-gray-900'
+                        }`}>
+                          {((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()} XAF
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">
-                        {((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()} XAF
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 {/* Total */}
                 <div className="border-t pt-3 mt-3">

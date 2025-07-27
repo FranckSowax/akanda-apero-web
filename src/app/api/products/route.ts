@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { Product } from '../../../lib/types';
 
-// Base de données fictive pour la démonstration
-// Dans un environnement de production, cela serait remplacé par une base de données réelle
-let products: Product[] = [
+// Configuration Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Base de données fictive pour fallback uniquement
+let fallbackProducts: Product[] = [
   {
     id: 1,
     name: "Pack The Party Mix",
@@ -117,45 +122,94 @@ let products: Product[] = [
 
 // GET /api/products
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
-  const category = searchParams.get('category');
-  const search = searchParams.get('search');
-  const status = searchParams.get('status');
-  
-  let filteredProducts = [...products];
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    const status = searchParams.get('status');
+    
+    // Construire la requête Supabase
+    let query = supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true);
+    
+    // Appliquer les filtres
+    if (category) {
+      query = query.eq('category_id', category);
+    }
+    
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+    
+    if (status) {
+      query = query.eq('status', status);
+    }
+    
+    // Pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+    
+    const { data: products, error, count } = await query;
+    
+    if (error) {
+      console.error('Erreur Supabase:', error);
+      // Fallback vers les données fictives
+      let filteredProducts = [...fallbackProducts];
 
-  // Appliquer les filtres
-  if (category) {
-    filteredProducts = filteredProducts.filter(p => p.category === category);
-  }
-  
-  if (search) {
-    const searchLower = search.toLowerCase();
-    filteredProducts = filteredProducts.filter(p => 
-      p.name.toLowerCase().includes(searchLower) || 
-      p.description.toLowerCase().includes(searchLower)
-    );
-  }
-  
-  if (status) {
-    filteredProducts = filteredProducts.filter(p => p.status === status);
-  }
+      // Appliquer les filtres
+      if (category) {
+        filteredProducts = filteredProducts.filter(p => p.category === category);
+      }
+      
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredProducts = filteredProducts.filter(p => 
+          p.name.toLowerCase().includes(searchLower) || 
+          p.description.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      if (status) {
+        filteredProducts = filteredProducts.filter(p => p.status === status);
+      }
 
-  // Pagination
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-  
-  return NextResponse.json({
-    success: true,
-    data: paginatedProducts,
-    total: filteredProducts.length,
-    page,
-    pageSize: limit,
-    totalPages: Math.ceil(filteredProducts.length / limit)
-  });
+      // Pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+      const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+      
+      return NextResponse.json({
+        success: true,
+        data: paginatedProducts,
+        total: filteredProducts.length,
+        page,
+        pageSize: limit,
+        totalPages: Math.ceil(filteredProducts.length / limit)
+      });
+    }
+    
+    // Succès Supabase
+    return NextResponse.json({
+      success: true,
+      data: products || [],
+      total: count || 0,
+      page,
+      pageSize: limit,
+      totalPages: Math.ceil((count || 0) / limit)
+    });
+    
+  } catch (error) {
+    console.error('Erreur API products:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur serveur lors de la récupération des produits'
+    }, { status: 500 });
+  }
 }
 
 // POST /api/products
@@ -171,24 +225,34 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    // Créer un nouveau produit
-    const newProduct: Product = {
-      id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+    // Créer un nouveau produit dans Supabase
+    const productData = {
       name: body.name,
       description: body.description || '',
       price: body.price,
-      oldPrice: body.oldPrice,
-      imageUrl: body.imageUrl || `https://picsum.photos/seed/product${Date.now()}/600/600`,
-      category: body.category,
+      old_price: body.oldPrice,
+      image_url: body.imageUrl || `https://picsum.photos/seed/product${Date.now()}/600/600`,
+      category_id: body.category,
       stock: body.stock || 0,
       status: body.stock > 0 ? (body.stock > 10 ? 'En stock' : 'Stock faible') : 'Épuisé',
       rating: body.rating,
-      featured: body.featured || false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      is_featured: body.featured || false,
+      is_active: true
     };
     
-    products.push(newProduct);
+    const { data: newProduct, error } = await supabase
+      .from('products')
+      .insert([productData])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Erreur création produit:', error);
+      return NextResponse.json({
+        success: false,
+        error: 'Erreur lors de la création du produit'
+      }, { status: 500 });
+    }
     
     return NextResponse.json({
       success: true,

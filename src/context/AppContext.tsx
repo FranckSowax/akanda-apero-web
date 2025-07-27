@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { AppState, AppAction, CartItem, Product } from './types';
 import { reducer, initialState } from './reducer';
+import { cartSyncService } from '../services/cartSyncService';
 
 // Créer le contexte
 type AppContextType = {
@@ -17,6 +18,9 @@ type AppContextType = {
   getCartTotal: () => { subtotal: number; deliveryCost: number; discount: number; total: number };
   getCartItemsCount: () => number;
   getItemQuantity: (productId: number) => number;
+  // Synchronisation du panier
+  syncCartWithUser: (userId: string) => Promise<void>;
+  saveCartToCloud: (userId: string) => Promise<void>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -217,6 +221,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return item ? item.quantity : 0;
   };
 
+  // Synchroniser le panier avec l'utilisateur connecté
+  const syncCartWithUser = async (userId: string) => {
+    try {
+      const result = await cartSyncService.syncCart(userId, {
+        items: state.cart.items,
+        promoCode: state.cart.promoCode,
+        promoDiscount: state.cart.promoDiscount,
+        deliveryOption: state.cart.deliveryOption
+      });
+
+      if (result.success && result.mergedCart) {
+        // Mettre à jour le state avec le panier fusionné
+        dispatch({
+          type: 'SET_CART',
+          payload: result.mergedCart
+        });
+      }
+    } catch (error) {
+      console.error('Erreur synchronisation panier:', error);
+    }
+  };
+
+  // Sauvegarder le panier dans le cloud
+  const saveCartToCloud = async (userId: string) => {
+    try {
+      await cartSyncService.saveCartToSupabase(userId, {
+        items: state.cart.items,
+        promoCode: state.cart.promoCode,
+        promoDiscount: state.cart.promoDiscount,
+        deliveryOption: state.cart.deliveryOption
+      });
+    } catch (error) {
+      console.error('Erreur sauvegarde panier:', error);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -230,6 +270,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getCartTotal,
         getCartItemsCount,
         getItemQuantity,
+        syncCartWithUser,
+        saveCartToCloud,
       }}
     >
       {children}

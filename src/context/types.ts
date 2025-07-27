@@ -93,6 +93,7 @@ export type AppAction =
   | { type: 'REMOVE_FROM_CART'; payload: { productId: number } }
   | { type: 'UPDATE_CART_ITEM_QUANTITY'; payload: { productId: number; quantity: number } }
   | { type: 'CLEAR_CART' }
+  | { type: 'SET_CART'; payload: { items: CartItem[]; promoCode?: string; promoDiscount?: number; deliveryOption: string } }
   | { type: 'APPLY_PROMO_CODE'; payload: { code: string; discount: number } }
   | { type: 'REMOVE_PROMO_CODE' }
   | { type: 'SET_DELIVERY_OPTION'; payload: string }
