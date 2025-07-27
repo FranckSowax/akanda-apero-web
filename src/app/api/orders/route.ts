@@ -32,7 +32,7 @@ interface OrderData {
     [key: string]: any;
   };
   items: Array<{
-    id: number;
+    id: string; // Support UUID
     name: string;
     price: number;
     quantity: number;
@@ -83,13 +83,11 @@ function validateOrderData(orderData: any): { isValid: boolean; errors: string[]
     errors.push('Aucun article dans la commande');
   } else {
     orderData.items.forEach((item: any, index: number) => {
-      // Validation stricte de l'ID
+      // Validation stricte de l'ID (support UUID)
       if (item.id === undefined || item.id === null) {
         errors.push(`Article ${index + 1}: ID manquant (valeur reçue: ${item.id})`);
-      } else if (typeof item.id !== 'number' || isNaN(item.id)) {
-        errors.push(`Article ${index + 1}: ID invalide - doit être un nombre valide (reçu: ${typeof item.id} ${item.id})`);
-      } else if (item.id <= 0) {
-        errors.push(`Article ${index + 1}: ID invalide - doit être positif (reçu: ${item.id})`);
+      } else if (typeof item.id !== 'string' || item.id.trim().length === 0) {
+        errors.push(`Article ${index + 1}: ID invalide - doit être une chaîne non vide (reçu: ${typeof item.id} ${item.id})`);
       }
       
       // Validation du nom
