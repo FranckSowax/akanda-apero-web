@@ -78,11 +78,14 @@ export type Order = {
   discount_amount: number;
   // Informations de livraison
   delivery_address: string | null;
+  delivery_district: string | null;
   delivery_phone: string | null;
   delivery_notes: string | null;
   // Coordonnées GPS pour navigation
   delivery_latitude: number | null;
   delivery_longitude: number | null;
+  gps_latitude: number | null;
+  gps_longitude: number | null;
   delivery_location_address: string | null;
   delivery_location_accuracy: number | null;
   // Paiement

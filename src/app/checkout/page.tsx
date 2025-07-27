@@ -20,6 +20,7 @@ import { formatPrice } from '../../lib/utils/formatters';
 import { formatGabonPhone, isValidGabonPhone, getPhoneValidationError } from '../../lib/utils/phone';
 import { useOrders } from '../../hooks/supabase/useOrders';
 import { useAuth } from '../../hooks/supabase/useAuth';
+import { useUserProfile } from '../../hooks/supabase/useUserProfile';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Header } from '../../components/layout/Header';
 import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
@@ -111,6 +112,9 @@ export default function CheckoutPage() {
   // Récupérer l'état d'authentification de l'utilisateur
   const { user, loading: authLoading } = useAuth();
   const isLoggedIn = !!user;
+  
+  // Récupérer le profil utilisateur pour pré-remplir le formulaire
+  const { profile, loading: profileLoading } = useUserProfile();
   
   // Récupérer les fonctions du hook useOrders
   const { createOrder, loading: orderLoading } = useOrders();
@@ -242,11 +246,21 @@ export default function CheckoutPage() {
       }
     };
 
-    // Exécuter le pré-remplissage seulement si l'utilisateur est connecté et que les champs sont encore vides
-    if (user && !deliveryInfo.fullName && !deliveryInfo.phone) {
-      prefillUserInfo();
+    // Pré-remplir avec les données du profil utilisateur
+    if (profile && !deliveryInfo.fullName && !deliveryInfo.phone) {
+      console.log('📄 Pré-remplissage avec le profil:', profile);
+      
+      const fullName = profile.first_name && profile.last_name 
+        ? `${profile.first_name} ${profile.last_name}`.trim()
+        : profile.first_name || profile.last_name || '';
+      
+      setDeliveryInfo(prev => ({
+        ...prev,
+        fullName: fullName,
+        phone: profile.phone || ''
+      }));
     }
-  }, [user, deliveryInfo.fullName, deliveryInfo.phone]);
+  }, [profile, deliveryInfo.fullName, deliveryInfo.phone]);
 
   // Vérifier si c'est la nuit (après 22h30)
   const [isNightTime, setIsNightTime] = useState(false);

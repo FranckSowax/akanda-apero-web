@@ -171,10 +171,24 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, isOpen, on
                   <p className="text-sm font-medium text-gray-700">Ville</p>
                   <p className="text-gray-900">Libreville</p>
                 </div>
+                {order.delivery_district && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Quartier</p>
+                    <p className="text-gray-900">{order.delivery_district}</p>
+                  </div>
+                )}
                 {order.delivery_notes && (
                   <div>
                     <p className="text-sm font-medium text-gray-700">Notes de livraison</p>
                     <p className="text-gray-900">{order.delivery_notes}</p>
+                  </div>
+                )}
+                {(order.gps_latitude && order.gps_longitude) && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Coordonnées GPS</p>
+                    <p className="text-gray-900 text-xs font-mono">
+                      Lat: {order.gps_latitude.toFixed(6)}, Lng: {order.gps_longitude.toFixed(6)}
+                    </p>
                   </div>
                 )}
                 {order.delivery_address && (
