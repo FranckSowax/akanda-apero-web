@@ -1,5 +1,6 @@
--- Migration pour créer la table de synchronisation des paniers utilisateurs
+-- Migration corrigée pour créer la table de synchronisation des paniers utilisateurs
 -- À exécuter dans l'éditeur SQL de Supabase
+-- Version corrigée pour supporter les UUIDs
 
 -- 1. Créer la table user_carts pour synchroniser les paniers
 CREATE TABLE IF NOT EXISTS user_carts (
@@ -57,13 +58,13 @@ CREATE TRIGGER update_user_carts_updated_at
 
 -- 7. Ajouter des commentaires pour la documentation
 COMMENT ON TABLE user_carts IS 'Table pour synchroniser les paniers des utilisateurs entre appareils';
-COMMENT ON COLUMN user_carts.items IS 'Articles du panier au format JSON avec product_id, quantity, etc.';
+COMMENT ON COLUMN user_carts.items IS 'Articles du panier au format JSON avec product_id (UUID), quantity, etc.';
 COMMENT ON COLUMN user_carts.promo_code IS 'Code promo appliqué au panier';
 COMMENT ON COLUMN user_carts.promo_discount IS 'Montant de la remise en pourcentage ou valeur fixe';
 COMMENT ON COLUMN user_carts.delivery_option IS 'Option de livraison choisie (standard, express, pickup)';
 
--- 8. Créer une vue pour faciliter les requêtes avec les détails des produits
-CREATE OR REPLACE VIEW user_carts_with_products AS
+-- 8. Créer une vue simplifiée pour faciliter les requêtes
+CREATE OR REPLACE VIEW user_carts_summary AS
 SELECT 
   uc.id,
   uc.user_id,
@@ -78,25 +79,51 @@ SELECT
     SELECT COALESCE(SUM((item->>'quantity')::integer), 0)
     FROM jsonb_array_elements(uc.items) AS item
   ) AS total_items,
-  -- Calculer le montant total (nécessite de joindre avec les produits)
-  (
-    SELECT COALESCE(SUM((item->>'quantity')::integer * COALESCE(p.sale_price, p.base_price, 0)), 0)
-    FROM jsonb_array_elements(uc.items) AS item
-    JOIN products p ON p.id::text = (item->>'product_id')
-    WHERE p.is_active = true
-  ) AS total_amount
+  -- Calculer le nombre de types d'articles différents
+  jsonb_array_length(uc.items) AS unique_items_count
 FROM user_carts uc;
 
--- 9. Ajouter des exemples de données pour les tests (optionnel)
--- INSERT INTO user_carts (user_id, items, delivery_option) VALUES
--- (
---   '00000000-0000-0000-0000-000000000000', -- Remplacer par un vrai UUID utilisateur
---   '[{"product_id": 1, "quantity": 2, "price": 2500}]'::jsonb,
---   'standard'
--- );
+-- 9. Fonction utilitaire pour calculer le total du panier
+-- (à utiliser côté application car elle nécessite les prix actuels)
+CREATE OR REPLACE FUNCTION calculate_cart_total(cart_items JSONB)
+RETURNS NUMERIC AS $$
+DECLARE
+  total NUMERIC := 0;
+  item JSONB;
+  product_price NUMERIC;
+  quantity INTEGER;
+BEGIN
+  FOR item IN SELECT * FROM jsonb_array_elements(cart_items)
+  LOOP
+    quantity := (item->>'quantity')::integer;
+    
+    -- Récupérer le prix actuel du produit
+    SELECT COALESCE(sale_price, base_price, 0) INTO product_price
+    FROM products 
+    WHERE id::text = (item->>'product_id') AND is_active = true;
+    
+    total := total + (quantity * COALESCE(product_price, 0));
+  END LOOP;
+  
+  RETURN total;
+END;
+$$ LANGUAGE plpgsql;
 
--- 10. Vérification de la migration
+-- 10. Exemple d'utilisation de la fonction (commenté)
+-- SELECT calculate_cart_total('[{"product_id": "uuid-here", "quantity": 2}]'::jsonb);
+
+-- 11. Vérification de la migration
 SELECT 
   'Migration user_carts completed successfully' as status,
   COUNT(*) as existing_carts
 FROM user_carts;
+
+-- 12. Afficher la structure créée
+SELECT 
+  table_name,
+  column_name,
+  data_type,
+  is_nullable
+FROM information_schema.columns 
+WHERE table_name = 'user_carts' 
+ORDER BY ordinal_position;
