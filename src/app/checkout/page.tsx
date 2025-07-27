@@ -406,7 +406,7 @@ export default function CheckoutPage() {
       
       // Validation permissive du panier
       const validCartItems = cartItems.filter(item => {
-        const hasValidProduct = item.product && item.product.id != null;
+        const hasValidProduct = item.product && item.product.id != null && Number(item.product.id) > 0;
         const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
         const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
         const hasValidQuantity = item.quantity > 0;
@@ -466,7 +466,7 @@ export default function CheckoutPage() {
         },
         items: validCartItems.map(item => {
             const itemId = Number(item.product.id);
-            if (isNaN(itemId) || itemId <= 0) {
+            if (isNaN(itemId) || itemId < 1) {
               throw new Error(`ID d'article invalide: ${item.product.id}`);
             }
             return {
