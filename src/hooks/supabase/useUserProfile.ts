@@ -58,14 +58,18 @@ export const useUserProfile = () => {
     try {
       console.log('🔍 Vérification existence utilisateur:', user.email);
       
-      // Vérifier d'abord si l'utilisateur existe
-      const { data: existingUser, error: checkError } = await supabase
+      // Vérifier d'abord si l'utilisateur existe (sans .single() pour éviter les erreurs)
+      const { data: existingUsers, error: checkError } = await supabase
         .from('customers')
         .select('id, email')
-        .eq('email', user.email)
-        .single();
+        .eq('email', user.email);
 
-      if (existingUser) {
+      if (checkError) {
+        console.error('❌ Erreur lors de la vérification:', checkError);
+        throw checkError;
+      }
+
+      if (existingUsers && existingUsers.length > 0) {
         console.log('✅ Utilisateur existant trouvé, mise à jour...');
         // Utilisateur existe, faire un UPDATE
         const { data: updateData, error: updateError } = await supabase
@@ -78,33 +82,37 @@ export const useUserProfile = () => {
           .select()
           .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('❌ Erreur lors de l\'UPDATE:', updateError);
+          throw updateError;
+        }
+        
+        console.log('✅ UPDATE réussi!');
         setProfile(updateData);
         return updateData;
       }
 
       // Utilisateur n'existe pas, le créer
-      if (checkError?.code === 'PGRST116') {
-        console.log('➕ Utilisateur inexistant, création...');
-        const { data: insertData, error: insertError } = await supabase
-          .from('customers')
-          .insert({
-            email: user.email,
-            ...updates,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+      console.log('➕ Utilisateur inexistant, création...');
+      const { data: insertData, error: insertError } = await supabase
+        .from('customers')
+        .insert({
+          email: user.email,
+          ...updates,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
 
-        if (insertError) throw insertError;
-        
-        setProfile(insertData);
-        return insertData;
+      if (insertError) {
+        console.error('❌ Erreur lors de l\'INSERT:', insertError);
+        throw insertError;
       }
-
-      // Si une autre erreur s'est produite, la relancer
-      throw checkError;
+      
+      console.log('✅ INSERT réussi!');
+      setProfile(insertData);
+      return insertData;
     } catch (err: any) {
       console.error('❌ Erreur lors de la mise à jour du profil:', err);
       setError(err.message);
