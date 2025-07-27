@@ -385,6 +385,19 @@ export default function CheckoutPage() {
     e.preventDefault();
     console.log('🚀 handleSubmitOrder déclenché');
     
+    // Debug détaillé du panier
+    console.log('📎 DEBUG PANIER COMPLET:');
+    console.log('- Nombre d\'articles:', cartItems.length);
+    cartItems.forEach((item, index) => {
+      console.log(`- Article ${index + 1}:`, {
+        id: item.product?.id,
+        idType: typeof item.product?.id,
+        name: item.product?.name,
+        quantity: item.quantity,
+        fullItem: item
+      });
+    });
+    
     // Fonction pour valider un UUID
     const isValidUUID = (uuid: string) => {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -692,6 +705,35 @@ export default function CheckoutPage() {
           </div>
         </div>
         <div className="p-4 space-y-4">
+          {/* Emergency Clear Cart Button */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Problème avec le panier ?</h3>
+                <p className="text-xs text-red-600">Si vous rencontrez des erreurs, videz le panier et recommencez</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  console.log('🗑️ Vidage d\'urgence du panier');
+                  dispatch({ type: 'CLEAR_CART' });
+                  setOrderError(null);
+                  setMobileOverlay({
+                    visible: true,
+                    status: 'success',
+                    message: 'Panier vidé avec succès'
+                  });
+                  setTimeout(() => {
+                    setMobileOverlay({ visible: false, status: 'loading', message: '' });
+                  }, 2000);
+                }}
+                className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+              >
+                Vider le panier
+              </button>
+            </div>
+          </div>
+          
           {/* Cart Items */}
           <div className="space-y-4 mt-6">
             {cartItems.map((item) => {

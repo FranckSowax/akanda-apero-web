@@ -4,6 +4,8 @@ import React, { createContext, useContext, useReducer, ReactNode, useEffect } fr
 import { AppState, AppAction, CartItem, Product } from './types';
 import { reducer, initialState } from './reducer';
 import { cartSyncService } from '../services/cartSyncService';
+import { supabase } from '../lib/supabase/client';
+import { validateProduct } from '../utils/productValidation';
 
 // Créer le contexte
 type AppContextType = {
@@ -90,13 +92,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Fonctions utilitaires
   const addToCart = (product: Product, quantity: number) => {
-    dispatch({ type: 'ADD_TO_CART', payload: { product, quantity } });
+    console.log('🛒 Tentative d\'ajout au panier:', { product, quantity });
+    
+    // Valider le produit avant ajout
+    const validatedProduct = validateProduct(product);
+    if (!validatedProduct) {
+      console.error('❌ Produit invalide, ajout au panier annulé:', product);
+      dispatch({
+        type: 'SHOW_TOAST',
+        payload: {
+          message: `Erreur: Produit invalide (${product?.name || 'inconnu'})`,
+          type: 'error',
+        },
+      });
+      return;
+    }
+    
+    console.log('✅ Produit validé, ajout au panier:', validatedProduct);
+    dispatch({ type: 'ADD_TO_CART', payload: { product: validatedProduct as unknown as Product, quantity } });
     
     // Afficher un toast de confirmation
     dispatch({
       type: 'SHOW_TOAST',
       payload: {
-        message: `${product.name} ajouté au panier`,
+        message: `${validatedProduct.name} ajouté au panier`,
         type: 'success',
       },
     });
