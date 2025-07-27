@@ -398,7 +398,7 @@ export default function Home() {
           
           {/* Top Picks Section */}
           <motion.div 
-            className="bg-white rounded-3xl p-6 shadow-lg"
+            className="bg-white rounded-3xl p-6 shadow-lg min-h-[500px] flex flex-col"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -418,7 +418,7 @@ export default function Home() {
                 <p className="text-gray-400 text-xs mt-1">Les produits apparaîtront ici une fois ajoutés à la base de données</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 flex-1 flex flex-col justify-start">
                 {featuredProducts.slice(0, 5).map((product: any, index: number) => (
                   <motion.div 
                     key={product.id}
@@ -502,7 +502,7 @@ export default function Home() {
           
           {/* Top Categories Section */}
           <motion.div 
-            className="bg-white rounded-3xl p-6 shadow-lg"
+            className="bg-white rounded-3xl p-6 shadow-lg min-h-[500px] flex flex-col"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -522,7 +522,7 @@ export default function Home() {
                 <p className="text-gray-400 text-xs mt-1">Les catégories apparaîtront ici une fois ajoutées à la base de données</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 flex-1 flex flex-col justify-start">
                 {topCategories.slice(0, 5).map((category: any, index: number) => (
                   <motion.div 
                     key={category.id}
