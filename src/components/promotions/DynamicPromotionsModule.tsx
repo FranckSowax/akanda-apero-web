@@ -207,8 +207,8 @@ const DynamicPromotionsModule: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Code promo moderne */}
-        {featuredPromotion.promo_code && (
+        {/* Code promo moderne - Compatible avec les deux formats de données */}
+        {((featuredPromotion as any).code || featuredPromotion.promo_code) && (
           <motion.div 
             className="mb-6"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -216,7 +216,7 @@ const DynamicPromotionsModule: React.FC = () => {
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-red-600 px-4 py-3 rounded-xl font-bold text-center text-base shadow-lg">
-              CODE: {featuredPromotion.promo_code}
+              CODE: {(featuredPromotion as any).code || featuredPromotion.promo_code}
             </div>
           </motion.div>
         )}
@@ -231,10 +231,10 @@ const DynamicPromotionsModule: React.FC = () => {
           <div className="flex justify-between items-center mb-3">
             <span className="opacity-90 font-semibold text-lg">Remise</span>
             <div className="text-2xl font-bold mb-2">
-              {featuredPromotion.discount_percentage 
-                ? `${featuredPromotion.discount_percentage}% OFF`
-                : featuredPromotion.discount_amount 
-                ? `${featuredPromotion.discount_amount} FCFA OFF`
+              {(featuredPromotion.discount_percentage || ((featuredPromotion as any).discount_type === 'percentage' && (featuredPromotion as any).discount_value))
+                ? `${featuredPromotion.discount_percentage || (featuredPromotion as any).discount_value}% OFF`
+                : (featuredPromotion.discount_amount || ((featuredPromotion as any).discount_type === 'fixed' && (featuredPromotion as any).discount_value))
+                ? `${featuredPromotion.discount_amount || (featuredPromotion as any).discount_value} FCFA OFF`
                 : 'LIVRAISON GRATUITE'}
             </div>
             
