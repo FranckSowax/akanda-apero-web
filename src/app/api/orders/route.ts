@@ -338,8 +338,14 @@ export async function POST(request: NextRequest) {
       return uuidRegex.test(uuid);
     };
     
-    const orderItems = orderData.items.map((item, index) => {
+    // Filtrer et valider les articles
+    const validItems = [];
+    const invalidItems = [];
+    
+    for (let index = 0; index < orderData.items.length; index++) {
+      const item = orderData.items[index];
       const productId = typeof item.id === 'string' ? item.id : String(item.id);
+      
       console.log(`📎 Article ${index + 1}:`, {
         id: productId,
         name: item.name,
@@ -350,17 +356,46 @@ export async function POST(request: NextRequest) {
       
       if (!isValidUUID(productId)) {
         console.error(`❌ UUID invalide pour l'article ${index + 1}:`, productId);
+        invalidItems.push({ index: index + 1, id: productId, name: item.name });
+        continue; // Ignorer cet article
       }
       
-      return {
+      validItems.push({
         order_id: newOrder.id,
         product_id: productId,
         product_name: item.name,
         quantity: item.quantity,
         unit_price: item.price,
         subtotal: item.price * item.quantity
-      };
-    });
+      });
+    }
+    
+    // Vérifier s'il y a des articles invalides
+    if (invalidItems.length > 0) {
+      console.error('❌ Articles avec IDs invalides détectés:', invalidItems);
+      // Supprimer la commande créée
+      await supabase.from('orders').delete().eq('id', newOrder.id);
+      return NextResponse.json(
+        { 
+          error: 'Articles invalides détectés', 
+          details: `${invalidItems.length} article(s) avec des IDs invalides`,
+          invalidItems: invalidItems
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Vérifier qu'il reste des articles valides
+    if (validItems.length === 0) {
+      console.error('❌ Aucun article valide dans la commande');
+      await supabase.from('orders').delete().eq('id', newOrder.id);
+      return NextResponse.json(
+        { error: 'Aucun article valide dans la commande' },
+        { status: 400 }
+      );
+    }
+    
+    const orderItems = validItems;
     
     console.log('📦 Articles prêts pour insertion:', orderItems);
     
