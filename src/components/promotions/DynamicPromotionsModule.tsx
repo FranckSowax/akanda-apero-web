@@ -221,30 +221,7 @@ const DynamicPromotionsModule: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Détails promotion moderne */}
-        <motion.div 
-          className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 mt-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
-          <div className="flex justify-between items-center mb-3">
-            <span className="opacity-90 font-semibold text-lg">Remise</span>
-            <div className="text-2xl font-bold mb-2">
-              {(featuredPromotion.discount_percentage || ((featuredPromotion as any).discount_type === 'percentage' && (featuredPromotion as any).discount_value))
-                ? `${featuredPromotion.discount_percentage || (featuredPromotion as any).discount_value}% OFF`
-                : (featuredPromotion.discount_amount || ((featuredPromotion as any).discount_type === 'fixed' && (featuredPromotion as any).discount_value))
-                ? `${featuredPromotion.discount_amount || (featuredPromotion as any).discount_value} FCFA OFF`
-                : 'LIVRAISON GRATUITE'}
-            </div>
-            
-            {featuredPromotion.min_order_amount && (
-              <div className="text-sm opacity-75">
-                Min: {featuredPromotion.min_order_amount} FCFA
-              </div>
-            )}
-          </div>
-        </motion.div>
+
 
         {/* Image rectangulaire moderne */}
         {featuredPromotion.image_url && (
