@@ -12,8 +12,10 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../hooks/supabase/useAuth';
+import { supabase } from '../../lib/supabase/client';
 import { Header } from '../../components/layout/Header';
 import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
+import AuthDebug from '../../components/AuthDebug';
 
 
 
@@ -41,10 +43,48 @@ export default function CartPage() {
   const { user, loading: authLoading } = useAuth();
   const isLoggedIn = !!user;
   
-  // Debug de l'authentification
+  // État local pour gérer le timeout d'authentification
+  const [authTimeout, setAuthTimeout] = useState(false);
+  
+  // Debug de l'authentification et gestion du timeout
   useEffect(() => {
-    console.log('🛒 Cart - État auth:', { user, isLoggedIn, authLoading });
-  }, [user, isLoggedIn, authLoading]);
+    console.log('🛍️ Cart - État auth:', { user, isLoggedIn, authLoading, authTimeout });
+    
+    // Si le chargement prend plus de 10 secondes, on considère qu'il y a un problème
+    if (authLoading && !authTimeout) {
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Cart - Timeout d\'authentification détecté');
+        setAuthTimeout(true);
+      }, 10000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+    
+    // Réinitialiser le timeout si le chargement se termine
+    if (!authLoading && authTimeout) {
+      setAuthTimeout(false);
+    }
+  }, [user, isLoggedIn, authLoading, authTimeout]);
+  
+  // Fonction de recuperation manuelle de l'authentification
+  const handleManualAuthCheck = async () => {
+    console.log('🔄 Cart - Verification manuelle de l\'authentification');
+    try {
+      // Forcer une nouvelle vérification de session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log('✅ Cart - Utilisateur trouvé manuellement:', session.user.email);
+        // Rediriger vers checkout
+        window.location.href = '/checkout';
+      } else {
+        console.log('❌ Cart - Aucun utilisateur trouvé, redirection vers auth');
+        window.location.href = '/auth';
+      }
+    } catch (error) {
+      console.error('❌ Cart - Erreur vérification manuelle:', error);
+      window.location.href = '/auth';
+    }
+  };
   
   // État local pour le code promo
   const [promoCode, setPromoCode] = useState('');
@@ -411,7 +451,7 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter className="md:block hidden"> {/* Uniquement sur desktop */}
-              {authLoading ? (
+              {(authLoading && !authTimeout) ? (
                 <Button 
                   className="w-full" 
                   size="lg"
@@ -419,6 +459,14 @@ export default function CartPage() {
                 >
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Chargement...
+                </Button>
+              ) : authTimeout ? (
+                <Button 
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white" 
+                  size="lg"
+                  onClick={handleManualAuthCheck}
+                >
+                  🔄 Reessayer la connexion
                 </Button>
               ) : (
                 <Link 
@@ -456,7 +504,7 @@ export default function CartPage() {
                 <p className="font-semibold text-lg">{formatPrice(total)}</p>
                 <p className="text-xs text-gray-500">Total TTC</p>
               </div>
-              {authLoading ? (
+              {(authLoading && !authTimeout) ? (
                 <Button 
                   className="flex-1" 
                   size="lg"
@@ -464,6 +512,14 @@ export default function CartPage() {
                 >
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Chargement...
+                </Button>
+              ) : authTimeout ? (
+                <Button 
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" 
+                  size="lg"
+                  onClick={handleManualAuthCheck}
+                >
+                  🔄 Reessayer
                 </Button>
               ) : (
                 <Link 
@@ -506,6 +562,9 @@ export default function CartPage() {
         </div>
       )}
     </div>
+    
+    {/* Debug d'authentification pour diagnostiquer le problème mobile */}
+    <AuthDebug showOnMobile={true} position="bottom-left" />
     </>
   );
 }
