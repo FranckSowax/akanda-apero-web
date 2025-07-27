@@ -133,7 +133,32 @@ export async function GET(request: NextRequest) {
     // Construire la requête Supabase
     let query = supabase
       .from('products')
-      .select('*')
+      .select(`
+        id,
+        name,
+        description,
+        short_description,
+        base_price,
+        sale_price,
+        image_url,
+        emoji,
+        category_id,
+        stock_quantity,
+        is_active,
+        is_featured,
+        rating,
+        rating_count,
+        product_type,
+        sku,
+        volume_ml,
+        alcohol_percentage,
+        origin_country,
+        brand,
+        tags,
+        created_at,
+        updated_at,
+        categories (id, name)
+      `)
       .eq('is_active', true);
     
     // Appliquer les filtres
@@ -157,8 +182,16 @@ export async function GET(request: NextRequest) {
     const { data: products, error, count } = await query;
     
     if (error) {
-      console.error('Erreur Supabase:', error);
+      console.error('=== ERREUR SUPABASE DÉTAILLÉE ===');
+      console.error('Message:', error.message);
+      console.error('Code:', error.code);
+      console.error('Details:', error.details);
+      console.error('Hint:', error.hint);
+      console.error('Erreur complète:', JSON.stringify(error, null, 2));
+      console.error('=====================================');
+      
       // Fallback vers les données fictives
+      console.log('⚠️ Utilisation du fallback - données fictives');
       let filteredProducts = [...fallbackProducts];
 
       // Appliquer les filtres
@@ -193,10 +226,55 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Succès Supabase
+    // Succès Supabase - Transformer les données pour compatibilité
+    console.log(`✅ Supabase succès: ${products?.length || 0} produits récupérés`);
+    console.log('Premier produit (exemple):', products?.[0]);
+    
+    const transformedProducts = (products || []).map((product: any) => {
+      // Calculer le prix final (sale_price si disponible, sinon base_price)
+      const finalPrice = product.sale_price || product.base_price || 0;
+      const oldPrice = product.sale_price ? product.base_price : null;
+      
+      // Déterminer le statut basé sur le stock
+      let status = 'En stock';
+      if (product.stock_quantity <= 0) {
+        status = 'Épuisé';
+      } else if (product.stock_quantity <= (product.min_stock_level || 5)) {
+        status = 'Stock faible';
+      }
+      
+      return {
+        id: product.id, // Garder l'UUID comme string
+        name: product.name,
+        description: product.description || product.short_description || '',
+        price: finalPrice,
+        oldPrice: oldPrice,
+        imageUrl: product.image_url || '',
+        category: product.categories?.name || 'Non catégorisé',
+        categorySlug: product.categories?.name?.toLowerCase().replace(/\s+/g, '-') || 'non-categorise',
+        stock: product.stock_quantity || 0,
+        status: status,
+        rating: product.rating || 0,
+        featured: product.is_featured || false,
+        currency: 'XAF',
+        // Champs supplémentaires Supabase
+        productType: product.product_type,
+        sku: product.sku,
+        volumeMl: product.volume_ml,
+        alcoholPercentage: product.alcohol_percentage,
+        originCountry: product.origin_country,
+        brand: product.brand,
+        tags: product.tags,
+        emoji: product.emoji,
+        ratingCount: product.rating_count,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at
+      };
+    });
+    
     return NextResponse.json({
       success: true,
-      data: products || [],
+      data: transformedProducts,
       total: count || 0,
       page,
       pageSize: limit,
