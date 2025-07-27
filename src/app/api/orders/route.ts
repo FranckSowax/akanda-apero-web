@@ -330,15 +330,39 @@ export async function POST(request: NextRequest) {
     console.log('✅ Commande créée avec ID:', newOrder.id, 'Numéro:', newOrder.order_number);
     
     // 3. Ajouter les articles de la commande
-    const orderItems = orderData.items.map(item => ({
-      order_id: newOrder.id,
-      product_id: item.id.toString(), // Convertir en string pour correspondre au type Supabase
-      product_name: item.name, // Champ obligatoire dans le schéma Supabase
-      quantity: item.quantity,
-      unit_price: item.price,
-      subtotal: item.price * item.quantity // Champ obligatoire dans le schéma Supabase
-      // Note: total_price supprimé car cette colonne n'existe pas dans le schéma Supabase
-    }));
+    console.log('📝 Préparation des articles:', orderData.items.length, 'articles');
+    
+    // Fonction pour valider un UUID
+    const isValidUUID = (uuid: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(uuid);
+    };
+    
+    const orderItems = orderData.items.map((item, index) => {
+      const productId = typeof item.id === 'string' ? item.id : String(item.id);
+      console.log(`📎 Article ${index + 1}:`, {
+        id: productId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        isValidUUID: isValidUUID(productId)
+      });
+      
+      if (!isValidUUID(productId)) {
+        console.error(`❌ UUID invalide pour l'article ${index + 1}:`, productId);
+      }
+      
+      return {
+        order_id: newOrder.id,
+        product_id: productId,
+        product_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        subtotal: item.price * item.quantity
+      };
+    });
+    
+    console.log('📦 Articles prêts pour insertion:', orderItems);
     
     const { error: itemsError } = await supabase
       .from('order_items')
