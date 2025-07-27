@@ -110,6 +110,31 @@ export const useCart = () => {
     return item ? item.quantity : 0;
   };
 
+  // Fonction pour valider un UUID
+  const isValidUUID = (uuid: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
+  // Nettoyer le panier des articles avec des IDs invalides
+  const cleanInvalidItems = () => {
+    const validItems = cart.filter(item => {
+      const isValid = isValidUUID(item.id);
+      if (!isValid) {
+        console.warn('🧽 Suppression article avec ID invalide:', { id: item.id, name: item.name });
+      }
+      return isValid;
+    });
+    
+    if (validItems.length !== cart.length) {
+      console.log(`🗑️ Nettoyage panier: ${cart.length - validItems.length} article(s) invalide(s) supprimé(s)`);
+      setCart(validItems);
+      return cart.length - validItems.length; // Retourner le nombre d'articles supprimés
+    }
+    
+    return 0;
+  };
+
   return {
     cart,
     addToCart,
@@ -118,6 +143,7 @@ export const useCart = () => {
     clearCart,
     getCartTotal,
     getCartItemCount,
-    getItemQuantity
+    getItemQuantity,
+    cleanInvalidItems
   };
 };

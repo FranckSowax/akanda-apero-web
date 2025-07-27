@@ -384,7 +384,63 @@ export default function CheckoutPage() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('🚀 handleSubmitOrder déclenché');
-    console.log('📝 Données actuelles:', { deliveryInfo, paymentInfo, cartItems });
+    
+    // Fonction pour valider un UUID
+    const isValidUUID = (uuid: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(uuid);
+    };
+    
+    // Nettoyer le panier des articles avec des IDs invalides avant soumission
+    const originalCartLength = cartItems.length;
+    const validCartItems = cartItems.filter(item => {
+      const productId = String(item.product?.id || '');
+      const isValid = isValidUUID(productId);
+      if (!isValid) {
+        console.warn('🧽 Article avec ID invalide détecté:', { 
+          id: productId, 
+          name: item.product?.name,
+          item: item 
+        });
+      }
+      return isValid;
+    });
+    
+    if (validCartItems.length !== originalCartLength) {
+      const removedCount = originalCartLength - validCartItems.length;
+      console.log(`🗑️ ${removedCount} article(s) avec ID invalide supprimé(s) du panier`);
+      
+      // Mettre à jour le panier dans le contexte
+      validCartItems.forEach(item => {
+        dispatch({ type: 'UPDATE_CART_ITEM_QUANTITY', payload: { productId: item.product.id, quantity: item.quantity } });
+      });
+      
+      // Supprimer les articles invalides
+      cartItems.forEach(item => {
+        const productId = String(item.product?.id || '');
+        if (!isValidUUID(productId)) {
+          dispatch({ type: 'REMOVE_FROM_CART', payload: { productId: item.product.id } });
+        }
+      });
+      
+      // Si plus d'articles valides, afficher erreur
+      if (validCartItems.length === 0) {
+        const errorMsg = `Tous les articles du panier ont des IDs invalides. Veuillez vider le panier et ajouter de nouveaux produits.`;
+        setOrderError(errorMsg);
+        setMobileOverlay({
+          visible: true,
+          status: 'error',
+          message: errorMsg
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Afficher un avertissement mais continuer
+      console.warn(`⚠️ Attention: ${removedCount} article(s) invalide(s) supprimé(s). Continuation avec ${validCartItems.length} article(s) valide(s).`);
+    }
+    
+    console.log('📝 Données actuelles:', { deliveryInfo, paymentInfo, cartItems: validCartItems });
     
     // Vérifier la validité du formulaire
     const form = e.target as HTMLFormElement;
