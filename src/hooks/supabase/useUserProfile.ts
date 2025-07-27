@@ -56,24 +56,44 @@ export const useUserProfile = () => {
     setError(null);
 
     try {
-      // Utiliser upsert avec onConflict pour gérer les emails existants
-      const { data, error } = await supabase
+      // Essayer d'abord de mettre à jour le profil existant
+      const { data: updateData, error: updateError } = await supabase
         .from('customers')
-        .upsert({
-          email: user.email,
+        .update({
           ...updates,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'email',
-          ignoreDuplicates: false
         })
+        .eq('email', user.email)
         .select()
         .single();
 
-      if (error) throw error;
+      // Si la mise à jour réussit, utiliser ces données
+      if (!updateError && updateData) {
+        setProfile(updateData);
+        return updateData;
+      }
 
-      setProfile(data);
-      return data;
+      // Si l'utilisateur n'existe pas, le créer
+      if (updateError?.code === 'PGRST116') {
+        const { data: insertData, error: insertError } = await supabase
+          .from('customers')
+          .insert({
+            email: user.email,
+            ...updates,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        
+        setProfile(insertData);
+        return insertData;
+      }
+
+      // Si une autre erreur s'est produite, la relancer
+      throw updateError;
     } catch (err: any) {
       console.error('❌ Erreur lors de la mise à jour du profil:', err);
       setError(err.message);
