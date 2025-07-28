@@ -404,41 +404,60 @@ export default function CheckoutPage() {
       return uuidRegex.test(uuid);
     };
     
-    // Nettoyer le panier des articles avec des IDs invalides avant soumission
+    // Analyser les articles du panier sans les modifier
     const originalCartLength = cartItems.length;
-    const validCartItems = cartItems.filter(item => {
+    const validCartItems: typeof cartItems = [];
+    const invalidCartItems: Array<{
+      item: typeof cartItems[0];
+      id: string;
+      name: string;
+      reason: string;
+    }> = [];
+    
+    cartItems.forEach(item => {
       const productId = String(item.product?.id || '');
       const isValid = isValidUUID(productId);
-      if (!isValid) {
+      
+      if (isValid) {
+        validCartItems.push(item);
+      } else {
+        invalidCartItems.push({
+          item,
+          id: productId,
+          name: item.product?.name || 'Produit inconnu',
+          reason: productId === '' ? 'ID manquant' : `ID invalide: ${productId}`
+        });
         console.warn('🧽 Article avec ID invalide détecté:', { 
           id: productId, 
           name: item.product?.name,
           item: item 
         });
       }
-      return isValid;
     });
     
-    if (validCartItems.length !== originalCartLength) {
-      const removedCount = originalCartLength - validCartItems.length;
-      console.log(`🗑️ ${removedCount} article(s) avec ID invalide supprimé(s) du panier`);
+    // Si des articles invalides sont détectés, demander confirmation
+    if (invalidCartItems.length > 0) {
+      const invalidNames = invalidCartItems.map(invalid => invalid.name).join(', ');
+      const confirmMessage = `⚠️ ${invalidCartItems.length} article(s) invalide(s) détecté(s): ${invalidNames}\n\nVoulez-vous :\n• Continuer avec ${validCartItems.length} article(s) valide(s) uniquement\n• Ou annuler pour corriger votre panier ?`;
       
-      // Mettre à jour le panier dans le contexte
-      validCartItems.forEach(item => {
-        dispatch({ type: 'UPDATE_CART_ITEM_QUANTITY', payload: { productId: item.product.id, quantity: item.quantity } });
-      });
+      const userChoice = confirm(confirmMessage);
       
-      // Supprimer les articles invalides
-      cartItems.forEach(item => {
-        const productId = String(item.product?.id || '');
-        if (!isValidUUID(productId)) {
-          dispatch({ type: 'REMOVE_FROM_CART', payload: { productId: item.product.id } });
-        }
-      });
+      if (!userChoice) {
+        // Utilisateur a choisi d'annuler
+        console.log('🚫 Commande annulée par l\'utilisateur pour corriger le panier');
+        setOrderError(`Commande annulée. Veuillez corriger les articles invalides: ${invalidNames}`);
+        setMobileOverlay({
+          visible: true,
+          status: 'error',
+          message: 'Commande annulée - Articles invalides détectés'
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
-      // Si plus d'articles valides, afficher erreur
+      // Utilisateur a choisi de continuer - vérifier qu'il reste des articles valides
       if (validCartItems.length === 0) {
-        const errorMsg = `Tous les articles du panier ont des IDs invalides. Veuillez vider le panier et ajouter de nouveaux produits.`;
+        const errorMsg = `Impossible de continuer: tous les articles du panier sont invalides.`;
         setOrderError(errorMsg);
         setMobileOverlay({
           visible: true,
@@ -449,8 +468,8 @@ export default function CheckoutPage() {
         return;
       }
       
-      // Afficher un avertissement mais continuer
-      console.warn(`⚠️ Attention: ${removedCount} article(s) invalide(s) supprimé(s). Continuation avec ${validCartItems.length} article(s) valide(s).`);
+      console.log(`✅ Utilisateur a choisi de continuer avec ${validCartItems.length} article(s) valide(s)`);
+      console.warn(`⚠️ Articles invalides ignorés:`, invalidCartItems);
     }
     
     console.log('📝 Données actuelles:', { deliveryInfo, paymentInfo, cartItems: validCartItems });
@@ -504,30 +523,14 @@ export default function CheckoutPage() {
       // Formater le numéro WhatsApp
       const formattedWhatsApp = formatGabonPhone(paymentInfo.whatsapp);
       
-      // Validation et diagnostic du panier
-      console.log('🛍️ Analyse du panier:', { 
-        totalItems: cartItems.length,
-        cartItems: cartItems.map(item => ({
-          id: item.product?.id,
-          name: item.product?.name,
-          price: item.product?.price,
-          quantity: item.quantity,
-          hasProduct: !!item.product,
-          isValid: !!(item.product?.id && item.product?.name && item.product?.price != null)
-        }))
-      });
-      
-      // Validation permissive du panier avec support UUID
-      const validCartItems = cartItems.filter(item => {
-        const hasValidProduct = item.product && item.product.id != null && String(item.product.id).trim().length > 0;
-        const hasValidName = item.product?.name && String(item.product.name).trim().length > 0;
-        const hasValidPrice = item.product?.price != null && !isNaN(Number(item.product.price));
-        const hasValidQuantity = item.quantity > 0;
-        
-        return hasValidProduct && hasValidName && hasValidPrice && hasValidQuantity;
-      });
-      
-      console.log('✅ Articles valides détectés:', validCartItems.length);
+      // Utiliser les articles validés par notre logique de checkout
+      console.log('🛑️ Utilisation des articles validés:', validCartItems.length);
+      console.log('📝 Articles finaux pour la commande:', validCartItems.map(item => ({
+        id: item.product?.id,
+        name: item.product?.name,
+        price: item.product?.price,
+        quantity: item.quantity
+      })));
       
       if (validCartItems.length === 0) {
         const invalidItems = cartItems.filter(item => !(
@@ -642,9 +645,40 @@ export default function CheckoutPage() {
           }))
         );
         
-        // Note: Le panier n'est plus vidé automatiquement pour permettre à l'utilisateur
-        // de rester sur la page de finalisation et voir les détails de sa commande
-        // L'utilisateur peut manuellement vider le panier ou continuer ses achats
+        // Nettoyer intelligemment le panier - supprimer seulement les articles commandés
+        console.log('🧽 Nettoyage intelligent du panier...');
+        validCartItems.forEach(orderedItem => {
+          console.log(`🗑️ Suppression de l'article commandé: ${orderedItem.product.name}`);
+          dispatch({ 
+            type: 'REMOVE_FROM_CART', 
+            payload: { productId: orderedItem.product.id } 
+          });
+        });
+        
+        // Vérifier s'il reste des articles invalides dans le panier
+        const remainingItems = cartItems.filter(item => 
+          !validCartItems.some(ordered => ordered.product.id === item.product.id)
+        );
+        
+        if (remainingItems.length > 0) {
+          console.log(`⚠️ ${remainingItems.length} article(s) invalide(s) resté(s) dans le panier:`, 
+            remainingItems.map(item => ({ id: item.product.id, name: item.product.name }))
+          );
+          
+          // Afficher une notification pour informer l'utilisateur
+          setTimeout(() => {
+            setMobileOverlay({
+              visible: true,
+              status: 'error',
+              message: `Attention: ${remainingItems.length} article(s) invalide(s) resté(s) dans votre panier`
+            });
+            setTimeout(() => {
+              setMobileOverlay({ visible: false, status: 'loading', message: '' });
+            }, 3000);
+          }, 2500);
+        } else {
+          console.log('✅ Panier complètement nettoyé - tous les articles étaient valides');
+        }
         
         window.scrollTo(0, 0);
       } else {
