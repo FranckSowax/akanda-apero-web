@@ -330,8 +330,21 @@ export default function CheckoutPage() {
     deliveryFee
   });
   
-  // Calculer le total final
-  const total = subtotal - discountAmount + deliveryFee;
+  // Calculer le total final avec validation
+  const safeSubtotal = Number(subtotal) || 0;
+  const safeDiscountAmount = Number(discountAmount) || 0;
+  const safeDeliveryFee = Number(deliveryFee) || 0;
+  const total = safeSubtotal - safeDiscountAmount + safeDeliveryFee;
+  
+  // Vérifier que les valeurs sont valides
+  if (isNaN(total) || isNaN(safeSubtotal) || isNaN(safeDeliveryFee)) {
+    console.error('❌ Erreur de calcul - valeurs NaN détectées:', {
+      subtotal: safeSubtotal,
+      discountAmount: safeDiscountAmount,
+      deliveryFee: safeDeliveryFee,
+      total
+    });
+  }
 
   // Format price function
   const formatPriceLocal = (price: number, currency: string = 'XAF') => {
@@ -555,8 +568,12 @@ export default function CheckoutPage() {
       // Extraire le prénom et le nom du nom complet
       const { firstName, lastName } = getFirstAndLastName(deliveryInfo.fullName);
       
-      // Formater le numéro WhatsApp
+      // Formater le numéro WhatsApp pour les notifications
       const formattedWhatsApp = formatGabonPhone(paymentInfo.whatsapp);
+      
+      // Utiliser le numéro de téléphone du profil pour les données client
+      const profilePhone = deliveryInfo.phone || profile?.phone || formattedWhatsApp;
+      const formattedProfilePhone = formatGabonPhone(profilePhone);
       
       // Utiliser les articles validés par notre logique de checkout
       console.log('🛑️ Utilisation des articles validés:', validCartItems.length);
@@ -591,7 +608,7 @@ export default function CheckoutPage() {
           email: `${paymentInfo.whatsapp.replace(/[^0-9]/g, '')}@akandaapero.com`,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          phone: formattedWhatsApp
+          phone: formattedProfilePhone
         },
         deliveryInfo: {
           address: deliveryInfo.address.trim(),
@@ -628,15 +645,22 @@ export default function CheckoutPage() {
               imageUrl: String(item.product.imageUrl || '').trim()
             };
           }),
-        totalAmount: Number(total),
-        subtotal: Number(subtotal),
-        deliveryCost: Number(deliveryFee),
-        discount: Number(discountAmount)
+        totalAmount: Number(total) || 0,
+        subtotal: Number(subtotal) || 0,
+        deliveryCost: Number(deliveryFee) || 0,
+        discount: Number(discountAmount) || 0
       };
       
       // Créer la commande et enregistrer le client
       console.log('📦 Création commande avec:', orderData);
       console.log('🔍 Validation des données avant envoi:');
+      console.log('📞 Numéros de téléphone:', {
+        whatsappOriginal: paymentInfo.whatsapp,
+        whatsappFormaté: formattedWhatsApp,
+        profilePhone: profilePhone,
+        profilePhoneFormaté: formattedProfilePhone,
+        utilisePour: 'customerInfo.phone'
+      });
       console.log('  - customerInfo:', orderData.customerInfo);
       console.log('  - deliveryInfo:', orderData.deliveryInfo);
       console.log('  - paymentInfo:', orderData.paymentInfo);
