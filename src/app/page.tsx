@@ -419,7 +419,10 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-4 flex-1 flex flex-col justify-start">
-                {featuredProducts.slice(0, 5).map((product: any, index: number) => (
+                {featuredProducts
+                  .filter((product: any) => product && product.id && product.name) // Filtrer les produits invalides
+                  .slice(0, 5)
+                  .map((product: any, index: number) => (
                   <motion.div 
                     key={product.id}
                     className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer relative"
@@ -474,7 +477,7 @@ export default function Home() {
                       <div className="flex-shrink-0">
                         <AddToCartButton
                           product={{
-                            id: parseInt(product.id) || 0,
+                            id: product.id || '',
                             name: product.name,
                             price: product.sale_price || product.base_price || 0,
                             imageUrl: product.image_url || '',

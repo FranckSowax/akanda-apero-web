@@ -198,7 +198,7 @@ export default function ProduitsPage() {
                     {/* Bouton Add to Cart positionné en bas à droite */}
                     <AddToCartButton
                       product={{
-                        id: parseInt(product.id) || 0,
+                        id: product.id || '',
                         name: product.name,
                         price: product.base_price,
                         imageUrl: product.product_images && product.product_images.length > 0 

@@ -53,7 +53,9 @@ export const validateProduct = (product: any): ValidatedProduct | null => {
     return null;
   }
 
-  if (!product.base_price || typeof product.base_price !== 'number') {
+  // Vérifier le prix (peut être price ou base_price)
+  const productPrice = product.price || product.base_price;
+  if (!productPrice || typeof productPrice !== 'number') {
     console.warn('🚫 Produit sans prix valide détecté:', product);
     return null;
   }
@@ -62,7 +64,7 @@ export const validateProduct = (product: any): ValidatedProduct | null => {
   const validatedProduct: ValidatedProduct = {
     id: productId,
     name: product.name,
-    base_price: product.base_price,
+    base_price: productPrice, // Utiliser le prix détecté
     sale_price: product.sale_price || null,
     image_url: product.image_url || product.imageUrl || null,
     emoji: product.emoji || null,

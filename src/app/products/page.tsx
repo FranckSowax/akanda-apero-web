@@ -451,7 +451,7 @@ function ProductsContent({
                       <div className="sm:absolute sm:bottom-2 sm:right-2 flex justify-end mt-2 sm:mt-0">
                         <AddToCartButton
                           product={{
-                            id: parseInt(product.id.toString()),
+                            id: product.id || '',
                             name: product.name,
                             description: product.description,
                             price: getPrice(product),

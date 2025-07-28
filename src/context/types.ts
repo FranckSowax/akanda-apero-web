@@ -1,7 +1,7 @@
 // Types pour notre système de gestion d'état
 
 export interface Product {
-  id: number;
+  id: string; // UUID string pour compatibilité Supabase
   name: string;
   description: string;
   price: number;
