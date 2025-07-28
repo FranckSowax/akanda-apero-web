@@ -101,6 +101,7 @@ export default function CheckoutPage() {
   const [formStep, setFormStep] = useState<'delivery' | 'payment' | 'confirmation'>('delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [savedLoyaltyPoints, setSavedLoyaltyPoints] = useState<number>(0);
   
   // États pour le feedback mobile
   const [mobileOverlay, setMobileOverlay] = useState({
@@ -629,6 +630,11 @@ export default function CheckoutPage() {
           setMobileOverlay({ visible: false, status: 'loading', message: '' });
         }, 2000);
         
+        // 💎 Sauvegarder les points de fidélité AVANT de vider le panier
+        const pointsEarned = calculateLoyaltyPoints();
+        setSavedLoyaltyPoints(pointsEarned);
+        console.log('💎 Points de fidélité sauvegardés:', pointsEarned);
+        
         setOrderNumber(newOrderNumber);
         setOrderPlaced(true);
         setFormStep('confirmation');
@@ -739,34 +745,7 @@ export default function CheckoutPage() {
           </div>
         </div>
         <div className="p-4 space-y-4">
-          {/* Emergency Clear Cart Button */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-red-800">Problème avec le panier ?</h3>
-                <p className="text-xs text-red-600">Si vous rencontrez des erreurs, videz le panier et recommencez</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🗑️ Vidage d\'urgence du panier');
-                  dispatch({ type: 'CLEAR_CART' });
-                  setOrderError(null);
-                  setMobileOverlay({
-                    visible: true,
-                    status: 'success',
-                    message: 'Panier vidé avec succès'
-                  });
-                  setTimeout(() => {
-                    setMobileOverlay({ visible: false, status: 'loading', message: '' });
-                  }, 2000);
-                }}
-                className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-              >
-                Vider le panier
-              </button>
-            </div>
-          </div>
+
           
           {/* Cart Items */}
           <div className="space-y-4 mt-6">
@@ -1147,19 +1126,6 @@ export default function CheckoutPage() {
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="cardNumber" className="text-sm font-medium text-gray-700">Numéro de carte</Label>
-                      <Input 
-                        id="cardNumber" 
-                        name="cardNumber" 
-                        value={paymentInfo.cardNumber} 
-                        onChange={handlePaymentInfoChange} 
-                        placeholder="1234 5678 9012 3456" 
-                        required 
-                        className="h-12 border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg transition-colors duration-200 font-mono"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
                       <Label htmlFor="cardName" className="text-sm font-medium text-gray-700">Nom sur la carte</Label>
                       <Input 
                         id="cardName" 
@@ -1270,7 +1236,7 @@ export default function CheckoutPage() {
           </div>
           
           {/* Section Points de Fidélité Gagnés */}
-          {loyaltyPointsEarned > 0 && (
+          {savedLoyaltyPoints > 0 && (
             <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-6">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <div className="p-2 bg-gradient-to-r from-[#f5a623] to-orange-500 rounded-full">
@@ -1282,17 +1248,17 @@ export default function CheckoutPage() {
                 <p className="text-sm text-gray-700 mb-2">Vous avez gagné</p>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Star className="h-6 w-6 text-[#f5a623]" />
-                  <span className="text-2xl font-bold text-[#f5a623]">{loyaltyPointsEarned}</span>
+                  <span className="text-2xl font-bold text-[#f5a623]">{savedLoyaltyPoints}</span>
                   <span className="text-lg font-semibold text-gray-700">points de fidélité</span>
                 </div>
                 <p className="text-xs text-gray-600">
-                  {loyaltyPointsEarned >= 50 ? (
+                  {savedLoyaltyPoints >= 50 ? (
                     <span className="text-green-600 font-medium">
                       🎉 Vous avez débloqué la livraison gratuite !
                     </span>
                   ) : (
                     <span>
-                      Plus que {50 - loyaltyPointsEarned} points pour débloquer la livraison gratuite
+                      Plus que {50 - savedLoyaltyPoints} points pour débloquer la livraison gratuite
                     </span>
                   )}
                 </p>
