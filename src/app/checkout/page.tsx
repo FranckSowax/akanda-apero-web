@@ -281,9 +281,12 @@ export default function CheckoutPage() {
       }
     };
 
-    // Pré-remplir avec les données du profil utilisateur
+  // Pré-remplir les informations de livraison avec le profil utilisateur
+  // IMPORTANT: Ceci est juste une aide pour l'utilisateur. Les données finales de commande
+  // utilisent UNIQUEMENT ce qui est saisi dans le formulaire, pas les données du profil.
+  useEffect(() => {
     if (profile && !deliveryInfo.fullName && !deliveryInfo.phone) {
-      console.log('📄 Pré-remplissage avec le profil:', profile);
+      console.log('📄 Pré-remplissage avec le profil (aide utilisateur uniquement):', profile);
       
       const fullName = profile.first_name && profile.last_name 
         ? `${profile.first_name} ${profile.last_name}`.trim()
@@ -567,6 +570,15 @@ export default function CheckoutPage() {
       
       // Extraire le prénom et le nom du nom complet
       const { firstName, lastName } = getFirstAndLastName(deliveryInfo.fullName);
+      
+      console.log('👤 Données client pour la commande:', {
+        fullNameFromForm: deliveryInfo.fullName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        profileFirstName: profile?.first_name,
+        profileLastName: profile?.last_name,
+        source: 'Formulaire de checkout uniquement'
+      });
       
       // Formater le numéro WhatsApp pour les notifications
       const formattedWhatsApp = formatGabonPhone(paymentInfo.whatsapp);

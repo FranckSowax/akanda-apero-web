@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
     
     console.log('📍 Coordonnées GPS utilisées:', { lat: gpsLat, lng: gpsLng });
     
-    // 1. Créer ou récupérer le client
+    // 1. Créer ou mettre à jour le client avec les données du formulaire
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('id')
@@ -274,6 +274,7 @@ export async function POST(request: NextRequest) {
     let customerId = existingCustomer?.id;
     
     if (!customerId) {
+      // Créer un nouveau client
       const { data: newCustomer, error: customerError } = await supabase
         .from('customers')
         .insert({
@@ -295,6 +296,31 @@ export async function POST(request: NextRequest) {
       
       customerId = newCustomer.id;
       console.log('✅ Nouveau client créé avec ID:', customerId);
+    } else {
+      // Mettre à jour le client existant avec les données du formulaire
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update({
+          first_name: orderData.customerInfo.first_name,
+          last_name: orderData.customerInfo.last_name,
+          phone: orderData.customerInfo.phone,
+          full_name: `${orderData.customerInfo.first_name} ${orderData.customerInfo.last_name}`.trim()
+        })
+        .eq('id', customerId);
+      
+      if (updateError) {
+        console.error('❌ Erreur mise à jour client:', updateError);
+        return NextResponse.json(
+          { error: 'Erreur lors de la mise à jour du client', details: updateError.message },
+          { status: 500 }
+        );
+      }
+      
+      console.log('✅ Client existant mis à jour avec ID:', customerId, {
+        first_name: orderData.customerInfo.first_name,
+        last_name: orderData.customerInfo.last_name,
+        phone: orderData.customerInfo.phone
+      });
     }
     
     // 2. Créer la commande avec coordonnées GPS
