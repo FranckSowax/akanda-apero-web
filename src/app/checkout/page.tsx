@@ -232,10 +232,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     // 📊 Tracker le début du checkout
     if (cartItems.length > 0) {
-      const cartValue = subtotal;
+      const { subtotal: currentSubtotal } = getCartTotal();
       const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
       
-      trackBeginCheckout(cartValue, itemCount);
+      trackBeginCheckout(currentSubtotal, itemCount);
     }
     
     const prefillUserInfo = async () => {
@@ -280,6 +280,10 @@ export default function CheckoutPage() {
         console.error('❌ Erreur lors du pré-remplissage des informations utilisateur:', error);
       }
     };
+    
+    // Appeler la fonction de pré-remplissage
+    prefillUserInfo();
+  }, [user, cartItems]);
 
   // Pré-remplir les informations de livraison avec le profil utilisateur
   // IMPORTANT: Ceci est juste une aide pour l'utilisateur. Les données finales de commande
