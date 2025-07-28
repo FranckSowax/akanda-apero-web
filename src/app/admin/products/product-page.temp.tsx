@@ -67,7 +67,7 @@ const ProductCard = ({
 }: { 
   product: DisplayProduct; 
   onEdit: (product: DisplayProduct) => void; 
-  onDelete: (id: number) => void 
+  onDelete: (id: string) => void 
 }) => {
   return (
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
@@ -131,7 +131,7 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [products, setProducts] = useState<DisplayProduct[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,7 +239,7 @@ export default function ProductsPage() {
     setIsAddEditDialogOpen(true);
   };
 
-  const handleDeleteProduct = (id: number) => {
+  const handleDeleteProduct = (id: string) => {
     setProductToDelete(id);
     setIsDeleteDialogOpen(true);
   };
