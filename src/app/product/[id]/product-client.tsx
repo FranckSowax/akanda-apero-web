@@ -115,7 +115,7 @@ export default function ProductClient({ productId }: { productId: string }) {
   const handleAddToCart = () => {
     if (uiProduct) {
       const adaptedProduct = {
-        id: Number(uiProduct.id),
+        id: String(uiProduct.id),
         name: uiProduct.name,
         description: uiProduct.description || '',
         price: uiProduct.price,

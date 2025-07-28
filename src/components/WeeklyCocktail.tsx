@@ -14,7 +14,7 @@ const formatPrice = (price: number): string => {
 
 // Fonction pour convertir un cocktail en produit pour le panier
 const convertCocktailToProduct = (cocktail: any) => ({
-  id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000),
+  id: cocktail.id ? String(cocktail.id) : `weekly-${Math.random().toString(36).substr(2, 9)}`,
   name: cocktail.name,
   description: cocktail.description || '',
   price: cocktail.base_price,

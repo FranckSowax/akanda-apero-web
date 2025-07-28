@@ -54,7 +54,7 @@ const paymentMethods = [
 
 // Définir les types pour la logique du panier
 interface ProductItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   imageUrl: string;

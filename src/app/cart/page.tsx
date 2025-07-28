@@ -124,7 +124,7 @@ export default function CartPage() {
   }, []);
 
   // Fonction pour changer la quantité d'un article
-  const handleQuantityChange = (productId: number, delta: number) => {
+  const handleQuantityChange = (productId: string, delta: number) => {
     const item = cartItems.find(item => item.product.id === productId);
     if (item) {
       updateCartItemQuantity(productId, Math.max(1, item.quantity + delta));
@@ -132,13 +132,13 @@ export default function CartPage() {
   };
 
   // Fonction pour supprimer un article
-  const handleRemoveItem = (productId: number) => {
+  const handleRemoveItem = (productId: string) => {
     // Trouver le produit avant de le supprimer pour le tracking
     const item = cartItems.find(item => item.product.id === productId);
     
     if (item) {
       // 📊 Tracker la suppression du panier
-      trackRemoveFromCart(item.product.id.toString());
+      trackRemoveFromCart(item.product.id);
     }
     
     removeFromCart(productId);

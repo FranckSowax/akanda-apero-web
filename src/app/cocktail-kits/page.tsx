@@ -490,7 +490,7 @@ const CocktailShowcase = () => {
               {/* Bouton Add to Cart positionné en bas à droite */}
               <AddToCartButton
                 product={{
-                  id: parseInt(cocktail.id) || Math.floor(Math.random() * 10000),
+                  id: cocktail.id || `kit-${Math.random().toString(36).substr(2, 9)}`,
                   name: `Kit Cocktail ${cocktail.name} (${quantities[cocktail.id] || 2} pers.)`,
                   price: calculatePrice(cocktail.price, quantities[cocktail.id] || 2),
                   imageUrl: cocktail.image,

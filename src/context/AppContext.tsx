@@ -13,13 +13,13 @@ type AppContextType = {
   dispatch: React.Dispatch<AppAction>;
   // Fonctions utilitaires
   addToCart: (product: Product, quantity: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateCartItemQuantity: (productId: number, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateCartItemQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   applyPromoCode: (code: string) => void;
   getCartTotal: () => { subtotal: number; deliveryCost: number; discount: number; total: number };
   getCartItemsCount: () => number;
-  getItemQuantity: (productId: number) => number;
+  getItemQuantity: (productId: string) => number;
   // Synchronisation du panier
   syncCartWithUser: (userId: string) => Promise<void>;
   saveCartToCloud: (userId: string) => Promise<void>;
@@ -126,11 +126,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }, 3000);
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = (productId: string) => {
     dispatch({ type: 'REMOVE_FROM_CART', payload: { productId } });
   };
 
-  const updateCartItemQuantity = (productId: number, quantity: number) => {
+  const updateCartItemQuantity = (productId: string, quantity: number) => {
     dispatch({ type: 'UPDATE_CART_ITEM_QUANTITY', payload: { productId, quantity } });
   };
 
@@ -235,7 +235,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Obtenir la quantité d'un produit spécifique dans le panier
-  const getItemQuantity = (productId: number) => {
+  const getItemQuantity = (productId: string) => {
     const item = state.cart.items.find(item => item.product.id === productId);
     return item ? item.quantity : 0;
   };

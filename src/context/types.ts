@@ -90,8 +90,8 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number } }
-  | { type: 'REMOVE_FROM_CART'; payload: { productId: number } }
-  | { type: 'UPDATE_CART_ITEM_QUANTITY'; payload: { productId: number; quantity: number } }
+  | { type: 'REMOVE_FROM_CART'; payload: { productId: string } }
+  | { type: 'UPDATE_CART_ITEM_QUANTITY'; payload: { productId: string; quantity: number } }
   | { type: 'CLEAR_CART' }
   | { type: 'SET_CART'; payload: { items: CartItem[]; promoCode?: string; promoDiscount?: number; deliveryOption: string } }
   | { type: 'APPLY_PROMO_CODE'; payload: { code: string; discount: number } }

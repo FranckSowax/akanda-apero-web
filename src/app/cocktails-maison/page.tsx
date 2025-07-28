@@ -309,7 +309,7 @@ export default function CocktailsMaisonPage() {
     const calculatedPrice = calculatePriceForGuests(basePrice, guestCount);
     
     return {
-      id: parseInt(item.id) || Math.floor(Math.random() * 1000000),
+      id: String(item.id) || `${type}-${Math.random().toString(36).substr(2, 9)}`,
       name: item.name,
       description: item.description || '',
       price: Number(calculatedPrice),
