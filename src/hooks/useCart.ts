@@ -37,6 +37,17 @@ export const useCart = () => {
   }, [cart]);
 
   const addToCart = (product: any, quantity: number = 1) => {
+    // Validation du produit avant ajout
+    if (!product || !product.id) {
+      console.error('🚫 Produit sans ID détecté:', product);
+      return;
+    }
+    
+    if (!isValidUUID(String(product.id))) {
+      console.error('❌ Produit avec ID invalide, ajout au panier annulé:', product);
+      return;
+    }
+    
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
       
