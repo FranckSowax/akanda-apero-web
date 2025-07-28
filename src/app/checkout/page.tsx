@@ -103,6 +103,31 @@ export default function CheckoutPage() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [savedLoyaltyPoints, setSavedLoyaltyPoints] = useState<number>(0);
   
+  // 💾 Charger les données de confirmation depuis localStorage au démarrage
+  useEffect(() => {
+    const savedConfirmation = localStorage.getItem('akanda-order-confirmation');
+    if (savedConfirmation) {
+      try {
+        const confirmationData = JSON.parse(savedConfirmation);
+        console.log('💾 Chargement confirmation depuis localStorage:', confirmationData);
+        
+        setFormStep('confirmation');
+        setOrderPlaced(true);
+        setOrderNumber(confirmationData.orderNumber || '');
+        setSavedLoyaltyPoints(confirmationData.loyaltyPoints || 0);
+        
+        // Nettoyer après 5 minutes pour éviter l'accumulation
+        setTimeout(() => {
+          localStorage.removeItem('akanda-order-confirmation');
+          console.log('🧹 Nettoyage confirmation localStorage après 5min');
+        }, 5 * 60 * 1000);
+      } catch (error) {
+        console.error('❌ Erreur parsing confirmation localStorage:', error);
+        localStorage.removeItem('akanda-order-confirmation');
+      }
+    }
+  }, []);
+  
   // États pour le feedback mobile
   const [mobileOverlay, setMobileOverlay] = useState({
     visible: false,
@@ -148,6 +173,15 @@ export default function CheckoutPage() {
   
   const loyaltyPointsEarned = calculateLoyaltyPoints();
 
+  // 🔍 Log de l'état initial du composant
+  console.log('🔍 Checkout - État initial:', { 
+    formStep, 
+    orderPlaced, 
+    savedLoyaltyPoints, 
+    cartItemsCount: state.cart.items.length,
+    orderNumber 
+  });
+
   // Rediriger vers la page panier si le panier est vide ou vers la page d'authentification si l'utilisateur n'est pas connecté
   useEffect(() => {
     // Attendre que l'authentification soit complètement chargée
@@ -156,7 +190,7 @@ export default function CheckoutPage() {
       return;
     }
     
-    console.log('📊 Checkout - État auth:', { user, isLoggedIn, cartItems: state.cart.items.length, formStep });
+    console.log('📊 Checkout - État auth:', { user, isLoggedIn, cartItems: state.cart.items.length, formStep, orderPlaced, savedLoyaltyPoints });
     
     // Ne pas rediriger si on est sur la page de confirmation, même si le panier est vide
     if (state.cart.items.length === 0 && formStep !== 'confirmation' && !orderPlaced) {
@@ -634,6 +668,15 @@ export default function CheckoutPage() {
         const pointsEarned = calculateLoyaltyPoints();
         setSavedLoyaltyPoints(pointsEarned);
         console.log('💎 Points de fidélité sauvegardés:', pointsEarned);
+        
+        // 💾 Sauvegarder dans localStorage pour persistance
+        const confirmationData = {
+          orderNumber: newOrderNumber,
+          loyaltyPoints: pointsEarned,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('akanda-order-confirmation', JSON.stringify(confirmationData));
+        console.log('💾 Confirmation sauvegardée dans localStorage:', confirmationData);
         
         setOrderNumber(newOrderNumber);
         setOrderPlaced(true);
@@ -1367,8 +1410,8 @@ export default function CheckoutPage() {
               </p>
             </div>
             
-            {/* Si le panier est vide, afficher un message et un lien pour retourner aux produits */}
-            {state.cart.items.length === 0 ? (
+            {/* Si le panier est vide ET qu'on n'est pas sur la page de confirmation, afficher un message */}
+            {state.cart.items.length === 0 && formStep !== 'confirmation' && !orderPlaced ? (
               <div className="text-center py-12">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
                   <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
