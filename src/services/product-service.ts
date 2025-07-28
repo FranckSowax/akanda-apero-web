@@ -14,7 +14,7 @@ const ProductService = {
   },
 
   // Récupérer un produit par son ID
-  getProductById: (id: number) => {
+  getProductById: (id: string) => {
     return api.get<Product>(`/products/${id}`);
   },
 
@@ -24,17 +24,17 @@ const ProductService = {
   },
 
   // Mettre à jour un produit existant
-  updateProduct: (id: number, product: Partial<Product>) => {
+  updateProduct: (id: string, product: Partial<Product>) => {
     return api.put<Product>(`/products/${id}`, product);
   },
 
   // Supprimer un produit
-  deleteProduct: (id: number) => {
+  deleteProduct: (id: string) => {
     return api.delete<{ success: boolean }>(`/products/${id}`);
   },
 
   // Mettre à jour le stock d'un produit
-  updateStock: (id: number, stock: number) => {
+  updateStock: (id: string, stock: number) => {
     return api.patch<Product>(`/products/${id}/stock`, { stock });
   },
 
@@ -44,7 +44,7 @@ const ProductService = {
   },
 
   // Récupérer les produits par catégorie
-  getProductsByCategory: (categoryId: number) => {
+  getProductsByCategory: (categoryId: string) => {
     return api.get<Product[]>(`/products/category/${categoryId}`);
   }
 };

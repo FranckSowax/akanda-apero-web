@@ -1,6 +1,6 @@
 // Types pour les produits
 export interface Product {
-  id: number;
+  id: string; // UUID string pour compatibilité Supabase
   name: string;
   description: string;
   price: number;

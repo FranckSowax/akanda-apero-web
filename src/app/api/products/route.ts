@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Base de données fictive pour fallback uniquement
 let fallbackProducts: Product[] = [
   {
-    id: 1,
+    id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     name: "Pack The Party Mix",
     description: "Assortiment de 12 canettes de diverses boissons pour vos soirées",
     price: 15000,
@@ -25,7 +25,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 2,
+    id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
     name: "Whisky Premium",
     description: "Whisky de qualité premium, vieilli en fût de chêne pendant 12 ans",
     price: 35000,
@@ -38,7 +38,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 3,
+    id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
     name: "Cocktail DIY Kit",
     description: "Kit complet pour préparer vos cocktails maison",
     price: 28000,
@@ -53,7 +53,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 4,
+    id: '6ba7b812-9dad-11d1-80b4-00c04fd430c8',
     name: "Bières Artisanales - Assortiment",
     description: "Sélection de bières artisanales locales et importées",
     price: 12000,
@@ -66,7 +66,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 5,
+    id: '6ba7b813-9dad-11d1-80b4-00c04fd430c8',
     name: "Vin Rouge Château Margaux",
     description: "Vin rouge de première qualité, aux arômes complexes",
     price: 45000,
@@ -79,7 +79,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 6,
+    id: '6ba7b814-9dad-11d1-80b4-00c04fd430c8',
     name: "Pack Football Spécial",
     description: "Pack idéal pour regarder les matchs entre amis",
     price: 20000,
@@ -93,7 +93,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 7,
+    id: '6ba7b815-9dad-11d1-80b4-00c04fd430c8',
     name: "Champagne Moët & Chandon",
     description: "Champagne de qualité supérieure pour vos célébrations",
     price: 60000,
@@ -106,7 +106,7 @@ let fallbackProducts: Product[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 8,
+    id: '6ba7b816-9dad-11d1-80b4-00c04fd430c8',
     name: "Rhum Diplomatico",
     description: "Rhum d'exception avec des notes de vanille et de caramel",
     price: 25000,
