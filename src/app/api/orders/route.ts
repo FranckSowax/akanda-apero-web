@@ -281,7 +281,8 @@ export async function POST(request: NextRequest) {
           email: orderData.customerInfo.email,
           first_name: orderData.customerInfo.first_name,
           last_name: orderData.customerInfo.last_name,
-          phone: orderData.customerInfo.phone
+          phone: orderData.customerInfo.phone,
+          full_name: `${orderData.customerInfo.first_name} ${orderData.customerInfo.last_name}`.trim()
         })
         .select('id')
         .single();
