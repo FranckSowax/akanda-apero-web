@@ -425,6 +425,7 @@ export async function POST(request: NextRequest) {
     const orderItems = validItems;
     
     console.log('📦 Articles prêts pour insertion:', orderItems);
+    console.log('🔍 IDs des produits à insérer:', orderItems.map(item => item.product_id));
     
     const { error: itemsError } = await supabase
       .from('order_items')
