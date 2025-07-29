@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, Truck, MapPin, Check, ShoppingCart, Award, Star } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, MapPin, Check, ShoppingCart, Award, Star, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -103,24 +103,38 @@ export default function CheckoutPage() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [savedLoyaltyPoints, setSavedLoyaltyPoints] = useState<number>(0);
   
-  // 💾 Charger les données de confirmation depuis localStorage au démarrage
+  // 💾 Charger les données de confirmation depuis localStorage SEULEMENT si c'est une reprise récente
   useEffect(() => {
     const savedConfirmation = localStorage.getItem('akanda-order-confirmation');
     if (savedConfirmation) {
       try {
         const confirmationData = JSON.parse(savedConfirmation);
-        console.log('💾 Chargement confirmation depuis localStorage:', confirmationData);
+        const timeElapsed = Date.now() - (confirmationData.timestamp || 0);
+        const maxAge = 10 * 60 * 1000; // 10 minutes maximum
         
-        setFormStep('confirmation');
-        setOrderPlaced(true);
-        setOrderNumber(confirmationData.orderNumber || '');
-        setSavedLoyaltyPoints(confirmationData.loyaltyPoints || 0);
+        console.log('💾 Confirmation trouvée dans localStorage:', {
+          ...confirmationData,
+          timeElapsed: Math.round(timeElapsed / 1000) + 's',
+          isRecent: timeElapsed < maxAge
+        });
         
-        // Nettoyer après 5 minutes pour éviter l'accumulation
+        // Charger seulement si la confirmation est récente (moins de 10 minutes)
+        if (timeElapsed < maxAge) {
+          console.log('✅ Chargement confirmation récente');
+          setFormStep('confirmation');
+          setOrderPlaced(true);
+          setOrderNumber(confirmationData.orderNumber || '');
+          setSavedLoyaltyPoints(confirmationData.loyaltyPoints || 0);
+        } else {
+          console.log('⚠️ Confirmation trop ancienne, suppression');
+          localStorage.removeItem('akanda-order-confirmation');
+        }
+        
+        // Nettoyer automatiquement après 15 minutes
         setTimeout(() => {
           localStorage.removeItem('akanda-order-confirmation');
-          console.log('🧹 Nettoyage confirmation localStorage après 5min');
-        }, 5 * 60 * 1000);
+          console.log('🧹 Nettoyage automatique confirmation localStorage');
+        }, 15 * 60 * 1000);
       } catch (error) {
         console.error('❌ Erreur parsing confirmation localStorage:', error);
         localStorage.removeItem('akanda-order-confirmation');
@@ -134,6 +148,25 @@ export default function CheckoutPage() {
     status: 'loading' as 'loading' | 'success' | 'error',
     message: ''
   });
+  
+  // Fonction pour nettoyer la confirmation et commencer une nouvelle commande
+  const startNewOrder = useCallback(() => {
+    console.log('🆕 Démarrage d\'une nouvelle commande');
+    
+    // Nettoyer les états de confirmation
+    setOrderPlaced(false);
+    setOrderNumber('');
+    setSavedLoyaltyPoints(0);
+    setOrderError(null);
+    
+    // Supprimer les données de confirmation du localStorage
+    localStorage.removeItem('akanda-order-confirmation');
+    
+    // Retourner à l'étape de livraison
+    setFormStep('delivery');
+    
+    console.log('✅ Nouvelle commande prête');
+  }, []);
   
   // Récupérer l'état d'authentification de l'utilisateur
   const { user, loading: authLoading } = useAuth();
@@ -1366,6 +1399,14 @@ export default function CheckoutPage() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Button 
+              onClick={startNewOrder}
+              variant="outline" 
+              className="w-full sm:w-auto border-orange-300 hover:border-orange-500 hover:text-orange-600 text-orange-600"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle commande
+            </Button>
             <Link href="/">
               <Button variant="outline" className="w-full sm:w-auto border-gray-300 hover:border-indigo-500 hover:text-indigo-600">
                 Retour à l'accueil

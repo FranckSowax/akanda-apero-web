@@ -308,8 +308,11 @@ export default function CocktailsMaisonPage() {
     const basePrice = type === 'option' ? (item as CocktailOption).price : (item as CocktailMaison | Mocktail).base_price;
     const calculatedPrice = calculatePriceForGuests(basePrice, guestCount);
     
+    // Utiliser l'ID de la base de données ou générer un ID déterministe
+    const cocktailId = item.id ? String(item.id) : `${type}-${item.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${type}`;
+    
     return {
-      id: String(item.id) || `${type}-${Math.random().toString(36).substr(2, 9)}`,
+      id: cocktailId,
       name: item.name,
       description: item.description || '',
       price: Number(calculatedPrice),

@@ -375,14 +375,25 @@ export async function POST(request: NextRequest) {
       
       // Vérifier si c'est un cocktail maison ou un produit normal
       const isCocktailMaison = productId.startsWith('cocktail-') || productId.startsWith('mocktail-') || productId.startsWith('option-');
-      const isValidProduct = isValidUUID(productId) || isCocktailMaison;
+      const isValidUUID_result = isValidUUID(productId);
+      const isValidProduct = isValidUUID_result || isCocktailMaison;
+      
+      // Log détaillé pour les cocktails
+      if (isCocktailMaison) {
+        console.log(`🍹 Cocktail maison détecté:`, {
+          id: productId,
+          name: item.name,
+          type: productId.split('-')[0],
+          isValidFormat: productId.length > 10 // Vérifier que l'ID n'est pas trop court
+        });
+      }
       
       console.log(`📎 Article ${index + 1}:`, {
         id: productId,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
-        isValidUUID: isValidUUID(productId),
+        isValidUUID: isValidUUID_result,
         isCocktailMaison: isCocktailMaison,
         isValidProduct: isValidProduct
       });
