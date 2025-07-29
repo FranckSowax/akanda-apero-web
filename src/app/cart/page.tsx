@@ -15,7 +15,7 @@ import { useAuth } from '../../hooks/supabase/useAuth';
 import { supabase } from '../../lib/supabase/client';
 import { Header } from '../../components/layout/Header';
 import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
-import AuthDebug from '../../components/AuthDebug';
+
 
 
 
@@ -562,9 +562,7 @@ export default function CartPage() {
         </div>
       )}
     </div>
-    
-    {/* Debug d'authentification pour diagnostiquer le problème mobile */}
-    <AuthDebug showOnMobile={true} position="bottom-left" />
+
     </>
   );
 }
