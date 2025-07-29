@@ -360,12 +360,6 @@ export async function POST(request: NextRequest) {
     console.log('📝 Préparation des articles:', orderData.items.length, 'articles');
     
     // Fonction pour valider un UUID
-    const isValidUUID = (uuid: string) => {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      return uuidRegex.test(uuid);
-    };
-    
-    // Filtrer et valider les articles
     const validItems = [];
     const invalidItems = [];
     
@@ -373,40 +367,45 @@ export async function POST(request: NextRequest) {
       const item = orderData.items[index];
       const productId = typeof item.id === 'string' ? item.id : String(item.id);
       
-      // Vérifier si c'est un cocktail maison ou un produit normal
-      const isCocktailMaison = productId.startsWith('cocktail-') || productId.startsWith('mocktail-') || productId.startsWith('option-');
-      const isValidUUID_result = isValidUUID(productId);
-      const isValidProduct = isValidUUID_result || isCocktailMaison;
-      
-      // Log détaillé pour les cocktails
-      if (isCocktailMaison) {
-        console.log(`🍹 Cocktail maison détecté:`, {
-          id: productId,
-          name: item.name,
-          type: productId.split('-')[0],
-          isValidFormat: productId.length > 10 // Vérifier que l'ID n'est pas trop court
-        });
-      }
-      
-      console.log(`📎 Article ${index + 1}:`, {
+      console.log(`🔍 Vérification article ${index + 1}:`, {
         id: productId,
         name: item.name,
         quantity: item.quantity,
-        price: item.price,
-        isValidUUID: isValidUUID_result,
-        isCocktailMaison: isCocktailMaison,
-        isValidProduct: isValidProduct
+        price: item.price
       });
       
-      if (!isValidProduct) {
-        console.error(`❌ ID invalide pour l'article ${index + 1}:`, productId);
+      // Vérifier dans la vue unifiée qui combine tous les types de produits
+      const { data: product, error } = await supabase
+        .from('products_unified')
+        .select('id, name, source_table')
+        .eq('id', productId)
+        .single();
+      
+      if (error || !product) {
+        console.warn(`⚠️ Article invalide - non trouvé:`, { 
+          index: index + 1, 
+          id: productId, 
+          name: item.name,
+          error: error?.message 
+        });
         invalidItems.push({ index: index + 1, id: productId, name: item.name });
-        continue; // Ignorer cet article
+        continue;
       }
       
+      // Déterminer si c'est un cocktail maison (pas un produit normal)
+      const isCocktailMaison = product.source_table !== 'product';
+      
+      console.log(`✅ Produit trouvé:`, { 
+        id: productId, 
+        name: item.name, 
+        source: product.source_table,
+        isCocktailMaison: isCocktailMaison
+      });
+      
+      // Ajouter l'article valide
       validItems.push({
         order_id: newOrder.id,
-        product_id: isCocktailMaison ? null : productId, // NULL pour cocktails maison
+        product_id: isCocktailMaison ? null : productId,
         product_name: item.name,
         quantity: item.quantity,
         unit_price: item.price,

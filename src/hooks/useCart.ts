@@ -43,10 +43,33 @@ export const useCart = () => {
       return;
     }
     
-    if (!isValidUUID(String(product.id))) {
+    // Vérifier que l'ID est une chaîne non vide (accepte UUID et IDs générés)
+    const productId = String(product.id).trim();
+    if (!productId || productId.length < 3) {
       console.error('❌ Produit avec ID invalide, ajout au panier annulé:', product);
       return;
     }
+    
+    console.log('📦 Tentative d\'ajout au panier:', {
+      product: {
+        id: productId,
+        name: product.name,
+        price: product.base_price || product.price
+      },
+      quantity: quantity
+    });
+    
+    // Validation supplémentaire pour les produits
+    if (!product.name || (!product.base_price && !product.price)) {
+      console.error('❌ Produit incomplet, ajout au panier annulé:', product);
+      return;
+    }
+    
+    console.log('✅ Produit validé avec succès:', {
+      id: productId,
+      name: product.name,
+      price: product.base_price || product.price
+    });
     
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
@@ -67,15 +90,28 @@ export const useCart = () => {
         );
       } else if (quantity > 0) {
         // Sinon, ajouter le nouveau produit seulement si quantité positive
-        return [...prevCart, {
+        const newCart = [...prevCart, {
           id: product.id,
           name: product.name,
-          base_price: product.base_price,
+          base_price: product.base_price || product.price,
           sale_price: product.sale_price,
           image_url: product.image_url,
           emoji: product.emoji,
           quantity
         }];
+        
+        console.log('✅ Produit validé, ajout au panier:', {
+          id: product.id,
+          name: product.name,
+          base_price: product.base_price || product.price,
+          sale_price: product.sale_price || null,
+          image_url: product.image_url || '',
+          bgColor: product.bgColor || 'orange',
+          currency: product.currency || 'FCFA',
+          categorySlug: product.categorySlug || product.source_table
+        });
+        
+        return newCart;
       }
       
       return prevCart;

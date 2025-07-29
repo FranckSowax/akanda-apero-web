@@ -281,7 +281,7 @@ export default function CheckoutPage() {
         const { supabase } = await import('../../lib/supabase/client');
         const { data: customer, error } = await supabase
           .from('customers')
-          .select('full_name, phone, whatsapp')
+          .select('full_name, phone')
           .eq('email', user.email)
           .single();
 
@@ -300,11 +300,11 @@ export default function CheckoutPage() {
             phone: customer.phone || prev.phone,
           }));
           
-          // Pré-remplir le champ WhatsApp dans les informations de paiement
+          // Pré-remplir le champ WhatsApp avec le téléphone du profil
           setPaymentInfo(prev => ({
             ...prev,
-            whatsapp: customer.whatsapp || prev.whatsapp,
-            mobileNumber: customer.phone || prev.mobileNumber, // Utiliser le téléphone comme numéro mobile par défaut
+            whatsapp: customer.phone || prev.whatsapp,
+            mobileNumber: customer.phone || prev.mobileNumber,
           }));
           
           console.log('🎯 Champs pré-remplis automatiquement depuis le profil utilisateur');
