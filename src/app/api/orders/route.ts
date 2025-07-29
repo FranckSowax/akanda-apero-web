@@ -373,23 +373,29 @@ export async function POST(request: NextRequest) {
       const item = orderData.items[index];
       const productId = typeof item.id === 'string' ? item.id : String(item.id);
       
+      // Vérifier si c'est un cocktail maison ou un produit normal
+      const isCocktailMaison = productId.startsWith('cocktail-') || productId.startsWith('mocktail-') || productId.startsWith('option-');
+      const isValidProduct = isValidUUID(productId) || isCocktailMaison;
+      
       console.log(`📎 Article ${index + 1}:`, {
         id: productId,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
-        isValidUUID: isValidUUID(productId)
+        isValidUUID: isValidUUID(productId),
+        isCocktailMaison: isCocktailMaison,
+        isValidProduct: isValidProduct
       });
       
-      if (!isValidUUID(productId)) {
-        console.error(`❌ UUID invalide pour l'article ${index + 1}:`, productId);
+      if (!isValidProduct) {
+        console.error(`❌ ID invalide pour l'article ${index + 1}:`, productId);
         invalidItems.push({ index: index + 1, id: productId, name: item.name });
         continue; // Ignorer cet article
       }
       
       validItems.push({
         order_id: newOrder.id,
-        product_id: productId,
+        product_id: isCocktailMaison ? null : productId, // NULL pour cocktails maison
         product_name: item.name,
         quantity: item.quantity,
         unit_price: item.price,
