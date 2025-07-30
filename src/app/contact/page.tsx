@@ -98,7 +98,7 @@ export default function ContactPage() {
               <div className="space-y-3 mb-4">
                 <div className="flex items-center space-x-3">
                   <Phone className="w-4 h-4" />
-                  <span className="text-sm font-semibold">+241 77 12 34 56</span>
+                  <span className="text-sm font-semibold">77 12 34 56</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-4 h-4" />
@@ -244,8 +244,8 @@ export default function ContactPage() {
                     <span className="font-semibold">Téléphone</span>
                   </div>
                   <div className="text-sm opacity-90">
-                    +241 77 12 34 56<br />
-                    +241 66 98 76 54
+                    77 12 34 56<br />
+                    66 98 76 54
                   </div>
                 </div>
                 

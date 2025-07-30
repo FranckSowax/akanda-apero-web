@@ -254,7 +254,7 @@ export default function ParametresPage() {
                 <Input
                   value={settings.phone}
                   onChange={(e) => handleSettingsChange('phone', e.target.value)}
-                  placeholder="+241 XX XX XX XX"
+                  placeholder="07 XX XX XX XX"
                   className="border-gray-300 focus:border-[#f5a623] focus:ring-[#f5a623]"
                 />
               </div>
@@ -269,7 +269,7 @@ export default function ParametresPage() {
                 <Input
                   value={settings.whatsapp}
                   onChange={(e) => handleSettingsChange('whatsapp', e.target.value)}
-                  placeholder="+241 XX XX XX XX"
+                  placeholder="07 XX XX XX XX"
                   className="border-gray-300 focus:border-[#f5a623] focus:ring-[#f5a623]"
                 />
               </div>

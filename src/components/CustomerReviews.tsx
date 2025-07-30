@@ -39,7 +39,7 @@ const reviews: Review[] = [
   },
   {
     id: '3',
-    name: 'Fatima Bongo',
+    name: 'Laeticia Koumba',
     location: 'Franceville, Gabon',
     rating: 5,
     comment: 'J\'ai commandé pour l\'anniversaire de ma fille. Les invités ont adoré ! Les mocktails sans alcool sont aussi savoureux que les cocktails classiques.',

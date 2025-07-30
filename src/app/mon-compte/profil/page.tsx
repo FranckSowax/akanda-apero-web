@@ -394,7 +394,7 @@ export default function UserProfilePage() {
                   value={profile.phone}
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   disabled={!isEditing}
-                  placeholder="+241 XX XX XX XX"
+                  placeholder="07 XX XX XX XX"
                 />
               </div>
               <div>
@@ -405,7 +405,7 @@ export default function UserProfilePage() {
                   value={profile.whatsapp}
                   onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
                   disabled={!isEditing}
-                  placeholder="+241 XX XX XX XX"
+                  placeholder="07 XX XX XX XX"
                 />
               </div>
               <div>

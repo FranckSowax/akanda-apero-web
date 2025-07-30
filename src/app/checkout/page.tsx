@@ -980,7 +980,7 @@ export default function CheckoutPage() {
                   name="phone" 
                   value={deliveryInfo.phone} 
                   onChange={handleDeliveryInfoChange} 
-                  placeholder="Ex: +241 07 12 34 56" 
+                  placeholder="Ex: 07 12 34 56" 
                   required 
                   type="tel"
                   inputMode="tel"
@@ -1136,7 +1136,7 @@ export default function CheckoutPage() {
                 type="tel" 
                 value={paymentInfo.whatsapp} 
                 onChange={handlePaymentInfoChange} 
-                placeholder="+241 XX XX XX XX" 
+                placeholder="07 XX XX XX XX" 
                 required 
                 className="h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 rounded-lg transition-colors duration-200"
               />
@@ -1212,7 +1212,7 @@ export default function CheckoutPage() {
                     name="mobileNumber" 
                     value={paymentInfo.mobileNumber} 
                     onChange={handlePaymentInfoChange} 
-                    placeholder="Ex: +241 07 12 34 56" 
+                    placeholder="Ex: 07 12 34 56" 
                     required 
                     type="tel"
                     className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-colors duration-200"
