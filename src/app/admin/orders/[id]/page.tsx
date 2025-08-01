@@ -214,11 +214,45 @@ export default function OrderDetailPage() {
                     <div>
                       <div className="flex items-start text-gray-600">
                         <MapPin className="mr-2 h-4 w-4 mt-0.5" />
-                        <div>
+                        <div className="space-y-2">
                           <p className="font-medium text-gray-900">Adresse de livraison</p>
                           <p>{order.delivery_address}</p>
                           {order.delivery_city && (
                             <p>{order.delivery_postal_code} {order.delivery_city}</p>
+                          )}
+                          
+                          {/* Quartier */}
+                          {order.delivery_district && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium text-gray-700">Quartier</p>
+                              <p className="text-sm text-gray-600">{order.delivery_district}</p>
+                            </div>
+                          )}
+                          
+                          {/* Coordonnées GPS avec lien Waze */}
+                          {(order.gps_latitude && order.gps_longitude) && (
+                            <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <p className="text-sm font-medium text-green-800 mb-2">Position GPS</p>
+                              <div className="text-xs text-green-700 font-mono bg-white/50 px-3 py-2 rounded-lg">
+                                <div className="flex justify-between">
+                                  <span>Latitude:</span>
+                                  <span className="font-semibold">{order.gps_latitude.toFixed(6)}</span>
+                                </div>
+                                <div className="flex justify-between mt-1">
+                                  <span>Longitude:</span>
+                                  <span className="font-semibold">{order.gps_longitude.toFixed(6)}</span>
+                                </div>
+                              </div>
+                              <a 
+                                href={`https://waze.com/ul?ll=${order.gps_latitude},${order.gps_longitude}&navigate=yes`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center mt-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors duration-200"
+                              >
+                                <MapPin className="mr-1 h-3 w-3" />
+                                Ouvrir dans Waze
+                              </a>
+                            </div>
                           )}
                         </div>
                       </div>

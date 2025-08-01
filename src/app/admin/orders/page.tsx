@@ -14,7 +14,8 @@ import {
   MoreHorizontal,
   Eye,
   FileText,
-  ChefHat
+  ChefHat,
+  MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../../../components/ui/button';
@@ -108,6 +109,54 @@ const PaymentStatusBadge = ({ paymentMethod, orderStatus, paymentStatus }: {
   );
 };
 
+// Fonction pour obtenir le nom de l'option de livraison
+const getDeliveryOptionName = (option: string) => {
+  switch (option) {
+    case 'pickup':
+      return 'Retrait au Shop';
+    case 'standard':
+      return 'Livraison Standard';
+    case 'express':
+      return 'Livraison Express';
+    case 'night':
+      return 'Livraison Nuit';
+    default:
+      return 'Livraison';
+  }
+};
+
+// Fonction pour obtenir les couleurs de l'option de livraison
+const getDeliveryOptionColor = (option: string) => {
+  switch (option) {
+    case 'pickup':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'standard':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'express':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'night':
+      return 'bg-purple-100 text-purple-800 border-purple-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
+
+// Fonction pour obtenir l'icône de l'option de livraison
+const getDeliveryOptionIcon = (option: string) => {
+  switch (option) {
+    case 'pickup':
+      return '🏪';
+    case 'standard':
+      return '🚚';
+    case 'express':
+      return '⚡';
+    case 'night':
+      return '🌙';
+    default:
+      return '📦';
+  }
+};
+
 // Tableau des commandes
 const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onViewPreparation }: { 
   orders: any[],
@@ -173,6 +222,9 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onView
             <th scope="col" className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Paiement
             </th>
+            <th scope="col" className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Livraison
+            </th>
             <th scope="col" className="px-4 py-3.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Actions
             </th>
@@ -218,6 +270,40 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onView
                   orderStatus={order.status || 'Nouvelle'}
                   paymentStatus={order.payment_status}
                 />
+              </td>
+              <td className="px-4 py-4 whitespace-nowrap">
+                <div className="space-y-1">
+                  {/* Type de livraison */}
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getDeliveryOptionColor(order.delivery_option || 'standard')}`}>
+                    <span className="mr-1">{getDeliveryOptionIcon(order.delivery_option || 'standard')}</span>
+                    {getDeliveryOptionName(order.delivery_option || 'standard')}
+                  </div>
+                  
+                  {/* Quartier */}
+                  {order.delivery_district && (
+                    <div className="text-xs text-gray-600">
+                      {order.delivery_district}
+                    </div>
+                  )}
+                  
+                  {/* Lien Waze uniquement */}
+                  {(order.gps_latitude && order.gps_longitude) && (
+                    <a 
+                      href={`https://waze.com/ul?ll=${order.gps_latitude},${order.gps_longitude}&navigate=yes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <MapPin className="mr-1 h-3 w-3" />
+                      Ouvrir dans Waze
+                    </a>
+                  )}
+                  
+                  {/* Message si pas de GPS pour la livraison */}
+                  {(order.delivery_option !== 'pickup' && (!order.gps_latitude || !order.gps_longitude)) && (
+                    <span className="text-xs text-gray-400">GPS non renseigné</span>
+                  )}
+                </div>
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-right text-sm">
                 <div className="custom-dropdown relative">
