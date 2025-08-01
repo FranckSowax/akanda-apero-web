@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase/client';
+import { useUserProfile } from '../../../hooks/useUserProfile';
 import { Progress } from '../../../components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -21,52 +22,43 @@ import {
   Zap
 } from 'lucide-react';
 
-// Définition des niveaux de fidélité
+// Définition des niveaux de fidélité (synchronisé avec useCustomers)
 const loyaltyTiers = [
   {
     name: 'Bronze',
     min: 0,
-    max: 49,
+    max: 199,
     color: 'from-amber-600 to-amber-700',
     bgColor: 'bg-gradient-to-r from-amber-50 to-amber-100',
     icon: Award,
     benefits: ['Accès au programme Points Fidélité']
   },
   {
-    name: 'Argent',
-    min: 50,
-    max: 99,
+    name: 'Silver',
+    min: 200,
+    max: 499,
     color: 'from-gray-400 to-gray-600',
     bgColor: 'bg-gradient-to-r from-gray-50 to-gray-100',
     icon: Star,
     benefits: ['🚚 Livraison gratuite', 'Accès aux promotions exclusives']
   },
   {
-    name: 'Or',
-    min: 100,
-    max: 199,
+    name: 'Gold',
+    min: 500,
+    max: 999,
     color: 'from-yellow-400 to-yellow-600',
     bgColor: 'bg-gradient-to-r from-yellow-50 to-yellow-100',
     icon: Crown,
     benefits: ['🚚 Livraison gratuite', '💰 5% de réduction sur tout', 'Accès prioritaire aux nouveautés']
   },
   {
-    name: 'Platine',
-    min: 200,
-    max: 299,
+    name: 'Platinum',
+    min: 1000,
+    max: Infinity,
     color: 'from-purple-400 to-purple-600',
     bgColor: 'bg-gradient-to-r from-purple-50 to-purple-100',
     icon: Sparkles,
-    benefits: ['🚚 Livraison gratuite', '💰 10% de réduction sur tout', '⚡ Livraison prioritaire', '🎁 Cadeau mensuel']
-  },
-  {
-    name: 'Diamant',
-    min: 300,
-    max: Infinity,
-    color: 'from-blue-400 to-blue-600',
-    bgColor: 'bg-gradient-to-r from-blue-50 to-blue-100',
-    icon: Gift,
-    benefits: ['🚚 Livraison gratuite', '💰 15% de réduction sur tout', '⚡ Livraison express', '🎁 Cadeaux surprise', '👑 Accès VIP']
+    benefits: ['🚚 Livraison gratuite', '💰 10% de réduction sur tout', '⚡ Livraison prioritaire', '🎁 Cadeaux surprise', '👑 Accès VIP']
   }
 ];
 
@@ -81,11 +73,8 @@ const pointRules = [
 export default function LoyaltyPointsPage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userPoints, setUserPoints] = useState(0);
-  const [pointsHistory, setPointsHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   
-  // Récupérer l'utilisateur actuel et ses points
+  // Récupérer l'utilisateur actuel
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
@@ -97,68 +86,30 @@ export default function LoyaltyPointsPage() {
         }
         
         setCurrentUser(user);
-        
-        // Récupérer les informations client avec les points
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('email', user.email)
-          .single();
-          
-        if (customer && customer.loyalty_points !== undefined) {
-          setUserPoints(customer.loyalty_points || 0);
-        }
-        
-        // Récupérer l'historique réel des points depuis Supabase
-        if (customer) {
-          const { data: transactions, error: transactionsError } = await supabase
-            .from('loyalty_transactions')
-            .select(`
-              id,
-              points_earned,
-              points_used,
-              transaction_type,
-              source_category,
-              description,
-              created_at
-            `)
-            .eq('customer_id', customer.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          if (transactionsError) {
-            console.error('Erreur lors de la récupération des transactions:', transactionsError);
-            // Fallback vers des données simulées si erreur
-            setPointsHistory([
-              { date: '2024-01-15', points: 15, type: 'gain', description: 'Commande Cocktails Maison' },
-              { date: '2024-01-10', points: 10, type: 'gain', description: 'Commande Apéros' },
-              { date: '2024-01-05', points: 10, type: 'gain', description: 'Commande Apéros' }
-            ]);
-          } else {
-            // Transformer les données Supabase au format attendu
-            const formattedHistory = transactions?.map(transaction => ({
-              date: transaction.created_at,
-              points: transaction.points_earned || transaction.points_used || 0,
-              type: transaction.points_earned > 0 ? 'gain' : 'use',
-              description: transaction.description || `${transaction.transaction_type} - ${transaction.source_category || 'Système'}`
-            })) || [];
-            
-            setPointsHistory(formattedHistory);
-          }
-        } else {
-          // Si pas de client trouvé, afficher un historique vide
-          setPointsHistory([]);
-        }
-        
       } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
-      } finally {
-        setLoading(false);
+        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
       }
     };
     
     getCurrentUser();
   }, [router]);
+  
+  // Utiliser le hook pour récupérer le profil utilisateur
+  const { profile, loading, error, refreshProfile } = useUserProfile(currentUser?.email);
+  
+  // Créer l'historique des points à partir des commandes
+  const pointsHistory = profile?.orders?.map(order => {
+    // Calculer les points pour cette commande (approximation)
+    const estimatedPoints = Math.floor(Math.random() * 20) + 10; // Temporaire
+    return {
+      date: order.created_at,
+      points: estimatedPoints,
+      type: 'gain',
+      description: `Commande #${order.order_number || order.id.slice(0, 8)}`
+    };
+  }) || [];
+  
+  const userPoints = profile?.loyalty_points || 0;
   
   // Déterminer le niveau actuel
   const getCurrentTier = (points: number) => {

@@ -21,6 +21,7 @@ import { formatGabonPhone, isValidGabonPhone, getPhoneValidationError } from '..
 import { useOrders } from '../../hooks/supabase/useOrders';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { useUserProfile } from '../../hooks/supabase/useUserProfile';
+import { supabase } from '../../lib/supabase';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Header } from '../../components/layout/Header';
 import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
@@ -102,6 +103,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [savedLoyaltyPoints, setSavedLoyaltyPoints] = useState<number>(0);
+  const [currentLoyaltyPoints, setCurrentLoyaltyPoints] = useState<number>(0);
   
   // 💾 Charger les données de confirmation depuis localStorage SEULEMENT si c'est une reprise récente
   useEffect(() => {
@@ -125,6 +127,7 @@ export default function CheckoutPage() {
           setOrderPlaced(true);
           setOrderNumber(confirmationData.orderNumber || '');
           setSavedLoyaltyPoints(confirmationData.loyaltyPoints || 0);
+          setCurrentLoyaltyPoints(confirmationData.currentLoyaltyPoints || 0);
         } else {
           console.log('⚠️ Confirmation trop ancienne, suppression');
           localStorage.removeItem('akanda-order-confirmation');
@@ -188,23 +191,115 @@ export default function CheckoutPage() {
     
     cartItems.forEach(item => {
       // Déterminer la catégorie du produit
-      const productName = item.product.name.toLowerCase();
-      const categorySlug = item.product.categorySlug?.toLowerCase() || '';
+      const productName = item.product?.name?.toLowerCase() || '';
+      const categorySlug = item.product?.categorySlug?.toLowerCase() || '';
+      const quantity = item.quantity || 0;
       
       // Règles de points selon la catégorie
       if (categorySlug.includes('cocktail') || productName.includes('cocktail') || productName.includes('mojito') || productName.includes('margarita')) {
         // Cocktails Maison : 15 points par produit
-        totalPoints += 15 * item.quantity;
+        totalPoints += 15 * quantity;
       } else {
         // Apéros et autres : 10 points par produit
-        totalPoints += 10 * item.quantity;
+        totalPoints += 10 * quantity;
       }
     });
     
-    return totalPoints;
+    // S'assurer que le résultat est un nombre valide
+    return isNaN(totalPoints) ? 0 : Math.max(0, totalPoints);
   }, [cartItems]);
   
   const loyaltyPointsEarned = calculateLoyaltyPoints();
+  
+  // Fonction pour récupérer les points de fidélité actuels du client
+  // Temporairement désactivée pour éviter les erreurs Supabase
+  const fetchCurrentLoyaltyPoints = useCallback(async () => {
+    if (!user?.email) {
+      setCurrentLoyaltyPoints(0);
+      return;
+    }
+    
+    // Pour l'instant, on définit les points actuels à 0 pour les nouveaux clients
+    // TODO: Réactiver quand la structure de la base sera stabilisée
+    console.log('Récupération des points désactivée temporairement');
+    setCurrentLoyaltyPoints(0);
+    
+    // Code commenté temporairement
+    /*
+    try {
+      // Récupérer le client avec ses statistiques depuis la table customers
+      const { data: customer, error } = await supabase
+        .from('customers')
+        .select('id, email')
+        .eq('email', user.email)
+        .single();
+        
+      if (error || !customer) {
+        console.log('Client non trouvé, nouveau client avec 0 points');
+        setCurrentLoyaltyPoints(0);
+        return;
+      }
+      
+      // Récupérer les commandes confirmées du client
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('customer_id', customer.id)
+        .eq('status', 'confirmed');
+        
+      if (ordersError) {
+        console.error('Erreur lors de la récupération des commandes:', ordersError);
+        setCurrentLoyaltyPoints(0);
+        return;
+      }
+      
+      if (!orders || orders.length === 0) {
+        console.log('Aucune commande confirmée trouvée');
+        setCurrentLoyaltyPoints(0);
+        return;
+      }
+      
+      // Récupérer les articles de toutes les commandes
+      let totalPoints = 0;
+      for (const order of orders) {
+        const { data: orderItems, error: itemsError } = await supabase
+          .from('order_items')
+          .select('product_name, quantity')
+          .eq('order_id', order.id);
+          
+        if (!itemsError && orderItems) {
+          orderItems.forEach((item: any) => {
+            const productName = item.product_name?.toLowerCase() || '';
+            const quantity = item.quantity || 0;
+            
+            // Appliquer les mêmes règles que dans le checkout
+            if (productName.includes('cocktail') || productName.includes('mojito') || productName.includes('margarita')) {
+              totalPoints += 15 * quantity;
+            } else {
+              totalPoints += 10 * quantity;
+            }
+          });
+        }
+      }
+      
+      console.log('Points de fidélité actuels récupérés:', totalPoints);
+      // S'assurer que totalPoints est un nombre valide
+      const validPoints = isNaN(totalPoints) ? 0 : Math.max(0, totalPoints);
+      setCurrentLoyaltyPoints(validPoints);
+      
+    } catch (error) {
+      console.error('Erreur lors de la récupération des points:', error);
+      setCurrentLoyaltyPoints(0);
+    }
+    */
+  }, [user]);
+  
+  // Récupérer les points actuels quand l'utilisateur change ou avant soumission
+  useEffect(() => {
+    if (user && (formStep === 'payment' || formStep === 'confirmation')) {
+      fetchCurrentLoyaltyPoints();
+    }
+  }, [user, formStep, fetchCurrentLoyaltyPoints]);
 
   // 🔍 Log de l'état initial du composant
   console.log('🔍 Checkout - État initial:', { 
@@ -746,6 +841,8 @@ export default function CheckoutPage() {
         const confirmationData = {
           orderNumber: newOrderNumber,
           loyaltyPoints: pointsEarned,
+          currentLoyaltyPoints: currentLoyaltyPoints,
+          totalLoyaltyPoints: currentLoyaltyPoints + pointsEarned,
           timestamp: Date.now()
         };
         localStorage.setItem('akanda-order-confirmation', JSON.stringify(confirmationData));
@@ -1361,20 +1458,23 @@ export default function CheckoutPage() {
                 <h4 className="text-lg font-bold text-gray-900">Félicitations !</h4>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-700 mb-2">Vous avez gagné</p>
+                <p className="text-sm text-gray-700 mb-2">Vous avez gagné <span className="font-bold text-[#f5a623]">{savedLoyaltyPoints || 0}</span> points avec cette commande !</p>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Star className="h-6 w-6 text-[#f5a623]" />
-                  <span className="text-2xl font-bold text-[#f5a623]">{savedLoyaltyPoints}</span>
-                  <span className="text-lg font-semibold text-gray-700">points de fidélité</span>
+                  <span className="text-2xl font-bold text-[#f5a623]">{savedLoyaltyPoints || 0}</span>
+                  <span className="text-lg font-semibold text-gray-700">points gagnés</span>
                 </div>
+                <p className="text-xs text-gray-500 mb-2">
+                  Ces points s'ajouteront à votre total de fidélité
+                </p>
                 <p className="text-xs text-gray-600">
-                  {savedLoyaltyPoints >= 50 ? (
+                  {(savedLoyaltyPoints || 0) >= 50 ? (
                     <span className="text-green-600 font-medium">
-                      🎉 Vous avez débloqué la livraison gratuite !
+                      🎉 Excellente commande ! Continuez à cumuler des points !
                     </span>
                   ) : (
                     <span>
-                      Plus que {50 - savedLoyaltyPoints} points pour débloquer la livraison gratuite
+                      Continuez à commander pour cumuler plus de points de fidélité
                     </span>
                   )}
                 </p>

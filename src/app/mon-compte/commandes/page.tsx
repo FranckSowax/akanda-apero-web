@@ -112,27 +112,68 @@ export default function OrdersPage() {
       console.log('🔍 Recherche des commandes pour:', currentUser.email);
       
       try {
-        // D'abord, récupérer l'ID du customer basé sur l'email
-        const { data: customerData, error: customerError } = await supabase
+        // Rechercher le client connecté par email ou téléphone
+        console.log('🔍 Recherche du client pour email:', currentUser.email);
+        
+        let customerData = null;
+        
+        // Méthode 1: Recherche par email exact
+        const { data: exactCustomer, error: exactError } = await supabase
           .from('customers')
-          .select('id')
+          .select('id, email, phone, first_name, last_name')
           .eq('email', currentUser.email)
           .single();
-
-        if (customerError) {
-          // Si l'utilisateur n'existe pas encore dans la table customers (PGRST116 = no rows returned)
-          if (customerError.code === 'PGRST116') {
-            console.log('📄 Utilisateur pas encore dans la table customers, aucune commande à afficher');
-            setOrders([]);
-            setIsLoading(false);
-            return;
+          
+        if (!exactError && exactCustomer) {
+          customerData = exactCustomer;
+          console.log('✅ Client trouvé par email exact:', customerData);
+        } else {
+          console.log('⚠️ Client non trouvé par email exact, recherche par téléphone...');
+          
+          // Méthode 2: Extraire le téléphone de l'email et rechercher
+          const phoneFromEmail = currentUser.email.split('@')[0];
+          console.log('📞 Téléphone extrait:', phoneFromEmail);
+          
+          // Rechercher par téléphone (avec ou sans indicatif)
+          const { data: phoneCustomers, error: phoneError } = await supabase
+            .from('customers')
+            .select('id, email, phone, first_name, last_name')
+            .or(`phone.eq.${phoneFromEmail},phone.eq.+241${phoneFromEmail},email.ilike.%${phoneFromEmail}%`);
+            
+          if (!phoneError && phoneCustomers && phoneCustomers.length > 0) {
+            customerData = phoneCustomers[0]; // Prendre le premier trouvé
+            console.log('✅ Client trouvé par téléphone:', customerData);
+          } else {
+            console.log('⚠️ Aucun client trouvé, recherche dans tous les clients...');
+            
+            // Méthode 3: Recherche élargie dans tous les clients
+            const { data: allCustomers, error: allError } = await supabase
+              .from('customers')
+              .select('id, email, phone, first_name, last_name')
+              .limit(50);
+              
+            if (!allError && allCustomers) {
+              // Chercher une correspondance
+              const foundCustomer = allCustomers.find(customer => {
+                const userEmail = currentUser.email.toLowerCase();
+                const customerEmail = customer.email?.toLowerCase() || '';
+                const userPhone = phoneFromEmail;
+                const customerPhone = customer.phone?.replace(/[^0-9]/g, '') || '';
+                
+                return customerEmail === userEmail || 
+                       customerEmail.includes(userPhone) ||
+                       customerPhone.includes(userPhone) ||
+                       userEmail.includes(customerPhone);
+              });
+              
+              if (foundCustomer) {
+                customerData = foundCustomer;
+                console.log('✅ Client trouvé par recherche élargie:', customerData);
+              }
+            }
           }
-          console.error('❌ Erreur lors de la récupération du customer:', customerError);
-          setOrders([]);
-          setIsLoading(false);
-          return;
         }
-        
+
         if (!customerData) {
           console.log('📄 Aucun customer trouvé, aucune commande à afficher');
           setOrders([]);
@@ -153,19 +194,19 @@ export default function OrdersPage() {
             payment_status,
             total_amount,
             subtotal,
-            delivery_fee,
             delivery_address,
             delivery_district,
             delivery_option,
             payment_method,
+            gps_latitude,
+            gps_longitude,
             order_items (
               id,
               product_id,
               product_name,
               quantity,
               unit_price,
-              subtotal,
-              image_url
+              subtotal
             )
           `)
           .eq('customer_id', customerData.id)
@@ -175,32 +216,39 @@ export default function OrdersPage() {
         console.log('📊 Données brutes des commandes:', data);
         
         if (error) {
-          console.error('❌ Erreur lors de la récupération des commandes:', error);
+          console.error('❌ Erreur lors de la récupération des commandes:');
+          console.error('Code d\'erreur:', error.code);
+          console.error('Message:', error.message);
+          console.error('Détails:', error.details);
+          console.error('Hint:', error.hint);
+          console.error('Erreur complète:', error);
           setOrders([]);
         } else {
           // Transformer les données pour correspondre à notre interface (logique améliorée)
           const transformedOrders: Order[] = (data || []).map(order => ({
             id: order.id,
             order_number: order.order_number,
-            created_at: order.created_at, // Utiliser created_at correct
+            created_at: order.created_at,
             status: order.status,
             total_amount: order.total_amount,
             delivery_option: order.delivery_option || order.delivery_district || 'Livraison',
             payment_method: order.payment_method,
             payment_status: order.payment_status,
             subtotal: order.subtotal,
-            delivery_fee: order.delivery_fee,
+            delivery_fee: 0, // Valeur par défaut car la colonne n'existe pas
             delivery_address: order.delivery_address,
+            gps_latitude: order.gps_latitude,
+            gps_longitude: order.gps_longitude,
             items: (order.order_items || []).map((item: any) => ({
               id: item.id,
               product_id: item.product_id,
               quantity: item.quantity,
-              price: item.unit_price, // Mapper unit_price vers price
+              price: item.unit_price,
               product: {
                 id: item.product_id,
                 name: item.product_name || 'Produit',
                 price: item.unit_price,
-                image_url: item.image_url || '/placeholder-product.jpg'
+                image_url: '/placeholder-product.jpg' // Valeur par défaut
               }
             }))
           }));
@@ -209,8 +257,12 @@ export default function OrdersPage() {
           console.log('📋 Détail des commandes transformées:', transformedOrders);
           setOrders(transformedOrders);
         }
-      } catch (error) {
-        console.error('❌ Erreur lors de la récupération des commandes:', error);
+      } catch (error: any) {
+        console.error('❌ Erreur globale lors de la récupération des commandes:');
+        console.error('Type d\'erreur:', typeof error);
+        console.error('Message:', error?.message || 'Pas de message');
+        console.error('Stack:', error?.stack || 'Pas de stack trace');
+        console.error('Erreur complète:', error);
         setOrders([]);
       } finally {
         setIsLoading(false);
@@ -369,129 +421,99 @@ export default function OrdersPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {orders.map((order) => (
-              <Card key={order.id} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">
-                  <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+              <Card key={order.id} className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardContent className="p-4">
+                  {/* Ligne 1: Informations principales */}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="bg-white p-2 rounded-full">
+                      <div className="bg-gray-100 p-2 rounded-full">
                         {getStatusIcon(order.status)}
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold text-gray-900">
-                          Commande #{order.order_number || order.id.slice(0, 8)}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-2 text-gray-600">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(order.created_at)}
-                        </CardDescription>
+                        <button
+                          onClick={() => router.push(`/mon-compte/commandes/${order.id}`)}
+                          className="text-lg font-bold text-[#f5a623] hover:text-[#e09000] hover:underline transition-colors"
+                        >
+                          #{order.order_number || order.id.slice(0, 8)}
+                        </button>
+                        <p className="text-sm text-gray-600">{formatDate(order.created_at)}</p>
                       </div>
                     </div>
-                    <Badge className={`${getStatusColor(order.status)} px-4 py-2 font-medium`}>
-                      {order.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pt-6">
-                  {/* Informations détaillées de la commande */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500">Total</p>
-                      <p className="text-lg font-bold text-gray-900">{formatPrice(order.total_amount)}</p>
+                    <div className="flex items-center gap-3">
+                      <Badge className={`${getStatusColor(order.status)} px-3 py-1 text-sm`}>
+                        {order.status}
+                      </Badge>
+                      <span className="text-lg font-bold text-gray-900">{formatPrice(order.total_amount)}</span>
                     </div>
-                    {order.subtotal && (
-                      <div className="text-center">
-                        <p className="text-sm text-gray-500">Sous-total</p>
-                        <p className="text-md font-semibold text-gray-700">{formatPrice(order.subtotal)}</p>
-                      </div>
-                    )}
-                    {order.delivery_fee && (
-                      <div className="text-center">
-                        <p className="text-sm text-gray-500">Livraison</p>
-                        <p className="text-md font-semibold text-gray-700">{formatPrice(order.delivery_fee)}</p>
-                      </div>
-                    )}
                   </div>
                   
-                  {/* Informations de paiement et livraison */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    {order.payment_method && (
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm text-gray-600">Paiement:</span>
-                        <span className="text-sm font-medium">{order.payment_method}</span>
-                        {order.payment_status && (
-                          <Badge className={order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                            {order.payment_status === 'paid' ? 'Payé' : 'En attente'}
-                          </Badge>
-                        )}
+                  {/* Ligne 2: Détails des produits et actions */}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Package className="h-4 w-4" />
+                        <span>{order.items.length} article{order.items.length > 1 ? 's' : ''}</span>
                       </div>
-                    )}
-                    {order.delivery_address && (
-                      <div className="flex items-start gap-2 p-3 bg-green-50 rounded-lg">
-                        <Truck className="h-4 w-4 text-green-600 mt-0.5" />
-                        <div>
-                          <span className="text-sm text-gray-600">Livraison:</span>
-                          <p className="text-sm font-medium text-gray-800">{order.delivery_address}</p>
+                      {order.delivery_address && (
+                        <div className="flex items-center gap-1">
+                          <Truck className="h-4 w-4" />
+                          <span className="truncate max-w-[200px]">{order.delivery_address}</span>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-6">
-                    {/* Résumé de la commande */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-blue-50 rounded-lg p-4 text-center">
-                        <Package className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Articles</p>
-                        <p className="text-xl font-bold text-blue-600">{order.items.length}</p>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-4 text-center">
-                        <ShoppingCart className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Total</p>
-                        <p className="text-xl font-bold text-green-600">{formatPrice(order.total_amount)} XAF</p>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-4 text-center">
-                        <Truck className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Livraison</p>
-                        <p className="text-sm font-medium text-purple-600">
-                          {order.delivery_option === 'pickup' ? 'Retrait au Shop' : 'Livraison'}
-                        </p>
-                      </div>
+                      )}
+                      {order.payment_method && (
+                        <div className="flex items-center gap-1">
+                          <span>•</span>
+                          <span>{order.payment_method}</span>
+                        </div>
+                      )}
                     </div>
                     
-                    {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
+                        size="sm"
                         onClick={() => router.push(`/mon-compte/commandes/${order.id}`)}
-                        className="flex items-center gap-2 border-gray-300 hover:border-[#f5a623] hover:text-[#f5a623]"
+                        className="flex items-center gap-1 border-gray-300 hover:border-[#f5a623] hover:text-[#f5a623]"
                       >
-                        <Eye className="h-4 w-4" />
-                        Voir les détails
+                        <Eye className="h-3 w-3" />
+                        Détails
                       </Button>
                       
                       <Button
+                        size="sm"
                         onClick={() => handleReorder(order)}
                         disabled={reorderingId === order.id}
-                        className="flex items-center gap-2 bg-[#f5a623] hover:bg-[#e09000] text-white"
+                        className="flex items-center gap-1 bg-[#f5a623] hover:bg-[#e09000] text-white"
                       >
                         {reorderingId === order.id ? (
                           <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            Ajout en cours...
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            <span className="hidden sm:inline">Ajout...</span>
                           </>
                         ) : (
                           <>
-                            <RotateCcw className="h-4 w-4" />
-                            Recommander
+                            <RotateCcw className="h-3 w-3" />
+                            <span className="hidden sm:inline">Recommander</span>
                           </>
                         )}
                       </Button>
                     </div>
                   </div>
+                  
+                  {/* Aperçu des produits (optionnel, affiché seulement si peu d'articles) */}
+                  {order.items.length <= 3 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex flex-wrap gap-2">
+                        {order.items.map((item, index) => (
+                          <div key={index} className="text-xs bg-gray-50 px-2 py-1 rounded">
+                            {item.quantity}x {item.name || item.product?.name || 'Produit'}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
