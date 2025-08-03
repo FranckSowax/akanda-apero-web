@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logError, logInfo, safeExecute } from '../../../utils/error-handler';
 
-// Configuration Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Configuration Supabase - Initialisation lazy pour éviter les erreurs de build
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Variables d\'environnement Supabase manquantes');
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 // Types pour les données de commande
 interface OrderData {
@@ -150,6 +157,7 @@ export async function GET(request: NextRequest) {
     
     if (orderId) {
       // Récupérer une commande spécifique
+      const supabase = getSupabaseClient();
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -168,6 +176,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Construire la requête pour toutes les commandes
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('orders')
       .select('*');
@@ -265,6 +274,7 @@ export async function POST(request: NextRequest) {
     console.log('📍 Coordonnées GPS utilisées:', { lat: gpsLat, lng: gpsLng });
     
     // 1. Créer ou mettre à jour le client avec les données du formulaire
+    const supabase = getSupabaseClient();
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('id')
@@ -518,6 +528,7 @@ export async function PATCH(request: NextRequest) {
     
     console.log(`🔄 PATCH /api/orders - Mise à jour commande ${orderId}:`, body);
     
+    const supabase = getSupabaseClient();
     const { data: updatedOrder, error } = await supabase
       .from('orders')
       .update({
