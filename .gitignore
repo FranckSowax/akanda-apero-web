@@ -31,3 +31,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# production security
+ADMIN-CREDENTIALS.md
+*.sql
+test-*.js
+test-*.html
+debug-*.js
+diagnose-*.js
+
+# development docs
+ADVANCED_FEATURES_GUIDE.md
+CHECKOUT_TEST_GUIDE.md
+MONITORING_EXAMPLES.md
+MONITORING_GUIDE.md
+PROMOTIONS_SYSTEM_GUIDE.md
+SECURITY-IMPROVEMENTS.md
+TESTING_STRATEGY.md
+GUIDE_FIX_PROMOTIONS_IMAGE.md
+FINAL_VALIDATION_CHECKLIST.md

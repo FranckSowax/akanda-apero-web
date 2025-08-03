@@ -88,7 +88,7 @@ class ABTestingService {
         this.tests.set(test.id, test);
       });
 
-      console.log(`📚 ${tests.length} tests A/B chargés`);
+      // A/B tests loaded
     } catch (error) {
       console.error('Erreur chargement tests A/B:', error);
     }
@@ -130,7 +130,7 @@ class ABTestingService {
       // Tracker l'événement
       this.trackTestAssignment(userId, testId, variantId);
 
-      console.log(`🎯 Utilisateur ${userId} assigné à la variante ${variantId} du test ${testId}`);
+      // User assigned to variant
     }
 
     return variantId;
@@ -266,7 +266,7 @@ class ABTestingService {
     // Sauvegarder la conversion
     this.saveConversion(userId, testId, variantId, metric, value);
 
-    console.log(`🏆 Conversion trackée: ${metric} = ${value} pour ${userId} (${testId}/${variantId})`);
+    // Conversion tracked
   }
 
   /**
@@ -340,7 +340,7 @@ class ABTestingService {
     // Ajouter au cache local
     this.tests.set(testId, test);
 
-    console.log(`🧪 Test A/B créé: ${testId}`);
+    // A/B test created
     return testId;
   }
 
@@ -378,7 +378,7 @@ class ABTestingService {
     test.startDate = new Date().toISOString();
 
     await this.updateTest(test);
-    console.log(`▶️ Test démarré: ${testId}`);
+    // Test started
   }
 
   /**
@@ -390,7 +390,7 @@ class ABTestingService {
 
     test.status = 'paused';
     await this.updateTest(test);
-    console.log(`⏸️ Test mis en pause: ${testId}`);
+    // Test paused
   }
 
   /**
@@ -407,7 +407,7 @@ class ABTestingService {
     await this.calculateTestResults(testId);
     
     await this.updateTest(test);
-    console.log(`🏁 Test terminé: ${testId}`);
+    // Test ended
   }
 
   /**

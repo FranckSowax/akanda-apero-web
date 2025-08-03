@@ -56,7 +56,7 @@ class WhapiService {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Message WhatsApp envoyé avec succès:', { to: cleanPhone, id: data.id });
+        // WhatsApp message sent successfully
         return { sent: true, id: data.id };
       } else {
         console.error('Erreur lors de l\'envoi du message WhatsApp:', data);

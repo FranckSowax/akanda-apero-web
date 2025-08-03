@@ -68,11 +68,11 @@ export const DashboardService = {
       
       if (ordersError) {
         // Log plus discret pour éviter d'afficher des erreurs quand c'est normal qu'il n'y ait pas de données
-        console.log('Aucune commande pour aujourd\'hui');
+        // No orders for today
       }
       
       // Calculer le revenu total d'aujourd'hui
-      const revenueToday = todayOrders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
+      const revenueToday = todayOrders?.reduce((sum: number, order: any) => sum + (order.total || 0), 0) || 0;
       
       // Récupérer les nouveaux clients d'aujourd'hui
       const { data: newUsers, error: usersError } = await supabase
@@ -97,12 +97,12 @@ export const DashboardService = {
         activeDeliveries = result.data;
         deliveriesError = result.error;
       } catch (err) {
-        console.log('Table orders non disponible, utilisation de valeurs par défaut');
+        // Orders table not available, using default values
         deliveriesError = err;
       }
       
       if (deliveriesError) {
-        console.log('Livraisons actives non disponibles:', deliveriesError.message || 'Table non trouvée');
+        // Active deliveries not available
       }
       
       // Récupérer les commandes récentes (avec gestion d'erreur)
@@ -136,12 +136,12 @@ export const DashboardService = {
         recentOrdersData = result.data;
         recentOrdersError = result.error;
       } catch (err) {
-        console.log('Table orders non disponible pour les commandes récentes');
+        // Orders table not available for recent orders
         recentOrdersError = err;
       }
       
       if (recentOrdersError) {
-        console.log('Commandes récentes non disponibles:', recentOrdersError.message || 'Table non trouvée');
+        // Recent orders not available
       }
       
       // Formater les commandes récentes
@@ -189,7 +189,7 @@ export const DashboardService = {
       
       if (weekOrdersError) {
         // Log plus discret pour éviter d'afficher des erreurs quand c'est normal qu'il n'y ait pas de données
-        console.log('Aucune commande pour la semaine');
+        // No orders for the week
       }
       
       // Organiser les données par jour
@@ -212,7 +212,7 @@ export const DashboardService = {
       }
       
       // Remplir les données pour chaque jour
-      weekOrders?.forEach(order => {
+      weekOrders?.forEach((order: any) => {
         const orderDate = new Date(order.created_at);
         orderDate.setHours(0, 0, 0, 0);
         

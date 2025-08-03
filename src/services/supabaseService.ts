@@ -26,7 +26,7 @@ const CACHE_DURATION = 5 * 60 * 1000;
 export const supabaseService = {
   // Invalider le cache
   invalidateCache(type?: 'products' | 'categories' | 'all') {
-    console.log('🗑️ Invalidation du cache:', type || 'all');
+    // Cache invalidated
     
     if (!type || type === 'all') {
       cache.products = null;
@@ -68,7 +68,7 @@ export const supabaseService = {
         .limit(5)
 
       if (error) throw error
-      console.log('🌟 Produits vedettes chargés:', data?.length || 0);
+      // Featured products loaded
       return data || []
     } catch (error) {
       console.error('Erreur lors du chargement des produits vedette:', error)
@@ -119,11 +119,11 @@ export const supabaseService = {
     try {
       // Utiliser le cache si valide et pas de refresh forcé
       if (!forceRefresh && cache.categories && this.isCacheValid('categories')) {
-        console.log('📦 Utilisation du cache pour les catégories');
+        // Using cached categories
         return cache.categories;
       }
 
-      console.log('🔄 Chargement des catégories depuis Supabase');
+      // Loading categories from Supabase
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -148,11 +148,11 @@ export const supabaseService = {
     try {
       // Utiliser le cache si valide et pas de refresh forcé
       if (!forceRefresh && cache.products && this.isCacheValid('products')) {
-        console.log('📦 Utilisation du cache pour les produits');
+        // Using cached products
         return cache.products;
       }
 
-      console.log('🔄 Chargement des produits depuis Supabase');
+      // Loading products from Supabase
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -225,7 +225,7 @@ export const supabaseService = {
 
   // Fonctions utilitaires pour la synchronisation
   async refreshAllData() {
-    console.log('🔄 Actualisation complète des données');
+    // Full data refresh
     this.invalidateCache('all');
     const [products, categories] = await Promise.all([
       this.getAllProducts(true),
@@ -236,7 +236,7 @@ export const supabaseService = {
 
   // Notification de changement de données
   notifyDataChange(type: 'products' | 'categories', action: 'added' | 'updated' | 'deleted', id?: string) {
-    console.log(`📢 Notification: ${type} ${action}`, id);
+    // Notification sent
     this.invalidateCache(type);
     
     // Déclencher un événement personnalisé pour les composants qui écoutent

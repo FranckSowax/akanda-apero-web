@@ -111,7 +111,7 @@ class AnalyticsExportService {
         throw new Error(`GA4 export failed: ${response.status}`);
       }
 
-      console.log('✅ Événement exporté vers GA4');
+      // Event exported to GA4
     } catch (error) {
       console.error('❌ Erreur export GA4:', error);
     }
@@ -264,7 +264,7 @@ class AnalyticsExportService {
         throw new Error(`Mixpanel export failed: ${response.status}`);
       }
 
-      console.log('✅ Événement exporté vers Mixpanel');
+      // Event exported to Mixpanel
     } catch (error) {
       console.error('❌ Erreur export Mixpanel:', error);
     }
@@ -304,7 +304,7 @@ class AnalyticsExportService {
         throw new Error(`Amplitude export failed: ${response.status}`);
       }
 
-      console.log('✅ Événement exporté vers Amplitude');
+      // Event exported to Amplitude
     } catch (error) {
       console.error('❌ Erreur export Amplitude:', error);
     }
@@ -367,7 +367,7 @@ class AnalyticsExportService {
    * 🔄 Synchroniser les données existantes
    */
   async syncExistingData(startDate: Date, endDate: Date) {
-    console.log(`🔄 Synchronisation des données du ${startDate.toISOString()} au ${endDate.toISOString()}`);
+    // Data synchronization started
 
     try {
       // Récupérer les événements de la période
@@ -391,7 +391,7 @@ class AnalyticsExportService {
         }
       }
 
-      console.log(`✅ Synchronisation terminée: ${events.length} événements exportés`);
+      // Synchronization completed
     } catch (error) {
       console.error('❌ Erreur synchronisation:', error);
     }

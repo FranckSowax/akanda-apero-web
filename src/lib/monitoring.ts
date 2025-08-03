@@ -71,7 +71,7 @@ class MonitoringService {
       this.initUserEventTracking();
 
       this.isInitialized = true;
-      console.log('📊 Monitoring service initialized');
+      // Monitoring service initialized
       
     } catch (error) {
       console.error('❌ Failed to initialize monitoring:', error);
@@ -139,7 +139,7 @@ class MonitoringService {
    */
   private initWebVitals() {
     // Temporairement désactivé pour éviter les erreurs de build
-    console.log('Web Vitals monitoring temporairement désactivé');
+    // Web Vitals monitoring disabled
     // TODO: Réactiver après correction de la compatibilité web-vitals
   }
 
@@ -212,7 +212,7 @@ class MonitoringService {
    */
   trackPerformanceMetric(metric: PerformanceMetric) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('📊 Performance Metric:', metric);
+      // Performance metric tracked
     }
 
     // Envoyer à votre service d'analytics
@@ -236,7 +236,7 @@ class MonitoringService {
    */
   trackUserEvent(event: UserEvent) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('👤 User Event:', event);
+      // User event tracked
     }
 
     // Envoyer à votre service d'analytics
@@ -248,7 +248,7 @@ class MonitoringService {
    */
   trackBusinessMetric(metric: BusinessMetric) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('💼 Business Metric:', metric);
+      // Business metric tracked
     }
 
     // Envoyer à votre service d'analytics business

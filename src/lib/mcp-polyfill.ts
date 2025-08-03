@@ -39,23 +39,9 @@ export function useMcpPolyfill(serverName: string) {
       // Gestion des produits
       if (resourceName === 'products') {
         try {
-          console.log('🔍 Récupération des produits... [mcp-polyfill]');
-          
-          console.log('[mcp-polyfill] typeof process:', typeof process);
-          console.log('[mcp-polyfill] typeof process.env:', typeof process?.env);
-
-          console.log('[mcp-polyfill] Attempting to read NEXT_PUBLIC_SUPABASE_URL...');
-          const supabaseUrlFromEnv = process?.env?.NEXT_PUBLIC_SUPABASE_URL;
-          console.log('[mcp-polyfill] NEXT_PUBLIC_SUPABASE_URL from env:', supabaseUrlFromEnv);
-          const supabaseUrl = supabaseUrlFromEnv || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
-          console.log('[mcp-polyfill] Final supabaseUrl:', supabaseUrl);
-
-          console.log('[mcp-polyfill] Attempting to read NEXT_PUBLIC_SUPABASE_ANON_KEY...');
-          const supabaseKeyFromEnv = process?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-          console.log('[mcp-polyfill] NEXT_PUBLIC_SUPABASE_ANON_KEY from env:', supabaseKeyFromEnv);
-          const supabaseKey = supabaseKeyFromEnv || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
-          
-          console.log('[mcp-polyfill] Clé Supabase utilisée (products):', supabaseKey);
+          // Fetching products from Supabase
+          const supabaseUrl = process?.env?.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
+          const supabaseKey = process?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
           
           // Utiliser Supabase directement pour récupérer les produits avec leurs images
           const { data: productsData, error: productsError } = await supabase
@@ -68,7 +54,7 @@ export function useMcpPolyfill(serverName: string) {
           }
 
           if (!productsData || productsData.length === 0) {
-            console.log("ℹ️ Aucun produit trouvé dans la base de données");
+            // No products found in database
             return [];
           }
 
@@ -507,7 +493,7 @@ export function useMcpPolyfill(serverName: string) {
                   .in('id', categories);
                 
                 if (existingCategories && existingCategories.length > 0) {
-                  const categoryRelations = existingCategories.map(cat => ({
+                  const categoryRelations = existingCategories.map((cat: any) => ({
                     product_id: id,
                     category_id: cat.id
                   }));

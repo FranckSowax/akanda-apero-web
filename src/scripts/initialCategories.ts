@@ -76,7 +76,7 @@ const categories = [
 
 // Fonction pour insérer ou mettre à jour les catégories
 export async function initCategories() {
-  console.log("Initialisation des catégories...");
+  // Initializing categories
   
   for (const category of categories) {
     // Vérifier si la catégorie existe déjà (par slug)
@@ -96,7 +96,7 @@ export async function initCategories() {
       if (updateError) {
         console.error(`Erreur lors de la mise à jour de la catégorie ${category.name}:`, updateError);
       } else {
-        console.log(`Catégorie mise à jour: ${category.name}`);
+        // Category updated
       }
     } else {
       // Créer une nouvelle catégorie
@@ -107,12 +107,12 @@ export async function initCategories() {
       if (insertError) {
         console.error(`Erreur lors de la création de la catégorie ${category.name}:`, insertError);
       } else {
-        console.log(`Catégorie créée: ${category.name}`);
+        // Category created
       }
     }
   }
   
-  console.log("Initialisation des catégories terminée!");
+  // Categories initialization completed
 }
 
 // Exécution directe

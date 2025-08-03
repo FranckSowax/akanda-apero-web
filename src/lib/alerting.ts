@@ -292,7 +292,7 @@ class AlertingService {
       .find(alert => alert.ruleId === rule.id && !alert.resolved);
 
     if (existingAlert) {
-      console.log(`Alerte déjà active pour la règle ${rule.id}`);
+      // Alert already active for this rule
       return;
     }
 
@@ -317,7 +317,7 @@ class AlertingService {
     // Enregistrer l'alerte en base de données
     await this.saveAlert(alert);
 
-    console.log(`🚨 Alerte déclenchée: ${rule.name}`);
+    // Alert triggered
   }
 
   /**
@@ -346,7 +346,7 @@ class AlertingService {
   private async sendEmailAlert(alert: Alert) {
     // Ici vous pouvez intégrer avec votre service d'email
     // (SendGrid, Mailgun, etc.)
-    console.log(`📧 Email alert: ${alert.message}`);
+    // Email alert sent
     
     // Exemple d'implémentation avec fetch vers votre API email
     try {
@@ -499,7 +499,7 @@ class AlertingService {
       console.error('Erreur résolution alerte:', error);
     }
 
-    console.log(`✅ Alerte résolue: ${alert.message}`);
+    // Alert resolved
   }
 
   /**
