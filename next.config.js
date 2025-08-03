@@ -115,6 +115,7 @@ if (isNetlify) {
   nextConfig.poweredByHeader = false;
   nextConfig.trailingSlash = false;
   nextConfig.productionBrowserSourceMaps = false;
+  nextConfig.output = 'standalone';
   
   console.log('Configuration optimisée pour Netlify activée');
 }
