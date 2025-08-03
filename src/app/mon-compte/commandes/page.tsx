@@ -154,7 +154,7 @@ export default function OrdersPage() {
               
             if (!allError && allCustomers) {
               // Chercher une correspondance
-              const foundCustomer = allCustomers.find(customer => {
+              const foundCustomer = allCustomers.find((customer: any) => {
                 const userEmail = currentUser.email.toLowerCase();
                 const customerEmail = customer.email?.toLowerCase() || '';
                 const userPhone = phoneFromEmail;
@@ -225,7 +225,7 @@ export default function OrdersPage() {
           setOrders([]);
         } else {
           // Transformer les données pour correspondre à notre interface (logique améliorée)
-          const transformedOrders: Order[] = (data || []).map(order => ({
+          const transformedOrders: Order[] = (data || []).map((order: any) => ({
             id: order.id,
             order_number: order.order_number,
             created_at: order.created_at,
@@ -508,7 +508,7 @@ export default function OrdersPage() {
                       <div className="flex flex-wrap gap-2">
                         {order.items.map((item, index) => (
                           <div key={index} className="text-xs bg-gray-50 px-2 py-1 rounded">
-                            {item.quantity}x {item.name || item.product?.name || 'Produit'}
+                            {item.quantity}x {item.product?.name || 'Produit'}
                           </div>
                         ))}
                       </div>

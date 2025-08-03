@@ -42,21 +42,39 @@ export const useUserProfile = (userEmail?: string) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchUserProfile = useCallback(async () => {
-    if (!userEmail) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
+      
+      // Vérifier la session utilisateur
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ Erreur de session:', sessionError);
+        throw new Error(`Erreur de session: ${sessionError.message}`);
+      }
+      
+      if (!session) {
+        console.log('🔒 Aucune session active');
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      
+      const emailToUse = userEmail || session.user.email;
+      
+      if (!emailToUse) {
+        console.error('❌ Aucun email disponible');
+        throw new Error('Aucun email utilisateur disponible');
+      }
+      
+      console.log('🔍 Recherche du profil pour:', emailToUse);
 
       // Récupérer le client
       const { data: customer, error: customerError } = await supabase
         .from('customers')
         .select('*')
-        .eq('email', userEmail)
+        .eq('email', emailToUse)
         .single();
 
       if (customerError) {
@@ -87,16 +105,22 @@ export const useUserProfile = (userEmail?: string) => {
           delivery_option,
           delivery_address,
           delivery_district,
-          delivery_gps_lat,
-          delivery_gps_lng
+          gps_latitude,
+          gps_longitude
         `)
         .eq('customer_id', customer.id)
-        .eq('status', 'confirmed')
         .order('created_at', { ascending: false });
 
       if (ordersError) {
         throw ordersError;
       }
+      
+      console.log('📊 Commandes récupérées pour le calcul des points:', {
+        customerEmail: emailToUse,
+        customerId: customer.id,
+        ordersCount: orders?.length || 0,
+        orders: orders?.map(o => ({ id: o.id, status: o.status, total: o.total_amount }))
+      });
 
       // Calculer les statistiques
       const totalOrders = orders?.length || 0;
@@ -107,6 +131,8 @@ export const useUserProfile = (userEmail?: string) => {
       // Calculer les points de fidélité
       let loyaltyPoints = 0;
       
+      console.log('🎯 Début du calcul des points de fidélité...');
+      
       if (orders && orders.length > 0) {
         for (const order of orders) {
           const { data: orderItems, error: itemsError } = await supabase
@@ -115,20 +141,30 @@ export const useUserProfile = (userEmail?: string) => {
             .eq('order_id', order.id);
 
           if (!itemsError && orderItems) {
+            console.log(`📦 Articles pour commande ${order.id}:`, orderItems);
             orderItems.forEach((item: any) => {
               const productName = item.product_name?.toLowerCase() || '';
               const quantity = item.quantity || 0;
+              let pointsForItem = 0;
 
               // Règles de points de fidélité
               if (productName.includes('cocktail') || productName.includes('mojito') || productName.includes('margarita')) {
-                loyaltyPoints += 15 * quantity; // Cocktails Maison : 15 points
+                pointsForItem = 15 * quantity; // Cocktails Maison : 15 points
+                loyaltyPoints += pointsForItem;
+                console.log(`🍸 Cocktail: ${productName} x${quantity} = +${pointsForItem} points`);
               } else {
-                loyaltyPoints += 10 * quantity; // Autres produits : 10 points
+                pointsForItem = 10 * quantity; // Autres produits : 10 points
+                loyaltyPoints += pointsForItem;
+                console.log(`🍾 Produit: ${productName} x${quantity} = +${pointsForItem} points`);
               }
             });
+          } else if (itemsError) {
+            console.error(`❌ Erreur lors de la récupération des articles pour la commande ${order.id}:`, itemsError);
           }
         }
       }
+      
+      console.log('🏆 Total des points de fidélité calculés:', loyaltyPoints);
 
       const loyaltyTier = calculateLoyaltyTier(loyaltyPoints);
 
@@ -151,8 +187,24 @@ export const useUserProfile = (userEmail?: string) => {
       setProfile(profileData);
 
     } catch (err: any) {
-      console.error('Erreur lors de la récupération du profil:', err);
-      setError(err.message || 'Erreur lors de la récupération du profil');
+      console.error('❌ Erreur lors de la récupération du profil:');
+      console.error('Type d\'erreur:', typeof err);
+      console.error('Message:', err?.message || 'Pas de message');
+      console.error('Code:', err?.code || 'Pas de code');
+      console.error('Details:', err?.details || 'Pas de détails');
+      console.error('Erreur complète:', err);
+      
+      let errorMessage = 'Erreur lors de la récupération du profil';
+      
+      if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.code) {
+        errorMessage = `Erreur ${err.code}: ${err.details || 'Erreur inconnue'}`;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
