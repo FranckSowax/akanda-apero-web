@@ -115,12 +115,7 @@ export const useUserProfile = (userEmail?: string) => {
         throw ordersError;
       }
       
-      console.log('📊 Commandes récupérées pour le calcul des points:', {
-        customerEmail: emailToUse,
-        customerId: customer.id,
-        ordersCount: orders?.length || 0,
-        orders: orders?.map(o => ({ id: o.id, status: o.status, total: o.total_amount }))
-      });
+
 
       // Calculer les statistiques
       const totalOrders = orders?.length || 0;
@@ -131,8 +126,6 @@ export const useUserProfile = (userEmail?: string) => {
       // Calculer les points de fidélité
       let loyaltyPoints = 0;
       
-      console.log('🎯 Début du calcul des points de fidélité...');
-      
       if (orders && orders.length > 0) {
         for (const order of orders) {
           const { data: orderItems, error: itemsError } = await supabase
@@ -141,30 +134,20 @@ export const useUserProfile = (userEmail?: string) => {
             .eq('order_id', order.id);
 
           if (!itemsError && orderItems) {
-            console.log(`📦 Articles pour commande ${order.id}:`, orderItems);
             orderItems.forEach((item: any) => {
               const productName = item.product_name?.toLowerCase() || '';
               const quantity = item.quantity || 0;
-              let pointsForItem = 0;
 
               // Règles de points de fidélité
               if (productName.includes('cocktail') || productName.includes('mojito') || productName.includes('margarita')) {
-                pointsForItem = 15 * quantity; // Cocktails Maison : 15 points
-                loyaltyPoints += pointsForItem;
-                console.log(`🍸 Cocktail: ${productName} x${quantity} = +${pointsForItem} points`);
+                loyaltyPoints += 15 * quantity; // Cocktails Maison : 15 points
               } else {
-                pointsForItem = 10 * quantity; // Autres produits : 10 points
-                loyaltyPoints += pointsForItem;
-                console.log(`🍾 Produit: ${productName} x${quantity} = +${pointsForItem} points`);
+                loyaltyPoints += 10 * quantity; // Autres produits : 10 points
               }
             });
-          } else if (itemsError) {
-            console.error(`❌ Erreur lors de la récupération des articles pour la commande ${order.id}:`, itemsError);
           }
         }
       }
-      
-      console.log('🏆 Total des points de fidélité calculés:', loyaltyPoints);
 
       const loyaltyTier = calculateLoyaltyTier(loyaltyPoints);
 
