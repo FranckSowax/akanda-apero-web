@@ -32,6 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useAuthPersistence();
   
   // Hook pour le profil client
+  // Debug: Log user state
+  console.log('🔍 AuthProvider - User state:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    hasUser: !!user
+  });
+
   const { 
     profile: customerProfile, 
     loading: profileLoading, 

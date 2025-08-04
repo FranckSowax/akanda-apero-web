@@ -17,6 +17,39 @@ export function useCustomerProfile(user: User | null): UseCustomerProfileReturn 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Debug: Log hook call
+  console.log('🔍 useCustomerProfile - Hook called with user:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    hasUser: !!user
+  });
+
+  // Migrer un profil existant en ajoutant l'auth_user_id
+  const migrateExistingProfile = async (email: string, authUserId: string) => {
+    try {
+      console.log('🔄 Migration profil existant pour email:', email, 'vers userId:', authUserId);
+      
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('customers')
+        .update({ auth_user_id: authUserId })
+        .eq('email', email)
+        .is('auth_user_id', null)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('❌ Erreur migration profil:', updateError);
+        setError(`Erreur migration profil: ${updateError?.message || 'Erreur inconnue'}`);
+        return;
+      }
+
+      console.log('✅ Profil migré avec succès:', updatedProfile);
+      setProfile(updatedProfile);
+    } catch (err) {
+      console.error('💥 Erreur lors de la migration du profil:', err);
+      setError(`Erreur migration: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+    }
+  };
+
   // Créer le profil à partir des données auth
   const createProfileFromAuthUser = async (userId: string) => {
     try {
@@ -56,6 +89,14 @@ export function useCustomerProfile(user: User | null): UseCustomerProfileReturn 
           fullError: JSON.stringify(createError, null, 2),
           profileData
         });
+        
+        // Si erreur de duplication d'email, essayer de migrer le profil existant
+        if (createError?.code === '23505' && createError?.message?.includes('customers_email_key')) {
+          console.log('🔄 Tentative de migration du profil existant...');
+          await migrateExistingProfile(email, userId);
+          return;
+        }
+        
         setError(`Erreur création profil: ${createError?.message || createError?.code || 'Erreur inconnue'}`);
         return;
       }
@@ -178,9 +219,16 @@ export function useCustomerProfile(user: User | null): UseCustomerProfileReturn 
 
   // Charger le profil quand l'utilisateur change
   useEffect(() => {
+    console.log('🔄 useCustomerProfile - useEffect triggered:', {
+      user: user ? { id: user.id, email: user.email } : null,
+      hasUser: !!user
+    });
+
     if (user) {
+      console.log('🚀 useCustomerProfile - Loading profile for user:', user.id);
       loadProfile(user.id);
     } else {
+      console.log('🚫 useCustomerProfile - No user, clearing profile');
       setProfile(null);
       setError(null);
     }
