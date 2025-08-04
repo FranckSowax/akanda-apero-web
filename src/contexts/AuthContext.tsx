@@ -5,13 +5,18 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
 import { useAuthPersistence } from '../hooks/useAuthPersistence';
 import { logError, logInfo } from '../utils/error-handler';
+import { CustomerProfile } from '../services/customer-profile-service';
+import { useCustomerProfile } from '../hooks/useCustomerProfile';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  customerProfile: CustomerProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   signOut: () => Promise<void>;
   forceRefresh: () => Promise<void>;
+  updateCustomerProfile: (updates: any) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Hook de persistance ultra-robuste
   useAuthPersistence();
+  
+  // Hook pour le profil client
+  const { 
+    profile: customerProfile, 
+    loading: profileLoading, 
+    updateProfile: updateCustomerProfile 
+  } = useCustomerProfile(user);
 
   // 🔧 FONCTION DE SYNCHRONISATION FORCÉE
   const forceSync = async () => {
@@ -190,9 +202,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     session,
+    customerProfile,
     loading,
+    profileLoading,
     signOut,
-    forceRefresh
+    forceRefresh,
+    updateCustomerProfile
   };
 
   return (

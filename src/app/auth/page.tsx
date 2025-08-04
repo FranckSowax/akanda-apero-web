@@ -16,6 +16,7 @@ import {
   Loader2,
   LogIn,
   Mail,
+  Phone,
   Settings,
   Shield,
   Sparkles,
@@ -112,6 +113,9 @@ export default function AuthPage() {
   // États pour le formulaire
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -216,7 +220,7 @@ export default function AuthPage() {
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!email || !password || !firstName || !lastName || !phone) {
       showMessage("Veuillez remplir tous les champs.", 'error');
       return;
     }
@@ -229,19 +233,54 @@ export default function AuthPage() {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      // Créer le compte utilisateur
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth?redirect_to=${encodeURIComponent(redirectTo)}`
+          emailRedirectTo: `${window.location.origin}/auth?redirect_to=${encodeURIComponent(redirectTo)}`,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone
+          }
         }
       });
       
-      if (error) throw error;
+      if (authError) throw authError;
+      
+      // Si l'utilisateur est créé et confirmé, créer le profil client
+      if (authData.user) {
+        try {
+          const { error: profileError } = await supabase
+            .from('customers')
+            .insert([
+              {
+                id: authData.user.id,
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                phone: phone,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ]);
+          
+          if (profileError) {
+            console.error('Erreur création profil client:', profileError);
+            // Ne pas bloquer l'inscription si le profil ne peut pas être créé
+          }
+        } catch (profileError) {
+          console.error('Erreur profil:', profileError);
+        }
+      }
       
       showMessage("Inscription réussie! Veuillez vérifier votre e-mail pour confirmer votre compte.", 'success');
       setEmail('');
       setPassword('');
+      setFirstName('');
+      setLastName('');
+      setPhone('');
     } catch (error: any) {
       console.error('Erreur inscription:', error);
       showMessage(error.message || "Une erreur s'est produite lors de l'inscription.", 'error');
@@ -624,6 +663,52 @@ export default function AuthPage() {
               {activeTab === 'signup' && (
                 <form onSubmit={handleSignUp} className="space-y-6">
                   <div className="space-y-4">
+                    {/* Champs Prénom et Nom */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <User className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Prénom"
+                          value={firstName}
+                          className="pl-10 h-12 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+                          onChange={(e) => setFirstName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <User className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Nom"
+                          value={lastName}
+                          className="pl-10 h-12 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+                          onChange={(e) => setLastName(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Champ Téléphone */}
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Phone className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        type="tel"
+                        placeholder="Numéro de téléphone"
+                        value={phone}
+                        className="pl-10 h-12 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    {/* Champ Email */}
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <Mail className="h-5 w-5 text-gray-400" />
