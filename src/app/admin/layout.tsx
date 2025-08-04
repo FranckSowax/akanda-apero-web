@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -25,6 +25,10 @@ import {
   TestTube
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useOrderNotifications } from '../../hooks/useOrderNotifications';
+import { useAudioAlert } from '../../utils/audioAlert';
+import OrderNotificationOverlay from '../../components/OrderNotificationOverlay';
+import ClientOnlyWrapper from '../../components/ClientOnlyWrapper';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, color: 'text-blue-600' },
@@ -50,6 +54,23 @@ export default function AdminLayout({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { newOrder, dismissNotification } = useOrderNotifications();
+  const { playAlert, requestPermission } = useAudioAlert();
+
+  // Demander la permission audio au premier chargement
+  useEffect(() => {
+    const initAudio = async () => {
+      await requestPermission();
+    };
+    initAudio();
+  }, [requestPermission]);
+
+  // Jouer l'alerte quand une nouvelle commande arrive
+  useEffect(() => {
+    if (newOrder) {
+      playAlert();
+    }
+  }, [newOrder, playAlert]);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -257,6 +278,16 @@ export default function AdminLayout({
           </div>
         </main>
       </div>
+
+      {/* Système de notifications - Client seulement */}
+      <ClientOnlyWrapper>
+        {/* Overlay de notification - Toujours actif */}
+        <OrderNotificationOverlay
+          isVisible={!!newOrder}
+          orderData={newOrder || undefined}
+          onDismiss={dismissNotification}
+        />
+      </ClientOnlyWrapper>
     </div>
   );
 }
