@@ -47,8 +47,16 @@ export function useCustomerProfile(user: User | null): UseCustomerProfileReturn 
       const { data: newProfile, error: createError } = await CustomerProfileService.createCustomerProfile(profileData);
       
       if (createError) {
-        console.error('❌ Erreur création profil:', createError);
-        setError(`Erreur création profil: ${createError?.message || 'Erreur inconnue'}`);
+        console.error('❌ Erreur création profil:', {
+          error: createError,
+          errorMessage: createError?.message,
+          errorCode: createError?.code,
+          errorDetails: createError?.details,
+          errorHint: createError?.hint,
+          fullError: JSON.stringify(createError, null, 2),
+          profileData
+        });
+        setError(`Erreur création profil: ${createError?.message || createError?.code || 'Erreur inconnue'}`);
         return;
       }
       
@@ -74,7 +82,10 @@ export function useCustomerProfile(user: User | null): UseCustomerProfileReturn 
           error: profileError,
           userId,
           errorMessage: profileError?.message,
-          errorCode: profileError?.code
+          errorCode: profileError?.code,
+          errorDetails: profileError?.details,
+          errorHint: profileError?.hint,
+          fullError: JSON.stringify(profileError, null, 2)
         });
         
         // Si l'utilisateur n'existe pas, essayer de créer le profil automatiquement

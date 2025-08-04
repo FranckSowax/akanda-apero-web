@@ -1,7 +1,8 @@
 import { supabase } from '../lib/supabase/client';
 
 export interface CustomerProfile {
-  id: string;
+  id: string; // UUID généré automatiquement
+  auth_user_id: string; // ID de l'utilisateur auth
   email: string;
   first_name: string;
   last_name: string;
@@ -43,11 +44,20 @@ export class CustomerProfileService {
       const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('id', userId)
+        .eq('auth_user_id', userId)
         .single();
 
       if (error) {
-        console.log('📊 CustomerProfileService - Réponse Supabase:', { data, error, userId });
+        console.log('📊 CustomerProfileService - Réponse Supabase:', { 
+          data, 
+          error, 
+          userId,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          errorDetails: error?.details,
+          errorHint: error?.hint,
+          fullError: JSON.stringify(error, null, 2)
+        });
       } else {
         console.log('✅ CustomerProfileService - Profil récupéré:', data);
       }
@@ -64,19 +74,42 @@ export class CustomerProfileService {
    */
   static async createCustomerProfile(profileData: CreateCustomerProfileData): Promise<{ data: CustomerProfile | null; error: any }> {
     try {
+      console.log('🔧 CustomerProfileService - Création profil avec données:', profileData);
+      
+      const { id: authUserId, ...profileDataWithoutId } = profileData;
+      
+      const insertData = {
+        ...profileDataWithoutId,
+        auth_user_id: authUserId, // Utiliser auth_user_id au lieu de id
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('📝 CustomerProfileService - Données à insérer:', insertData);
+      
       const { data, error } = await supabase
         .from('customers')
-        .insert([{
-          ...profileData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([insertData])
         .select()
         .single();
 
+      if (error) {
+        console.error('❌ CustomerProfileService - Erreur insertion:', {
+          error,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          errorDetails: error?.details,
+          errorHint: error?.hint,
+          fullError: JSON.stringify(error, null, 2),
+          insertData
+        });
+      } else {
+        console.log('✅ CustomerProfileService - Profil créé avec succès:', data);
+      }
+
       return { data, error };
     } catch (error) {
-      console.error('Erreur lors de la création du profil client:', error);
+      console.error('💥 CustomerProfileService - Erreur lors de la création du profil client:', error);
       return { data: null, error };
     }
   }
@@ -92,7 +125,7 @@ export class CustomerProfileService {
           ...updates,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId)
+        .eq('auth_user_id', userId)
         .select()
         .single();
 
@@ -134,7 +167,7 @@ export class CustomerProfileService {
       const { error } = await supabase
         .from('customers')
         .delete()
-        .eq('id', userId);
+        .eq('auth_user_id', userId);
 
       return { error };
     } catch (error) {
@@ -184,7 +217,7 @@ export class CustomerProfileService {
           loyalty_points: points,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId)
+        .eq('auth_user_id', userId)
         .select()
         .single();
 
