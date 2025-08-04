@@ -70,15 +70,19 @@ export function useOrderNotificationsPolling() {
         console.error('❌ Erreur lors de la récupération des articles:', itemsError);
       }
 
-      const customerName = order.customers?.full_name || 
-                          `${order.customers?.first_name || ''} ${order.customers?.last_name || ''}`.trim() ||
+      const customer = Array.isArray(order.customers) ? order.customers[0] : order.customers;
+      const customerName = customer?.full_name || 
+                          `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() ||
                           'Client Inconnu';
 
-      const items = orderItems?.map(item => ({
-        name: item.products?.name || 'Produit Inconnu',
-        quantity: item.quantity || 1,
-        price: Number(item.unit_price) || 0
-      })) || [];
+      const items = orderItems?.map(item => {
+        const product = Array.isArray(item.products) ? item.products[0] : item.products;
+        return {
+          name: product?.name || 'Produit Inconnu',
+          quantity: item.quantity || 1,
+          price: Number(item.unit_price) || 0
+        };
+      }) || [];
 
       const orderDetails: OrderDetails = {
         id: order.id,

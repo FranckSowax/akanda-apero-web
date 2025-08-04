@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ShoppingBag, LogIn, CreditCard, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
@@ -79,7 +79,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
     };
   }, [isOpen, onClose]);
 
-  const modalVariants = {
+  const modalVariants: Variants = {
     hidden: { 
       opacity: 0,
       scale: 0.95,
@@ -105,7 +105,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const overlayVariants = {
+  const overlayVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1 },
     exit: { opacity: 0 }
