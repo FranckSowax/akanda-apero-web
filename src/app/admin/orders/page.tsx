@@ -41,6 +41,7 @@ import { useOrders } from '../../../hooks/supabase/useOrders';
 import OrderDetailsModal from '../../../components/admin/OrderDetailsModal';
 import OrderPreparationModal from '../../../components/admin/OrderPreparationModal';
 import InvoiceModal from '../../../components/admin/InvoiceModal';
+import ReportProblemModal from '../../../components/ReportProblemModal';
 import { Order } from '../../../types/supabase';
 import { whapiService } from '../../../services/whapi';
 
@@ -158,12 +159,13 @@ const getDeliveryOptionIcon = (option: string) => {
 };
 
 // Tableau des commandes
-const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onViewPreparation }: { 
+const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onViewPreparation, onReportProblem }: { 
   orders: any[],
   onStatusChange: (orderId: string, status: string) => void,
   onViewOrder: (orderId: string) => void,
   onViewInvoice: (orderId: string) => void,
-  onViewPreparation: (orderId: string) => void
+  onViewPreparation: (orderId: string) => void,
+  onReportProblem: (orderId: string) => void
 }) => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
@@ -413,7 +415,7 @@ const OrderTable = ({ orders, onStatusChange, onViewOrder, onViewInvoice, onView
                       <button
                         className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 focus:bg-gray-100"
                         onClick={() => {
-                          // Handle problem reporting
+                          onReportProblem(order.id);
                           closeDropdown();
                         }}
                         role="menuitem"
@@ -479,9 +481,11 @@ export default function OrdersPage() {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<any | null>(null);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<any | null>(null);
   const [selectedOrderForPreparation, setSelectedOrderForPreparation] = useState<any | null>(null);
+  const [selectedOrderForProblem, setSelectedOrderForProblem] = useState<any | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
   const [isPreparationModalOpen, setIsPreparationModalOpen] = useState<boolean>(false);
+  const [isReportProblemModalOpen, setIsReportProblemModalOpen] = useState<boolean>(false);
 
   const { getAllOrders, updateOrderStatus, loading: ordersLoading } = useOrders();
 
@@ -589,6 +593,15 @@ export default function OrdersPage() {
     }
   };
 
+  // Gérer l'ouverture du modal de signalement de problème
+  const handleReportProblem = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setSelectedOrderForProblem(order);
+      setIsReportProblemModalOpen(true);
+    }
+  };
+
   // Fermer les modals
   const handleCloseDetailsModal = () => {
     setIsDetailsModalOpen(false);
@@ -603,6 +616,11 @@ export default function OrdersPage() {
   const handleClosePreparationModal = () => {
     setIsPreparationModalOpen(false);
     setSelectedOrderForPreparation(null);
+  };
+
+  const handleCloseReportProblemModal = () => {
+    setIsReportProblemModalOpen(false);
+    setSelectedOrderForProblem(null);
   };
 
   // Filtrer les commandes par statut et recherche
@@ -685,6 +703,7 @@ export default function OrdersPage() {
             onViewOrder={handleViewOrder}
             onViewInvoice={handleViewInvoice}
             onViewPreparation={handleViewPreparation}
+            onReportProblem={handleReportProblem}
           />
           
           {filteredOrders.length > 0 && (
@@ -715,6 +734,25 @@ export default function OrdersPage() {
         isOpen={isPreparationModalOpen}
         onClose={handleClosePreparationModal}
       />
+      
+      {selectedOrderForProblem && (
+        <ReportProblemModal
+          isOpen={isReportProblemModalOpen}
+          onClose={handleCloseReportProblemModal}
+          order={{
+            id: selectedOrderForProblem.id,
+            order_number: selectedOrderForProblem.order_number,
+            customer_name: `${selectedOrderForProblem.customers?.first_name || ''} ${selectedOrderForProblem.customers?.last_name || ''}`.trim(),
+            customer_email: selectedOrderForProblem.customers?.email,
+            customer_phone: selectedOrderForProblem.customers?.phone,
+            total_amount: selectedOrderForProblem.total_amount
+          }}
+          onSuccess={() => {
+            // Optionally refresh orders or show success message
+            console.log('Problème signalé avec succès');
+          }}
+        />
+      )}
     </div>
   );
 }

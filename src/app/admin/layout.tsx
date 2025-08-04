@@ -22,7 +22,8 @@ import {
   Calendar,
   Globe,
   LogOut,
-  TestTube
+  TestTube,
+  AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useOrderNotificationsPolling } from '../../hooks/useOrderNotificationsPolling';
@@ -33,6 +34,7 @@ import ClientOnlyWrapper from '../../components/ClientOnlyWrapper';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, color: 'text-blue-600' },
   { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart, color: 'text-orange-600' },
+  { name: 'Problèmes', href: '/admin/problemes', icon: AlertTriangle, color: 'text-red-500' },
   { name: 'Livraisons', href: '/admin/deliveries', icon: Truck, color: 'text-red-600' },
   { name: 'Catégories', href: '/admin/categories', icon: FolderOpen, color: 'text-purple-600' },
   { name: 'Produits', href: '/admin/products', icon: Package, color: 'text-green-600' },
