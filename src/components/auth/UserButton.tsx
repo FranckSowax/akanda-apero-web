@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function UserButton() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, customerProfile } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -35,7 +35,12 @@ export default function UserButton() {
   console.log('🎨 UserButton - État:', {
     loading,
     hasUser: !!user,
-    userEmail: user?.email
+    userEmail: user?.email,
+    customerProfile: customerProfile ? {
+      first_name: customerProfile.first_name,
+      last_name: customerProfile.last_name,
+      email: customerProfile.email
+    } : null
   });
 
   const handleSignOut = async () => {
@@ -59,8 +64,16 @@ export default function UserButton() {
 
   // Si utilisateur connecté
   if (user) {
-    const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
-    const initials = displayName.charAt(0).toUpperCase();
+    // Priorité : prénom du profil client > nom complet metadata > email
+    const displayName = customerProfile?.first_name || 
+                       user.user_metadata?.full_name || 
+                       user.email?.split('@')[0] || 
+                       'Utilisateur';
+    
+    // Pour les initiales, utiliser prénom + nom si disponibles, sinon première lettre du displayName
+    const initials = customerProfile?.first_name && customerProfile?.last_name
+      ? `${customerProfile.first_name.charAt(0)}${customerProfile.last_name.charAt(0)}`.toUpperCase()
+      : displayName.charAt(0).toUpperCase();
 
     return (
       <div className="relative user-menu-container" ref={menuRef}>
