@@ -97,7 +97,7 @@ const CartDrawer: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-700 mb-2">Votre panier est vide</h3>
             <p className="text-gray-500 text-center mb-6">Ajoutez des produits pour les voir apparaître ici</p>
             <SheetClose asChild>
-              <Link href="/" className="bg-[#f5a623] hover:bg-[#e09000] text-white px-4 py-2 rounded-lg font-medium">
+              <Link href="/products" className="bg-[#f5a623] hover:bg-[#e09000] text-white px-4 py-2 rounded-lg font-medium">
                 Parcourir les produits
               </Link>
             </SheetClose>

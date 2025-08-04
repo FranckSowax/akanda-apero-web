@@ -176,7 +176,7 @@ export default function CartPage() {
           <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
           <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
           <p className="mb-6 text-gray-600 text-center">Vous n'avez pas encore ajouté de produits à votre panier.</p>
-          <Link href="/category">
+          <Link href="/products">
             <Button>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Parcourir les produits
