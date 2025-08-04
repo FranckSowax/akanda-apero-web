@@ -27,9 +27,29 @@ export function MonitoringProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  // Tracker la page initiale
+  // Initialiser le monitoring au montage
   useEffect(() => {
+    // Tracker la page initiale
     trackPageView();
+
+    // Capturer les erreurs d'authentification Supabase
+    const handleAuthError = (event: any) => {
+      if (event.error && event.error.message && event.error.message.includes('Invalid Refresh Token')) {
+        const context = useContext(MonitoringContext);
+        if (context) {
+          const authError = new Error('Supabase Auth Error: Invalid Refresh Token');
+          authError.stack = event.error.stack || '';
+          context.trackError(authError, 'medium');
+        }
+      }
+    };
+
+    // Écouter les erreurs d'auth Supabase
+    window.addEventListener('supabase:auth:error', handleAuthError);
+
+    return () => {
+      window.removeEventListener('supabase:auth:error', handleAuthError);
+    };
   }, [trackPageView]);
 
   // Fonctions utilitaires pour le contexte

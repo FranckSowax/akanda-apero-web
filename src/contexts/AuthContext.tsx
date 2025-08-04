@@ -55,6 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 2. Récupérer session Supabase
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
+      // Gérer les erreurs de refresh token
+      if (error && error.message.includes('Invalid Refresh Token')) {
+        console.log('⚠️ AuthProvider - Token de rafraîchissement invalide, nettoyage...');
+        localStorage.removeItem('akanda-supabase-auth');
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        lastSyncRef.current = null;
+        return;
+      }
+      
       if (currentSession) {
         console.log('✅ AuthProvider - Session Supabase trouvée:', currentSession.user.email);
         
@@ -79,10 +90,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('✅ AuthProvider - Session localStorage valide, restauration...');
             
             // Forcer Supabase à utiliser cette session
-            await supabase.auth.setSession({
-              access_token: parsedSession.access_token,
-              refresh_token: parsedSession.refresh_token
-            });
+            try {
+              await supabase.auth.setSession({
+                access_token: parsedSession.access_token,
+                refresh_token: parsedSession.refresh_token
+              });
+            } catch (sessionError: any) {
+              if (sessionError.message && sessionError.message.includes('Invalid Refresh Token')) {
+                console.log('⚠️ AuthProvider - Token de rafraîchissement invalide lors de la restauration, nettoyage...');
+                localStorage.removeItem('akanda-supabase-auth');
+                setSession(null);
+                setUser(null);
+                lastSyncRef.current = null;
+                return;
+              }
+              throw sessionError;
+            }
             
             setSession(parsedSession);
             setUser(parsedSession.user);

@@ -8,6 +8,7 @@ import { useAppContext } from '../context/AppContext';
 import { useCartModalContext } from '../context/CartModalContext';
 import { Product } from '../context/types';
 import { getProductImageUrl } from '../utils/imageUtils';
+import { useEcommerceTracking } from './MonitoringProvider';
 
 interface AddToCartButtonProps {
   product: Product;
@@ -36,6 +37,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 }) => {
   const { addToCart, getItemQuantity } = useAppContext();
   const { openCart } = useCartModalContext();
+  const { trackAddToCart } = useEcommerceTracking();
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -55,6 +57,15 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       
       // Ajouter au panier
       addToCart(productWithCorrectImage, quantity);
+      
+      // Tracker l'événement e-commerce
+      trackAddToCart(
+        product.id,
+        product.name,
+        product.price,
+        quantity,
+        product.category || 'cocktail'
+      );
       
       // Animation de confirmation
       setJustAdded(true);

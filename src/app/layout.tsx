@@ -2,7 +2,7 @@ import "./global.css";
 import { AppProvider } from "../context/AppContext";
 import { CartModalProvider } from "../context/CartModalContext";
 import { AuthProvider } from "../contexts/AuthContext";
-// import { MonitoringProvider } from "../components/MonitoringProvider"; // Temporairement désactivé pour éviter ChunkLoadError
+import { MonitoringProvider } from "../components/MonitoringProvider";
 import ToastNotification from "../components/ToastNotification";
 import ReactQueryProvider from "../lib/react-query/provider";
 import { Metadata, Viewport } from "next";
@@ -38,8 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <AuthProvider>
-          {/* MonitoringProvider temporairement désactivé pour éviter les erreurs */}
-          {/* <MonitoringProvider> */}
+          <MonitoringProvider>
             <AppProvider>
               <CartModalProvider>
                 <ReactQueryProvider>
@@ -52,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </ReactQueryProvider>
               </CartModalProvider>
             </AppProvider>
-          {/* </MonitoringProvider> */}
+          </MonitoringProvider>
         </AuthProvider>
       </body>
     </html>

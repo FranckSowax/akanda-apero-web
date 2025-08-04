@@ -89,13 +89,9 @@ export default function CheckoutPage() {
   const { state, getCartTotal, clearCart, dispatch } = useAppContext();
   const cartItems = state.cart.items as CartItem[];
   
-  // 📊 Monitoring hooks - Temporairement désactivé pour le build Netlify
-  // const { trackBeginCheckout, trackPurchase } = useEcommerceTracking();
-  // useComponentPerformance('CheckoutPage');
-  
-  // Hooks de monitoring désactivés temporairement
-  const trackBeginCheckout = (cartValue?: number, itemCount?: number) => console.log('trackBeginCheckout désactivé:', { cartValue, itemCount });
-  const trackPurchase = (orderId: string, value: number, items: any[]) => console.log('trackPurchase désactivé:', { orderId, value, items });
+  // 📊 Monitoring hooks - Activés
+  const { trackBeginCheckout, trackPurchase } = useEcommerceTracking();
+  useComponentPerformance('CheckoutPage');
   
   // Log pour déboguer l'état du panier
   console.log('🛍️ État du panier:', { cartItems, count: cartItems.length });

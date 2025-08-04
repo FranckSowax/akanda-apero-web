@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { getProductImageUrl } from '../utils/imageUtils';
+import { useEcommerceTracking, useMonitoring } from './MonitoringProvider';
 
 interface CartModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
   
   const { user } = useAuth();
   const isLoggedIn = !!user;
+  const { trackCheckoutStarted } = useEcommerceTracking();
+  const { trackEvent } = useMonitoring();
   
   const { items: cart } = state.cart;
   const { subtotal, deliveryCost, discount, total } = getCartTotal();
@@ -359,7 +362,11 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                           <Button
                             className="w-full h-10 sm:h-12 text-sm sm:text-base font-semibold bg-[#f5a623] hover:bg-[#e09000] text-white shadow-lg hover:shadow-xl transition-all duration-200"
                             disabled={!isLoggedIn}
-                            onClick={onClose}
+                            onClick={() => {
+                              // Tracker le début du checkout
+                              trackCheckoutStarted(total, cart.length);
+                              onClose();
+                            }}
                           >
                             <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 flex-shrink-0" />
                             <span className="truncate">Commander maintenant</span>
@@ -371,7 +378,14 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                       {cart.length > 0 && (
                         <Button
                           variant="ghost"
-                          onClick={clearCart}
+                          onClick={() => {
+                            // Tracker la suppression du panier
+                            trackEvent('cart_cleared', {
+                              itemCount: cart.length,
+                              totalValue: total
+                            });
+                            clearCart();
+                          }}
                           className="w-full h-9 sm:h-10 text-xs sm:text-sm text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors duration-200 mb-2 sm:mb-4"
                         >
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />

@@ -23,7 +23,8 @@ import {
   Globe,
   LogOut,
   TestTube,
-  AlertTriangle
+  AlertTriangle,
+  Activity
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useOrderNotificationsPolling } from '../../hooks/useOrderNotificationsPolling';
@@ -43,6 +44,7 @@ const navigation = [
   { name: 'Promotions', href: '/admin/promotions', icon: Gift, color: 'text-pink-600' },
   { name: 'Bannières', href: '/admin/bannieres', icon: Image, color: 'text-yellow-600' },
   { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp, color: 'text-cyan-600' },
+  { name: 'Monitoring', href: '/admin/monitoring', icon: Activity, color: 'text-emerald-600' },
   { name: 'A/B Testing', href: '/admin/ab-testing', icon: TestTube, color: 'text-violet-600' },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings, color: 'text-gray-600' },
 ];

@@ -5,16 +5,18 @@ import { LogOut, User as UserIcon, Settings, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMonitoring } from '../MonitoringProvider';
 
 export default function UserButton() {
   const { user, loading, signOut, customerProfile } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
+  const { trackError } = useMonitoring();
 
   // Fermer le menu lors d'un clic extérieur
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: Event) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
@@ -50,6 +52,7 @@ export default function UserButton() {
       router.push('/');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
+      trackError(error as Error, 'medium');
     }
   };
 
