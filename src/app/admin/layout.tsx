@@ -25,8 +25,8 @@ import {
   TestTube
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useOrderNotifications } from '../../hooks/useOrderNotifications';
-import { useAudioAlert } from '../../utils/audioAlert';
+import { useOrderNotificationsPolling } from '../../hooks/useOrderNotificationsPolling';
+
 import OrderNotificationOverlay from '../../components/OrderNotificationOverlay';
 import ClientOnlyWrapper from '../../components/ClientOnlyWrapper';
 
@@ -54,23 +54,7 @@ export default function AdminLayout({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { newOrder, dismissNotification } = useOrderNotifications();
-  const { playAlert, requestPermission } = useAudioAlert();
-
-  // Demander la permission audio au premier chargement
-  useEffect(() => {
-    const initAudio = async () => {
-      await requestPermission();
-    };
-    initAudio();
-  }, [requestPermission]);
-
-  // Jouer l'alerte quand une nouvelle commande arrive
-  useEffect(() => {
-    if (newOrder) {
-      playAlert();
-    }
-  }, [newOrder, playAlert]);
+  const { newOrder, dismissNotification } = useOrderNotificationsPolling();
 
   const handleLogout = async () => {
     if (isLoggingOut) return;

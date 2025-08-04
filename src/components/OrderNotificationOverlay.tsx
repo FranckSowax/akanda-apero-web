@@ -6,14 +6,16 @@ import { ShoppingBag, X, Clock, User, Euro } from 'lucide-react';
 
 
 interface OrderData {
+  id: string;
   orderNumber: string;
   customerName: string;
   totalAmount: number;
   items: Array<{
     name: string;
     quantity: number;
+    price?: number;
   }>;
-  created_at: string;
+  timestamp: string;
 }
 
 interface OrderNotificationOverlayProps {
@@ -174,7 +176,7 @@ export default function OrderNotificationOverlay({
                 <div>
                   <p className="text-sm text-gray-500">Reçue à</p>
                   <p className="font-semibold text-gray-800">
-                    {new Date(orderData.created_at).toLocaleTimeString('fr-FR', {
+                    {new Date(orderData.timestamp).toLocaleTimeString('fr-FR', {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}

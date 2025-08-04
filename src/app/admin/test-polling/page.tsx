@@ -198,11 +198,12 @@ export default function TestPollingPage() {
         <OrderNotificationOverlay
           isVisible={true}
           orderData={{
+            id: newOrder.id,
             orderNumber: newOrder.orderNumber,
             customerName: newOrder.customerName,
             totalAmount: newOrder.totalAmount,
             items: newOrder.items,
-            created_at: newOrder.timestamp
+            timestamp: newOrder.timestamp
           }}
           onDismiss={dismissNotification}
         />
