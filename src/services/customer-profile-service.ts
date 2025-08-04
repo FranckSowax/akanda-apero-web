@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase/client';
 
 export interface CustomerProfile {
   id: string;
@@ -33,15 +33,28 @@ export class CustomerProfileService {
    */
   static async getCustomerProfile(userId: string): Promise<{ data: CustomerProfile | null; error: any }> {
     try {
+      console.log('🔍 CustomerProfileService - Récupération profil pour:', userId);
+      
+      if (!userId) {
+        console.error('❌ CustomerProfileService - userId manquant');
+        return { data: null, error: { message: 'ID utilisateur requis', code: 'MISSING_USER_ID' } };
+      }
+      
       const { data, error } = await supabase
         .from('customers')
         .select('*')
         .eq('id', userId)
         .single();
 
+      if (error) {
+        console.log('📊 CustomerProfileService - Réponse Supabase:', { data, error, userId });
+      } else {
+        console.log('✅ CustomerProfileService - Profil récupéré:', data);
+      }
+
       return { data, error };
     } catch (error) {
-      console.error('Erreur lors de la récupération du profil client:', error);
+      console.error('💥 CustomerProfileService - Erreur lors de la récupération du profil client:', error);
       return { data: null, error };
     }
   }
