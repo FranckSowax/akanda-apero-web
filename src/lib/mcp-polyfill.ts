@@ -39,75 +39,22 @@ export function useMcpPolyfill(serverName: string) {
       // Gestion des produits
       if (resourceName === 'products') {
         try {
-          // Fetching products from Supabase
-          const supabaseUrl = process?.env?.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
-          const supabaseKey = process?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
+          // Utiliser l'API MCP Supabase pour récupérer les produits
+          const response = await fetch('/api/mcp/supabase?action=getProducts');
           
-          // Utiliser Supabase directement pour récupérer les produits de base
-          const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('*');
-          
-          if (productsError) {
-            console.error("❌ Erreur lors de la récupération des produits:", productsError);
+          if (!response.ok) {
+            console.log("⚠️ Erreur HTTP lors de la récupération des produits:", response.status);
             return [];
           }
-
-          if (!productsData || productsData.length === 0) {
-            // No products found in database
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            console.log("⚠️ Erreur API lors de la récupération des produits:", data.message);
             return [];
           }
-
-          // Extraire les IDs des produits pour les requêtes suivantes
-          const productIds = productsData.map((product: any) => product.id);
-
-          // Récupérer les catégories pour ces produits
-          const { data: categoriesData, error: catError } = await supabase
-            .from('categories')
-            .select('*');
-            
-          if (catError) {
-            console.log("⚠️ Erreur lors de la récupération des catégories:", catError);
-            // On continue sans catégories
-          }
           
-          // Récupérer les relations entre produits et catégories
-          const { data: productCategoriesData, error: productCatError } = await supabase
-            .from('product_categories')
-            .select('*')
-            .in('product_id', productIds);
-            
-          if (productCatError) {
-            console.log("⚠️ Erreur lors de la récupération des relations produit-catégorie:", productCatError);
-            // On continue sans relations
-          }
-
-          // Fusion des données
-          const enhancedProducts = productsData.map((product: any) => {
-            // Trouver les relations de catégorie pour ce produit
-            const productCategories = productCategoriesData 
-              ? productCategoriesData.filter((pc: any) => pc.product_id === product.id)
-              : [];
-              
-            // Récupérer les catégories associées à ce produit spécifique
-            const productSpecificCategories = productCategories.map((pc: any) => {
-              // Trouver les détails complets de la catégorie
-              const categoryDetails = categoriesData?.find((cat: any) => cat.id === pc.category_id);
-              return categoryDetails;
-            }).filter(Boolean); // Supprimer les catégories non trouvées
-            
-            return {
-              ...product,
-              // product_images est déjà inclus dans la requête Supabase
-              // Assigner uniquement les catégories associées à ce produit
-              categories: productSpecificCategories || [],
-              // Ajouter la structure product_categories pour les hooks qui l'utilisent
-              product_categories: productCategories || [],
-              // Ajout de champs utiles pour la migration vers des données statiques si nécessaire
-              is_featured: product.is_featured || false,
-              stock_quantity: product.stock_quantity || 10
-            };
-          });
+          const enhancedProducts = data.products || [];
 
           console.log(`✅ ${enhancedProducts.length} produits récupérés`);
           return enhancedProducts;

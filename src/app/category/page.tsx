@@ -274,9 +274,10 @@ function CategoryContent({
                         transition={{ duration: 0.2 }}
                       >
                         <Link 
-                          href={`/category?id=${category.id}&name=${encodeURIComponent(category.name)}`}
+                          href={`/products?category=${category.id}&categoryName=${encodeURIComponent(category.name)}`}
                           onClick={() => {
-                            trackEvent('category_clicked', {
+                            // Tracking de clic sur catégorie
+                            trackEvent('category_click', {
                               category_id: category.id,
                               category_name: category.name,
                               products_count: productCount,
@@ -620,7 +621,7 @@ function CategoryContent({
                   return (
                     <Link 
                       key={category.id} 
-                      href={`/category?id=${category.id}&name=${encodeURIComponent(category.name)}`}
+                      href={`/products?category=${category.id}&categoryName=${encodeURIComponent(category.name)}`}
                     >
                       <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
                         <CardContent className="p-6 text-center">
