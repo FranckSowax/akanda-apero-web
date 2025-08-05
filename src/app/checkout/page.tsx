@@ -742,10 +742,36 @@ export default function CheckoutPage() {
         console.warn('⚠️ Articles invalides détectés et filtrés:', cartItems.length - validCartItems.length);
       }
       
+      // Fonction pour valider et obtenir l'email utilisateur
+      const getUserEmail = () => {
+        const userEmail = user?.email || profile?.email;
+        
+        // Vérifier si l'email est valide
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (userEmail && emailRegex.test(userEmail)) {
+          console.log('✅ Email utilisateur valide:', userEmail);
+          return userEmail;
+        }
+        
+        // Si pas d'email valide, demander à l'utilisateur de se connecter
+        console.warn('⚠️ Aucun email utilisateur valide trouvé, utilisation de fallback');
+        
+        // Fallback: utiliser le numéro de téléphone comme identifiant temporaire
+        // MAIS PAS avec @akandaapero.com
+        if (paymentInfo.whatsapp) {
+          return `temp_${paymentInfo.whatsapp.replace(/[^0-9]/g, '')}@temp-order.local`;
+        }
+        
+        return 'guest@temp-order.local';
+      };
+      
+      const customerEmail = getUserEmail();
+      
       // Préparer les données de commande avec validation stricte des types
       const orderData = {
         customerInfo: {
-          email: `${paymentInfo.whatsapp.replace(/[^0-9]/g, '')}@akandaapero.com`,
+          email: customerEmail,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           phone: formattedProfilePhone
