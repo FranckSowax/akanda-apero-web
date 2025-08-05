@@ -62,9 +62,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       trackAddToCart(
         product.id,
         product.name,
-        product.price,
-        quantity,
-        product.category || 'cocktail'
+        product.price
       );
       
       // Animation de confirmation

@@ -31,7 +31,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
   
   const { user } = useAuth();
   const isLoggedIn = !!user;
-  const { trackCheckoutStarted } = useEcommerceTracking();
+  const { trackBeginCheckout } = useEcommerceTracking();
   const { trackEvent } = useMonitoring();
   
   const { items: cart } = state.cart;
@@ -364,7 +364,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose }) => {
                             disabled={!isLoggedIn}
                             onClick={() => {
                               // Tracker le début du checkout
-                              trackCheckoutStarted(total, cart.length);
+                              trackBeginCheckout(total, cart.length);
                               onClose();
                             }}
                           >
