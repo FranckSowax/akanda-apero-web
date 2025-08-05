@@ -68,6 +68,23 @@ interface Category {
   is_active: boolean;
 }
 
+// Fonction utilitaire pour vérifier si un produit appartient à une catégorie
+function productBelongsToCategory(product: Product, categoryId: string): boolean {
+  if (Array.isArray(product.categories)) {
+    return product.categories.some((cat: { id: string }) => cat.id === categoryId);
+  }
+  // Fallback pour l'ancienne structure
+  return (product.categories as any)?.id === categoryId;
+}
+
+// Fonction utilitaire pour compter les produits d'une catégorie
+function countProductsInCategory(products: Product[], categoryId: string, featuredOnly = false): number {
+  return products.filter((product: Product) => {
+    const belongsToCategory = productBelongsToCategory(product, categoryId);
+    return featuredOnly ? belongsToCategory && product.is_featured : belongsToCategory;
+  }).length;
+}
+
 // Composant wrapper avec Suspense pour gérer les paramètres URL
 function CategoryPageWrapper() {
   const searchParams = useSearchParams();
@@ -111,9 +128,9 @@ function CategoryContent({
   );
   
   // Filtrer les produits par catégorie
-  const categoryProducts = allProducts.filter((product: Product) => 
-    product.categories?.id === currentCategory?.id
-  );
+  const categoryProducts = currentCategory 
+    ? allProducts.filter((product: Product) => productBelongsToCategory(product, currentCategory.id))
+    : [];
   
   // Appliquer les filtres
   const filteredProducts = categoryProducts.filter((product: Product) => {
@@ -167,19 +184,216 @@ function CategoryContent({
     );
   }
   
-  // Si aucune catégorie trouvée
+  // Si aucune catégorie spécifique n'est trouvée, afficher toutes les catégories
   if (!currentCategory) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50">
         <Header />
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Catégorie non trouvée</h1>
-          <p className="text-gray-600 mb-6">La catégorie que vous recherchez n'existe pas.</p>
-          <Button onClick={() => router.push('/products')} className="bg-orange-600 hover:bg-orange-700">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour aux produits
-          </Button>
+        
+        {/* En-tête des catégories */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-3xl text-white shadow-lg">
+                  🏪
+                </div>
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Nos Catégories</h1>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Découvrez notre sélection de produits organisés par catégories pour faciliter votre shopping
+              </p>
+              <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
+                <span className="flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  {categories.filter((cat: Category) => cat.is_active).length} catégories actives
+                </span>
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  {allProducts.length} produits au total
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Grille des catégories */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {categories.filter((cat: Category) => cat.is_active).length === 0 ? (
+            <div className="text-center py-20">
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune catégorie disponible</h3>
+              <p className="text-gray-600 mb-6">Il n'y a actuellement aucune catégorie active.</p>
+              <Button 
+                onClick={() => router.push('/products')}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                Voir tous les produits
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Barre de recherche pour les catégories */}
+              <div className="mb-8">
+                <div className="relative max-w-md mx-auto">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Input
+                    type="text"
+                    placeholder="Rechercher une catégorie..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 py-3 text-center"
+                  />
+                </div>
+              </div>
+              
+              {/* Grille des catégories */}
+              <motion.div 
+                layout
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+              >
+                {categories
+                  .filter((cat: Category) => {
+                    const matchesSearch = cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                         cat.description.toLowerCase().includes(searchTerm.toLowerCase());
+                    return cat.is_active && matchesSearch;
+                  })
+                  .map((category: Category) => {
+                    // Compter les produits pour cette catégorie
+                    const productCount = countProductsInCategory(allProducts, category.id);
+                    const featuredCount = countProductsInCategory(allProducts, category.id, true);
+                    
+                    return (
+                      <motion.div
+                        key={category.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        whileHover={{ y: -5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Link 
+                          href={`/category?id=${category.id}&name=${encodeURIComponent(category.name)}`}
+                          onClick={() => {
+                            trackEvent('category_clicked', {
+                              category_id: category.id,
+                              category_name: category.name,
+                              products_count: productCount,
+                              source: 'categories_index'
+                            });
+                          }}
+                        >
+                          <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg overflow-hidden h-full">
+                            <CardHeader className="p-0">
+                              <div 
+                                className="h-32 flex items-center justify-center text-4xl relative overflow-hidden"
+                                style={{ 
+                                  background: `linear-gradient(135deg, ${category.color}20, ${category.color}40)` 
+                                }}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+                                <span className="relative z-10 group-hover:scale-110 transition-transform duration-300">
+                                  {getCategoryEmoji(category.name) || category.emoji || category.icon}
+                                </span>
+                                
+                                {/* Badge produits en vedette */}
+                                {featuredCount > 0 && (
+                                  <Badge className="absolute top-3 right-3 bg-blue-500 hover:bg-blue-600 shadow-lg">
+                                    {featuredCount} vedette{featuredCount > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardHeader>
+                            
+                            <CardContent className="p-6">
+                              <div className="text-center">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
+                                  {category.name}
+                                </h3>
+                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                  {category.description}
+                                </p>
+                                
+                                <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <Package className="w-4 h-4" />
+                                    {productCount} produit{productCount > 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              </div>
+                            </CardContent>
+                            
+                            <CardFooter className="p-6 pt-0">
+                              <Button 
+                                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white shadow-lg group-hover:shadow-xl transition-all duration-300"
+                                size="lg"
+                              >
+                                Explorer cette catégorie
+                                <ChevronDown className="w-4 h-4 ml-2 rotate-[-90deg]" />
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        </Link>
+                      </motion.div>
+                    );
+                  })
+                }
+              </motion.div>
+              
+              {/* Message si aucune catégorie trouvée après recherche */}
+              {searchTerm && categories.filter((cat: Category) => {
+                const matchesSearch = cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     cat.description.toLowerCase().includes(searchTerm.toLowerCase());
+                return cat.is_active && matchesSearch;
+              }).length === 0 && (
+                <div className="text-center py-12">
+                  <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune catégorie trouvée</h3>
+                  <p className="text-gray-600 mb-6">
+                    Aucune catégorie ne correspond à "{searchTerm}"
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSearchTerm('')}
+                  >
+                    Effacer la recherche
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        
+        {/* Section d'appel à l'action */}
+        <div className="bg-gradient-to-r from-orange-500 to-pink-500 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-4">Vous ne trouvez pas ce que vous cherchez ?</h2>
+              <p className="text-xl mb-8 opacity-90">
+                Découvrez tous nos produits ou contactez-nous pour des recommandations personnalisées
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => router.push('/products')}
+                  className="bg-white text-orange-600 hover:bg-gray-50"
+                >
+                  <Package className="w-5 h-5 mr-2" />
+                  Voir tous les produits
+                </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  onClick={() => router.push('/contact')}
+                  className="border-white text-white hover:bg-white hover:text-orange-600"
+                >
+                  Nous contacter
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -402,7 +616,7 @@ function CategoryContent({
                 .filter((cat: Category) => cat.id !== currentCategory.id && cat.is_active)
                 .slice(0, 6)
                 .map((category: Category) => {
-                  const productCount = allProducts.filter((p: Product) => p.categories?.id === category.id).length;
+                  const productCount = countProductsInCategory(allProducts, category.id);
                   return (
                     <Link 
                       key={category.id} 
