@@ -47,6 +47,7 @@ interface Order {
   subtotal?: number;
   delivery_fee?: number;
   delivery_address?: string;
+  delivery_district?: string;
 }
 
 export default function OrdersPage() {
@@ -237,6 +238,7 @@ export default function OrdersPage() {
             subtotal: order.subtotal,
             delivery_fee: 0, // Valeur par défaut car la colonne n'existe pas
             delivery_address: order.delivery_address,
+            delivery_district: order.delivery_district,
             gps_latitude: order.gps_latitude,
             gps_longitude: order.gps_longitude,
             items: (order.order_items || []).map((item: any) => ({
@@ -456,10 +458,12 @@ export default function OrdersPage() {
                         <Package className="h-4 w-4" />
                         <span>{order.items.length} article{order.items.length > 1 ? 's' : ''}</span>
                       </div>
-                      {order.delivery_address && (
+                      {(order.delivery_district || order.delivery_address) && (
                         <div className="flex items-center gap-1">
                           <Truck className="h-4 w-4" />
-                          <span className="truncate max-w-[200px]">{order.delivery_address}</span>
+                          <span className="truncate max-w-[200px]">
+                            {order.delivery_district || order.delivery_address}
+                          </span>
                         </div>
                       )}
                       {order.payment_method && (

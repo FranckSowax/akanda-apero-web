@@ -6,13 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Formater un prix en euros
+ * Formater un prix en FCFA
  */
 export function formatPrice(price: number): string {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(price);
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price) + ' FCFA';
 }
 
 /**
