@@ -1,223 +1,454 @@
 'use client';
 
-import type { FC } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, 
+  Filter, 
+  Grid, 
+  List, 
+  ShoppingCart, 
+  Star, 
+  Eye, 
+  Menu, 
+  X, 
+  Heart, 
+  ChevronDown, 
+  Package, 
+  Loader2,
+  ArrowLeft,
+  SlidersHorizontal,
+  TrendingUp
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Eye } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Separator } from '../../components/ui/separator';
+import { useProducts } from '../../hooks/supabase/useProducts';
+import { useCategories } from '../../hooks/supabase/useCategories';
+import { getCategoryEmoji } from '../../utils/categoryEmojis';
+import AddToCartButton from '../../components/AddToCartButton';
+import { Header } from '../../components/layout/Header';
+import { useMonitoring } from '../../components/MonitoringProvider';
+import { ProductCard } from './ProductCard';
 
-// Mock Product Data (Should ideally come from a shared source or API)
+// Types pour les produits et catégories
 interface Product {
-  id: number;
+  id: string;
   name: string;
   description: string;
-  price: number;
-  imageUrl: string;
-  dataAiHint: string;
-  bgColor?: string;
-  currency: string;
-  categorySlug: string; // Added category slug for filtering
-  isPromo?: boolean;
+  base_price: number;
+  sale_price?: number;
+  image_url?: string;
+  emoji?: string;
   rating?: number;
-  discount?: number;
+  stock_quantity: number;
+  is_active: boolean;
+  is_featured: boolean;
+  categories?: {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+  };
 }
 
-const allProducts: Product[] = [
-  { id: 1, name: 'Pack Tout-en-Un', description: '1 Boîte (12 Canettes)', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae1/300/200', dataAiHint: 'boîtes colorées assortiment', bgColor: 'bg-pink-100', currency: 'XAF', categorySlug: 'promos', isPromo: true, discount: 10 },
-  { id: 2, name: 'Fruit de la Passion Goyave', description: '1 Boîte (12 Canettes)', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae2/300/200', dataAiHint: 'canette fruit passion goyave', bgColor: 'bg-yellow-100', currency: 'XAF', categorySlug: 'softs', rating: 4.8 },
-  { id: 3, name: 'Gingembre Yuzu', description: '1 Boîte (12 Canettes)', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae3/300/200', dataAiHint: 'canette gingembre yuzu', bgColor: 'bg-orange-100', currency: 'XAF', categorySlug: 'softs' },
-  { id: 4, name: 'Hibiscus Fruit du Dragon', description: '1 Boîte (12 Canettes)', price: 24.99, imageUrl: 'https://picsum.photos/seed/alldae4/300/200', dataAiHint: 'canette hibiscus fruit dragon', bgColor: 'bg-red-100', currency: 'XAF', categorySlug: 'softs', rating: 4.5 },
-  { id: 5, name: 'Bière Locale Blonde', description: 'Pack de 6 Bouteilles 33cl', price: 6.50, imageUrl: 'https://picsum.photos/seed/beer1/300/200', dataAiHint: 'pack bière locale', currency: 'XAF', categorySlug: 'bieres', rating: 4.2 },
-  { id: 6, name: 'Vin Rouge Merlot', description: 'Bouteille 75cl', price: 12.00, imageUrl: 'https://picsum.photos/seed/wine1/300/200', dataAiHint: 'bouteille vin rouge', currency: 'XAF', categorySlug: 'alcools' },
-  { id: 7, name: 'Chips Sel Marin', description: 'Sachet 150g', price: 2.50, imageUrl: 'https://picsum.photos/seed/snack1/300/200', dataAiHint: 'sachet chips sel', currency: 'XAF', categorySlug: 'snacks' },
-  { id: 8, name: 'Jus d\'Orange Pressé', description: 'Bouteille 1L', price: 4.00, imageUrl: 'https://picsum.photos/seed/soft2/300/200', dataAiHint: 'bouteille jus orange', currency: 'XAF', categorySlug: 'softs', isPromo: true, discount: 5 },
-  { id: 9, name: 'Amandes Grillées', description: 'Sachet 100g', price: 3.50, imageUrl: 'https://picsum.photos/seed/snack2/300/200', dataAiHint: 'sachet amandes grillées', currency: 'XAF', categorySlug: 'snacks', rating: 4.6 },
-  { id: 10, name: 'Whisky Single Malt', description: 'Bouteille 70cl', price: 45.00, imageUrl: 'https://picsum.photos/seed/alcool2/300/200', dataAiHint: 'bouteille whisky', currency: 'XAF', categorySlug: 'alcools' },
-  { id: 11, name: 'Bière Artisanale IPA', description: 'Bouteille 33cl', price: 3.50, imageUrl: 'https://picsum.photos/seed/beer2/300/200', dataAiHint: 'bière artisanale ipa', currency: 'XAF', categorySlug: 'bieres' },
-   { id: 12, name: 'Assortiment Apéro', description: 'Box Dégustation', price: 15.00, imageUrl: 'https://picsum.photos/seed/snack3/300/200', dataAiHint: 'box apéro assortiment', currency: 'XAF', categorySlug: 'snacks', isPromo: true, discount: 15 },
-];
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  emoji?: string;
+  color: string;
+  is_active: boolean;
+}
 
-// Map slugs to display names (could also come from data source)
-const categoryNames: { [key: string]: string } = {
-  alcools: 'Alcools',
-  bieres: 'Bières',
-  softs: 'Softs',
-  snacks: 'Snacks',
-  promos: 'Promotions',
-};
-
-
-const CategoryPage: FC = () => {
-  const params = useParams();
-  const slug = params.slug as string;
-  const categoryName = categoryNames[slug] || 'Catégorie';
-
-  // Filter products based on the slug
-  const products = allProducts.filter(p => p.categorySlug === slug || (slug === 'promos' && p.isPromo));
-
-  // Logique de panier et formatage de devise implémentés
-  const addToCart = (product: Product) => {
-    try {
-      // Utiliser le contexte global du panier si disponible
-      if (typeof window !== 'undefined') {
-        const cartEvent = new CustomEvent('addToCart', {
-          detail: {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image_url: product.imageUrl,
-            category: product.categorySlug,
-            description: product.description,
-            quantity: 1
-          }
-        });
-        window.dispatchEvent(cartEvent);
-        
-        // Fallback: localStorage
-        const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
-        
-        if (existingItemIndex > -1) {
-          existingCart[existingItemIndex].quantity += 1;
-        } else {
-          existingCart.push({ ...product, quantity: 1 });
-        }
-        
-        localStorage.setItem('cart', JSON.stringify(existingCart));
-        
-        // Notification de succès
-        const toast = (window as any).toast;
-        if (toast) {
-          toast({
-            title: "✨ Produit ajouté au panier !",
-            description: `${product.name} a été ajouté à votre panier.`
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout au panier:', error);
-    }
-  };
-
-  const formatPrice = (price: number, currency: string = 'XAF', discount?: number) => {
-    const finalPrice = discount ? price * (1 - discount / 100) : price;
-    
-    // Formatage optimisé pour le Franc CFA
-    const formatOptions: Intl.NumberFormatOptions = {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    };
-    
-    // Utiliser le locale français pour le CFA
-    const locale = currency === 'XAF' ? 'fr-CF' : 'fr-FR';
-    const formattedPrice = new Intl.NumberFormat(locale, formatOptions).format(finalPrice);
-    
-    if (discount) {
-      const originalFormattedPrice = new Intl.NumberFormat(locale, formatOptions).format(price);
-      return (
-        <>
-          <span className="text-destructive line-through mr-2 text-sm">{originalFormattedPrice}</span>
-                <span className="text-primary font-bold">{formattedPrice}</span>
-            </>
-        );
-     }
-    return <span className="text-lg font-bold text-primary">{formattedPrice}</span>;
-  };
-
+// Composant wrapper avec Suspense pour gérer les paramètres URL
+function CategoryPageWrapper() {
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get('id');
+  const categoryName = searchParams.get('name');
+  
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8 text-primary">{categoryName}</h1>
+    <CategoryContent 
+      categoryId={categoryId} 
+      categoryName={categoryName}
+    />
+  );
+}
 
-      {/* Sorting/Filtering Tabs - Mimicking the screenshot style */}
-      <Tabs defaultValue="new" className="mb-4 sm:mb-8">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:w-auto md:inline-flex">
-          <TabsTrigger value="new" className="text-xs sm:text-sm px-2 sm:px-4">Nouveautés</TabsTrigger>
-          <TabsTrigger value="best-seller" className="text-xs sm:text-sm px-2 sm:px-4">Meilleures Ventes</TabsTrigger>
-          <TabsTrigger value="top-rated" className="text-xs sm:text-sm px-2 sm:px-4">Mieux Notés</TabsTrigger>
-          <TabsTrigger value="limited" className="text-xs sm:text-sm px-2 sm:px-4">Limité</TabsTrigger> {/* Example tab */}
-        </TabsList>
-        {/* Add TabsContent for each value if implementing sorting/filtering */}
-        <TabsContent value="new">
-             {/* Product Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {products.length > 0 ? (
-                  products.map((product) => (
-                    <Card key={product.id} className={`overflow-hidden border rounded-lg shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${product.bgColor || 'bg-white'} relative`}>
-                       {product.discount && (
-                            <Badge variant="destructive" className="absolute top-2 left-2 z-10 text-xs sm:text-sm">
-                                -{product.discount}%
-                            </Badge>
-                        )}
-                         {product.rating && (
-                             <Badge variant="secondary" className="absolute top-2 right-2 z-10 flex items-center gap-1 text-xs sm:text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                {product.rating.toFixed(1)}
-                            </Badge>
-                        )}
-                      <CardContent className="p-0">
-                        <Link href={`/product/${product.id}`}>
-                          <Image
-                            src={product.imageUrl}
-                            alt={product.name}
-                            width={300}
-                            height={200}
-                            className="h-40 sm:h-48 w-full object-cover transition-transform duration-300 hover:scale-105"
-                            data-ai-hint={product.dataAiHint}
-                          />
-                        </Link>
-                      </CardContent>
-                      <CardHeader className="p-3 sm:p-4">
-                        <Link href={`/product/${product.id}`} className="hover:underline">
-                          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-1">{product.name}</CardTitle>
-                        </Link>
-                        <CardDescription className="text-xs sm:text-sm text-gray-600 line-clamp-2">{product.description}</CardDescription>
-                      </CardHeader>
-                      <CardFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-3 sm:p-4 border-t gap-3 sm:gap-0">
-                        <div className="text-right">
-                          {formatPrice(product.price, product.currency, product.discount)}
-                        </div>
-                        <div className="flex w-full sm:w-auto space-x-2 justify-end">
-                          <Link href={`/product/${product.id}`} className="flex-1 sm:flex-initial">
-                            <Button size="sm" variant="outline" className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2 px-2 sm:px-3">
-                              <Eye className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Voir
-                            </Button>
-                          </Link>
-                          <Button size="sm" className="flex-1 sm:flex-initial text-xs sm:text-sm py-1 sm:py-2 px-2 sm:px-3">
-                            <Plus className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Ajouter
-                          </Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))
-                ) : (
-                  <p className="col-span-full text-center text-muted-foreground">Aucun produit trouvé dans cette catégorie.</p>
+// Composant principal avec la logique métier
+function CategoryContent({ 
+  categoryId, 
+  categoryName 
+}: { 
+  categoryId: string | null;
+  categoryName: string | null;
+}) {
+  const router = useRouter();
+  const { trackEvent, trackPageView } = useMonitoring();
+  
+  // États locaux
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Hooks pour récupérer les données
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories().getCategories();
+  const { data: allProducts = [], isLoading: productsLoading } = useProducts().getProducts();
+  
+  // Trouver la catégorie actuelle
+  const currentCategory = categories.find((cat: Category) => 
+    cat.id === categoryId || 
+    cat.name.toLowerCase() === categoryName?.toLowerCase()
+  );
+  
+  // Filtrer les produits par catégorie
+  const categoryProducts = allProducts.filter((product: Product) => 
+    product.categories?.id === currentCategory?.id
+  );
+  
+  // Appliquer les filtres
+  const filteredProducts = categoryProducts.filter((product: Product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const price = product.sale_price || product.base_price;
+    const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
+    
+    return matchesSearch && matchesPrice && product.is_active;
+  });
+  
+  // Trier les produits
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-asc':
+        return (a.sale_price || a.base_price) - (b.sale_price || b.base_price);
+      case 'price-desc':
+        return (b.sale_price || b.base_price) - (a.sale_price || a.base_price);
+      case 'rating':
+        return (b.rating || 0) - (a.rating || 0);
+      case 'name':
+      default:
+        return a.name.localeCompare(b.name);
+    }
+  });
+  
+  // Tracking de la page
+  useEffect(() => {
+    if (currentCategory) {
+      trackPageView(`/category/${currentCategory.name}`);
+      trackEvent('category_viewed', {
+        category_id: currentCategory.id,
+        category_name: currentCategory.name,
+        products_count: categoryProducts.length
+      });
+    }
+  }, [currentCategory, categoryProducts.length, trackPageView, trackEvent]);
+  
+  // Loading state
+  if (categoriesLoading || productsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-orange-600" />
+            <p className="text-gray-600">Chargement des produits...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Si aucune catégorie trouvée
+  if (!currentCategory) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Catégorie non trouvée</h1>
+          <p className="text-gray-600 mb-6">La catégorie que vous recherchez n'existe pas.</p>
+          <Button onClick={() => router.push('/products')} className="bg-orange-600 hover:bg-orange-700">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour aux produits
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50">
+      <Header />
+      
+      {/* En-tête de catégorie */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.back()}
+                className="mb-2"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4 mb-4">
+            <div 
+              className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl`}
+              style={{ backgroundColor: currentCategory.color + '20' }}
+            >
+              {getCategoryEmoji(currentCategory.name) || currentCategory.emoji || currentCategory.icon}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{currentCategory.name}</h1>
+              <p className="text-gray-600 mt-1">{currentCategory.description}</p>
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Package className="w-4 h-4" />
+                  {sortedProducts.length} produit{sortedProducts.length > 1 ? 's' : ''}
+                </span>
+                {sortedProducts.some(p => p.is_featured) && (
+                  <span className="flex items-center gap-1">
+                    <TrendingUp className="w-4 h-4" />
+                    {sortedProducts.filter(p => p.is_featured).length} en vedette
+                  </span>
                 )}
               </div>
-        </TabsContent>
-         {/* Add other TabsContent sections here */}
-         <TabsContent value="best-seller">
-             <p className="text-center text-muted-foreground">Filtre "Meilleures Ventes" non implémenté.</p>
-             {/* Render sorted/filtered products here */}
-         </TabsContent>
-         <TabsContent value="top-rated">
-              <p className="text-center text-muted-foreground">Filtre "Mieux Notés" non implémenté.</p>
-              {/* Render sorted/filtered products here */}
-         </TabsContent>
-         <TabsContent value="limited">
-             <p className="text-center text-muted-foreground">Filtre "Limité" non implémenté.</p>
-             {/* Render sorted/filtered products here */}
-         </TabsContent>
-      </Tabs>
-
-
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Barre de recherche et filtres */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            {/* Recherche */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Rechercher des produits..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {/* Contrôles */}
+            <div className="flex items-center gap-3">
+              {/* Tri */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Trier par" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Nom (A-Z)</SelectItem>
+                  <SelectItem value="price-asc">Prix croissant</SelectItem>
+                  <SelectItem value="price-desc">Prix décroissant</SelectItem>
+                  <SelectItem value="rating">Mieux notés</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Filtres */}
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className={showFilters ? 'bg-orange-50 border-orange-200' : ''}
+              >
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                Filtres
+              </Button>
+              
+              {/* Mode d'affichage */}
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-none"
+                >
+                  <Grid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-none"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Panneau de filtres */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="mt-4 pt-4 border-t"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fourchette de prix
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Min"
+                        value={priceRange[0]}
+                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                        className="w-24"
+                      />
+                      <span className="text-gray-500">-</span>
+                      <Input
+                        type="number"
+                        placeholder="Max"
+                        value={priceRange[1]}
+                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-gray-500">XAF</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+      
+      {/* Grille de produits */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {sortedProducts.length === 0 ? (
+          <div className="text-center py-20">
+            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun produit trouvé</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm 
+                ? `Aucun produit ne correspond à "${searchTerm}" dans cette catégorie.`
+                : "Il n'y a actuellement aucun produit dans cette catégorie."
+              }
+            </p>
+            {searchTerm && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSearchTerm('')}
+                className="mr-3"
+              >
+                Effacer la recherche
+              </Button>
+            )}
+            <Button 
+              onClick={() => router.push('/products')}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Voir tous les produits
+            </Button>
+          </div>
+        ) : (
+          <motion.div 
+            layout
+            className={viewMode === 'grid' 
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+              : 'space-y-4'
+            }
+          >
+            {sortedProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                viewMode={viewMode}
+                onProductClick={() => {
+                  trackEvent('product_clicked', {
+                    product_id: product.id,
+                    product_name: product.name,
+                    category_id: currentCategory.id,
+                    category_name: currentCategory.name,
+                    source: 'category_page'
+                  });
+                }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </div>
+      
+      {/* Catégories suggérées */}
+      {sortedProducts.length > 0 && (
+        <div className="bg-white border-t">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">Autres catégories</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {categories
+                .filter((cat: Category) => cat.id !== currentCategory.id && cat.is_active)
+                .slice(0, 6)
+                .map((category: Category) => {
+                  const productCount = allProducts.filter((p: Product) => p.categories?.id === category.id).length;
+                  return (
+                    <Link 
+                      key={category.id} 
+                      href={`/category?id=${category.id}&name=${encodeURIComponent(category.name)}`}
+                    >
+                      <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                        <CardContent className="p-6 text-center">
+                          <div 
+                            className="w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center text-lg group-hover:scale-110 transition-transform"
+                            style={{ backgroundColor: category.color + '20' }}
+                          >
+                            {getCategoryEmoji(category.name) || category.emoji || category.icon}
+                          </div>
+                          <h3 className="font-semibold text-gray-900 text-sm mb-1">{category.name}</h3>
+                          <p className="text-xs text-gray-500">
+                            {productCount} produit{productCount > 1 ? 's' : ''}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })
+              }
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
-export default CategoryPage;
+// Composant principal avec Suspense boundary
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-orange-600" />
+            <p className="text-gray-600">Chargement...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <CategoryPageWrapper />
+    </Suspense>
+  );
+}
