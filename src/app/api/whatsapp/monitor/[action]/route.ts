@@ -11,10 +11,10 @@ import { orderStatusMonitor } from '@/services/order-status-monitor';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { action: string } }
+  context: { params: Promise<{ action: string }> }
 ) {
   try {
-    const { action } = params;
+    const { action } = await context.params;
 
     switch (action) {
       case 'start':
@@ -52,10 +52,10 @@ export async function POST(
  */
 export async function GET(
   request: Request,
-  { params }: { params: { action: string } }
+  context: { params: Promise<{ action: string }> }
 ) {
   try {
-    const { action } = await params;
+    const { action } = await context.params;
 
     if (action === 'status') {
       // Pour l'instant, on utilise une propriété simple

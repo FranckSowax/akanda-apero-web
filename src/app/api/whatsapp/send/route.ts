@@ -30,26 +30,83 @@ function formatPhoneNumber(phone: string): string {
 }
 
 /**
- * Génère le message selon le statut de la commande
+ * Récupère le template de message depuis la base de données
  */
-function getStatusMessage(status: string, orderNumber: string, customerName: string, totalAmount?: number, deliveryDate?: string, deliveryTime?: string): string {
-  const formattedAmount = totalAmount ? `CHF ${totalAmount.toFixed(2)}` : '';
-  const deliveryInfo = deliveryDate && deliveryTime ? `\n📅 Livraison prévue : ${deliveryDate} à ${deliveryTime}` : '';
+async function getMessageTemplate(status: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('whatsapp_templates')
+      .select('message')
+      .eq('status', status)
+      .single();
+    
+    if (error) {
+      console.error('Erreur récupération template:', error);
+      return null;
+    }
+    
+    return data?.message || null;
+  } catch (error) {
+    console.error('Erreur récupération template:', error);
+    return null;
+  }
+}
+
+/**
+ * Remplace les variables dans le template de message
+ */
+function replaceVariables(template: string, variables: Record<string, string>): string {
+  let message = template;
   
+  // Remplacer toutes les variables {variableName}
+  Object.entries(variables).forEach(([key, value]) => {
+    const regex = new RegExp(`\\{${key}\\}`, 'g');
+    message = message.replace(regex, value || '');
+  });
+  
+  // Remplacer les \n par de vrais retours à la ligne
+  message = message.replace(/\\n/g, '\n');
+  
+  return message;
+}
+
+/**
+ * Génère le message WhatsApp selon le statut de la commande
+ */
+async function generateMessage(status: string, customerName: string, orderNumber: string, totalAmount?: number, deliveryDate?: string, deliveryTime?: string): Promise<string> {
+  // Essayer de récupérer le template depuis la base de données
+  const template = await getMessageTemplate(status);
+  
+  if (template) {
+    // Préparer les variables pour le remplacement
+    const variables: Record<string, string> = {
+      customerName: customerName || 'Client',
+      orderNumber: orderNumber || '',
+      status: status || '',
+      totalAmount: totalAmount ? `${totalAmount.toLocaleString()} FCFA` : '',
+      deliveryDate: deliveryDate || '',
+      deliveryTime: deliveryTime || ''
+    };
+    
+    return replaceVariables(template, variables);
+  }
+  
+  // Fallback vers les messages par défaut si pas de template en base
+  const formattedAmount = totalAmount ? `${totalAmount.toLocaleString()} FCFA` : '';
+  const deliveryInfo = deliveryDate && deliveryTime 
+    ? `\n\n📅 Livraison prévue : ${deliveryDate} à ${deliveryTime}`
+    : deliveryDate 
+    ? `\n\n📅 Livraison prévue : ${deliveryDate}`
+    : '';
+
   const messages: Record<string, string> = {
-    'pending': `🎉 Bonjour ${customerName},\n\nVotre commande #${orderNumber} a bien été reçue chez Akanda Apéro !\n\nMontant : ${formattedAmount}${deliveryInfo}\n\nNous vous tiendrons informé(e) de l'avancement de votre commande.\n\nMerci pour votre confiance ! 🙏`,
-    
-    'confirmed': `✅ Bonjour ${customerName},\n\nVotre commande #${orderNumber} est confirmée !\n\nMontant : ${formattedAmount}${deliveryInfo}\n\nNous commençons la préparation de vos produits.\n\nÀ très bientôt ! 🍷`,
-    
-    'preparing': `🍷 Bonjour ${customerName},\n\nVotre commande #${orderNumber} est maintenant en préparation !\n\nNos équipes préparent soigneusement vos produits. Vous recevrez une notification dès qu'elle sera prête.${deliveryInfo}\n\nMerci pour votre patience ! 🙏`,
-    
-    'ready': `✅ Excellente nouvelle ${customerName} !\n\nVotre commande #${orderNumber} est prête !\n\n📍 Vous pouvez venir la récupérer ou attendre la livraison selon votre choix.${deliveryInfo}\n\nÀ très bientôt ! 🚀`,
-    
-    'delivering': `🚚 ${customerName}, votre commande est en route !\n\nLe livreur est parti avec votre commande #${orderNumber} et arrivera bientôt à votre adresse.\n\n📱 Il vous contactera quelques minutes avant son arrivée.\n\nMerci de rester disponible ! ⏰`,
-    
-    'delivered': `✅ ${customerName}, votre commande #${orderNumber} a été livrée avec succès !\n\n🙏 Merci pour votre confiance et à très bientôt chez Akanda Apéro !\n\nN'hésitez pas à nous faire part de vos commentaires. 💬`,
-    
-    'cancelled': `❌ Bonjour ${customerName},\n\nVotre commande #${orderNumber} a été annulée.\n\nSi vous avez des questions, n'hésitez pas à nous contacter.\n\nÀ bientôt chez Akanda Apéro ! 🍷`
+    'En attente': `🎉 Bonjour ${customerName},\n\nVotre commande #${orderNumber} a bien été reçue chez Akanda Apéro !\n\nMontant : ${formattedAmount}${deliveryInfo}\n\nNous vous tiendrons informé(e) de l'avancement de votre commande.\n\nMerci pour votre confiance ! 🙏`,
+    'Confirmée': `✅ Bonjour ${customerName},\n\nVotre commande #${orderNumber} est confirmée !\n\nMontant : ${formattedAmount}${deliveryInfo}\n\nNous commençons la préparation de vos produits.\n\nÀ très bientôt ! 🍷`,
+    'En préparation': `🍷 Bonjour ${customerName},\n\nVotre commande #${orderNumber} est maintenant en préparation !\n\nNos équipes préparent soigneusement vos produits. Vous recevrez une notification dès qu'elle sera prête.${deliveryInfo}\n\nMerci pour votre patience ! 🙏`,
+    'Prête': `✅ Excellente nouvelle ${customerName} !\n\nVotre commande #${orderNumber} est prête !\n\n📍 Vous pouvez venir la récupérer ou attendre la livraison selon votre choix.${deliveryInfo}\n\nÀ très bientôt ! 🚀`,
+    'En livraison': `🚚 ${customerName}, votre commande est en route !\n\nLe livreur est parti avec votre commande #${orderNumber} et arrivera bientôt à votre adresse.\n\n📱 Il vous contactera quelques minutes avant son arrivée.\n\nMerci de rester disponible ! ⏰`,
+    'Livrée': `✅ ${customerName}, votre commande #${orderNumber} a été livrée avec succès !\n\n🙏 Merci pour votre confiance et à très bientôt chez Akanda Apéro !\n\nN'hésitez pas à nous faire part de vos commentaires. 💬`,
+    'Annulée': `❌ Bonjour ${customerName},\n\nVotre commande #${orderNumber} a été annulée.\n\nSi vous avez des questions, n'hésitez pas à nous contacter.\n\nÀ bientôt chez Akanda Apéro ! 🍷`
   };
   
   return messages[status] || `📱 ${customerName}, votre commande #${orderNumber} a été mise à jour.\n\nStatut : ${status}\n\nMerci de votre confiance ! 🙏`;
@@ -90,10 +147,10 @@ export async function POST(request: NextRequest) {
     });
     
     // Utiliser le message personnalisé ou générer selon le statut
-    const message = customMessage || getStatusMessage(
+    const message = customMessage || await generateMessage(
       status, 
+      customerName || 'Client',
       orderNumber || 'TEST', 
-      customerName || 'Client', 
       totalAmount,
       deliveryDate,
       deliveryTime
@@ -125,8 +182,8 @@ export async function POST(request: NextRequest) {
           .insert({
             order_id: orderId,
             phone_number: formattedPhone,
-            message: message,
-            status: 'failed',
+            message_content: message,
+            message_status: 'failed',
             error_message: JSON.stringify(responseData),
             sent_at: new Date().toISOString()
           });
@@ -147,9 +204,10 @@ export async function POST(request: NextRequest) {
         .insert({
           order_id: orderId,
           phone_number: formattedPhone,
-          message: message,
-          status: 'sent',
-          message_id: responseData.sent || responseData.id,
+          message_content: message,
+          message_status: 'sent',
+          whapi_message_id: responseData.sent || responseData.id,
+          status_change: status,
           sent_at: new Date().toISOString()
         });
       
@@ -158,8 +216,8 @@ export async function POST(request: NextRequest) {
         .from('order_status_changes')
         .insert({
           order_id: orderId,
-          old_status: null, // On n'a pas l'ancien statut ici
-          new_status: status,
+          from_status: null, // On n'a pas l'ancien statut ici
+          to_status: status,
           notification_sent: true,
           changed_at: new Date().toISOString()
         });

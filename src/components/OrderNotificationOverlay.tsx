@@ -22,16 +22,35 @@ interface OrderNotificationOverlayProps {
   isVisible: boolean;
   orderData?: OrderData;
   onDismiss: () => void;
+  onConfirmOrder?: (orderId: string) => Promise<void>;
 }
 
 export default function OrderNotificationOverlay({
   isVisible,
   orderData,
-  onDismiss
+  onDismiss,
+  onConfirmOrder
 }: OrderNotificationOverlayProps) {
+  const [isConfirming, setIsConfirming] = React.useState(false);
+
   const handleDismiss = () => {
     // Le hook parent se charge d'arrêter le son
     onDismiss();
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!orderData || !onConfirmOrder) return;
+    
+    try {
+      setIsConfirming(true);
+      await onConfirmOrder(orderData.id);
+      onDismiss(); // Fermer l'overlay après confirmation
+    } catch (error) {
+      console.error('Erreur lors de la confirmation:', error);
+      alert('Erreur lors de la confirmation de la commande');
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   if (!orderData) return null;
@@ -185,15 +204,36 @@ export default function OrderNotificationOverlay({
               </div>
             </div>
 
-            {/* Bouton d'action */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleDismiss}
-              className="w-full mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 shadow-lg"
-            >
-              ✅ J'ai vu la commande
-            </motion.button>
+            {/* Boutons d'action */}
+            <div className="space-y-3 mt-6">
+              {onConfirmOrder && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleConfirmOrder}
+                  disabled={isConfirming}
+                  className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 shadow-lg flex items-center justify-center"
+                >
+                  {isConfirming ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Confirmation en cours...
+                    </>
+                  ) : (
+                    <>✅ Confirmer la commande</>
+                  )}
+                </motion.button>
+              )}
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDismiss}
+                className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 shadow-lg"
+              >
+                👁️ J'ai vu la commande
+              </motion.button>
+            </div>
 
             {/* Instructions */}
             <p className="text-center text-xs text-gray-400 mt-3">

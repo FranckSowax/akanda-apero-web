@@ -5,332 +5,442 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   Bell, 
-  ShoppingCart, 
-  Package, 
-  CreditCard, 
-  Truck, 
-  AlertCircle, 
-  Check, 
-  CheckCheck, 
-  Trash2, 
+  MessageSquare,
+  Settings,
+  History,
+  Edit3,
+  Save,
+  RefreshCw,
+  Phone,
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Search,
   Filter,
-  X
+  Download,
+  Eye
 } from 'lucide-react';
-import Link from 'next/link';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Textarea } from '../../../components/ui/textarea';
 import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import { ClientOnly } from '../../../components/ui/client-only';
-import { useNotifications, NotificationItem, NotificationType } from '../../../context/NotificationsContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Label } from '../../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { supabase } from '../../../lib/supabase';
 
-// Types d'alertes pour les onglets
-type AlertTab = 'all' | 'unread' | NotificationType;
+// Types pour les templates et notifications
+interface WhatsAppTemplate {
+  id: string;
+  status: string;
+  message: string;
+  variables: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface WhatsAppNotification {
+  id: string;
+  phone_number: string;
+  message_content: string;
+  message_status: 'pending' | 'sent' | 'failed' | 'retry';
+  order_id?: string;
+  whapi_message_id?: string;
+  status_change?: string;
+  error_message?: string;
+  created_at: string;
+  sent_at?: string;
+}
+
+const ORDER_STATUSES = [
+  'En attente',
+  'Confirmée',
+  'En préparation',
+  'Prête',
+  'En livraison',
+  'Livrée',
+  'Annulée'
+];
 
 const NotificationsPage = () => {
-  // Vérification conditionnelle pour éviter l'erreur de build
-  let notifications: NotificationItem[] = [];
-  let unreadCount = 0;
-  let markAsRead = (id: string) => Promise.resolve(true);
-  let markAllAsRead = () => Promise.resolve(true);
-  let deleteNotification = (id: string) => Promise.resolve(true);
-  let clearAll = () => {};
-  let loading = false;
-  let refreshNotifications = () => Promise.resolve();
-  
-  try {
-    const notificationContext = useNotifications();
-    notifications = notificationContext.notifications;
-    unreadCount = notificationContext.unreadCount;
-    markAsRead = notificationContext.markAsRead;
-    markAllAsRead = notificationContext.markAllAsRead;
-    deleteNotification = notificationContext.deleteNotification;
-    clearAll = notificationContext.clearAll;
-    loading = notificationContext.loading;
-    refreshNotifications = notificationContext.refreshNotifications;
-  } catch (error) {
-    // Provider non disponible, utiliser les valeurs par défaut
-    console.warn('NotificationsProvider non disponible:', error);
-  }
-  const [activeTab, setActiveTab] = useState<AlertTab>('all');
+  const [activeTab, setActiveTab] = useState('templates');
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
+  const [notifications, setNotifications] = useState<WhatsAppNotification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
   
+  // Charger les templates WhatsApp
+  const loadTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_templates')
+        .select('*')
+        .order('status');
+      
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (error) {
+      console.error('Erreur chargement templates:', error);
+    }
+  };
+
+  // Charger l'historique des notifications
+  const loadNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Erreur chargement notifications:', error);
+    }
+  };
+
+  // Sauvegarder un template
+  const saveTemplate = async (templateId: string, message: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('whatsapp_templates')
+        .update({ 
+          message,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', templateId);
+      
+      if (error) throw error;
+      
+      await loadTemplates();
+      setEditingTemplate(null);
+    } catch (error) {
+      console.error('Erreur sauvegarde template:', error);
+      alert('Erreur lors de la sauvegarde');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fonction pour rafraîchir les données
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshNotifications();
+    if (activeTab === 'templates') {
+      await loadTemplates();
+    } else {
+      await loadNotifications();
+    }
     setRefreshing(false);
   };
   
-  // Charger les notifications au montage
+  // Charger les données au montage
   useEffect(() => {
-    refreshNotifications();
-  }, [refreshNotifications]);
+    loadTemplates();
+    loadNotifications();
+  }, []);
 
-  // Filtrer les notifications selon l'onglet actif et la recherche
+  // Filtrer les notifications selon les critères
   const filteredNotifications = notifications
     .filter(notification => {
-      // Filtrer par type
-      if (activeTab === 'all') return true;
-      if (activeTab === 'unread') return !notification.read;
-      return notification.type === activeTab;
-    })
-    .filter(notification => {
+      // Filtrer par statut
+      if (statusFilter !== 'all' && notification.message_status !== statusFilter) {
+        return false;
+      }
+      
       // Filtrer par recherche
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
       return (
-        notification.title.toLowerCase().includes(query) ||
-        notification.message.toLowerCase().includes(query)
+        notification.phone_number.includes(query) ||
+        notification.message_content.toLowerCase().includes(query) ||
+        notification.status_change?.toLowerCase().includes(query)
       );
     });
 
-  // Obtenir les compteurs pour chaque type
-  const getCounts = () => {
+  // Obtenir les compteurs pour les statuts
+  const getStatusCounts = () => {
     return {
       all: notifications.length,
-      unread: notifications.filter(n => !n.read).length,
-      order: notifications.filter(n => n.type === 'order').length,
-      stock: notifications.filter(n => n.type === 'stock').length,
-      payment: notifications.filter(n => n.type === 'payment').length,
-      delivery: notifications.filter(n => n.type === 'delivery').length,
-      system: notifications.filter(n => n.type === 'system').length,
-      other: notifications.filter(n => n.type === 'other').length,
+      sent: notifications.filter(n => n.message_status === 'sent').length,
+      pending: notifications.filter(n => n.message_status === 'pending').length,
+      failed: notifications.filter(n => n.message_status === 'failed').length,
+      retry: notifications.filter(n => n.message_status === 'retry').length,
     };
   };
-  
-  const counts = getCounts();
 
-  // Obtenir la couleur de la notification selon sa priorité
-  const getPriorityColor = (priority: NotificationItem['priority']) => {
-    switch (priority) {
-      case 'high':
-        return 'border-l-4 border-red-500';
-      case 'medium':
-        return 'border-l-4 border-amber-500';
-      case 'low':
-        return 'border-l-4 border-blue-500';
-    }
+  const counts = getStatusCounts();
+
+  // Composant pour éditer un template
+  const TemplateEditor = ({ template }: { template: WhatsAppTemplate }) => {
+    const [message, setMessage] = useState(template.message);
+    const isEditing = editingTemplate === template.id;
+
+    return (
+      <Card key={template.id} className="mb-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">
+                Statut : {template.status}
+              </CardTitle>
+              <CardDescription>
+                Variables disponibles : {template.variables.join(', ')}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              {!isEditing ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingTemplate(template.id)}
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Modifier
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingTemplate(null)}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => saveTemplate(template.id, message)}
+                    disabled={loading}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Sauvegarder
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isEditing ? (
+            <div className="space-y-4">
+              <Label htmlFor={`message-${template.id}`}>Message template</Label>
+              <Textarea
+                id={`message-${template.id}`}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                placeholder="Votre message avec variables..."
+              />
+              <div className="text-sm text-gray-500">
+                <p><strong>Variables disponibles :</strong></p>
+                <ul className="list-disc list-inside">
+                  <li><code>{'{customerName}'}</code> - Nom du client</li>
+                  <li><code>{'{orderNumber}'}</code> - Numéro de commande</li>
+                  <li><code>{'{status}'}</code> - Nouveau statut</li>
+                  <li><code>{'{totalAmount}'}</code> - Montant total</li>
+                  <li><code>{'{deliveryDate}'}</code> - Date de livraison</li>
+                  <li><code>{'{deliveryTime}'}</code> - Heure de livraison</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm">{template.message}</pre>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
-  // Obtenir l'icône selon le type de notification
-  const getIcon = (type: NotificationType) => {
-    switch (type) {
-      case 'order':
-        return <ShoppingCart className="h-5 w-5 text-blue-500" />;
-      case 'stock':
-        return <Package className="h-5 w-5 text-amber-500" />;
-      case 'payment':
-        return <CreditCard className="h-5 w-5 text-green-500" />;
-      case 'delivery':
-        return <Truck className="h-5 w-5 text-purple-500" />;
-      case 'system':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+  // Obtenir le badge de statut pour les notifications
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return <Badge variant="default" className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Envoyé</Badge>;
+      case 'pending':
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />En attente</Badge>;
+      case 'failed':
+        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Échec</Badge>;
+      case 'retry':
+        return <Badge variant="outline"><RefreshCw className="h-3 w-3 mr-1" />Nouvelle tentative</Badge>;
       default:
-        return <Bell className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const getTypeLabel = (type: NotificationType) => {
-    switch (type) {
-      case 'order': return 'Commande';
-      case 'stock': return 'Stock';
-      case 'payment': return 'Paiement';
-      case 'delivery': return 'Livraison';
-      case 'system': return 'Système';
-      case 'other': return 'Autre';
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
-    <ClientOnly>
-      <div className="p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Notifications</h1>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={handleRefresh}
-              disabled={loading || refreshing}
-              className="text-blue-500 hover:text-blue-700"
-            >
-              <span className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}>
-                {refreshing ? (
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="1 4 1 10 7 10"></polyline>
-                    <polyline points="23 20 23 14 17 14"></polyline>
-                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
-                  </svg>
-                )}
-              </span>
-              Rafraîchir
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => markAllAsRead()}
-              disabled={counts.unread === 0 || loading}
-            >
-              <CheckCheck className="mr-2 h-4 w-4" />
-              Tout marquer comme lu
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => clearAll()}
-              disabled={counts.all === 0 || loading}
-              className="text-red-500 hover:text-red-700"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Tout effacer
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* En-tête */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Notifications WhatsApp</h1>
+          <p className="text-muted-foreground">
+            Gérez les templates de messages et consultez l'historique des notifications
+          </p>
         </div>
+        <Button onClick={handleRefresh} disabled={refreshing}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Actualiser
+        </Button>
+      </div>
 
-        {/* Recherche et filtres */}
-        <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col sm:flex-row gap-4">
-          <div className="relative w-full md:w-80">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <Input 
-              type="text" 
-              placeholder="Rechercher des notifications..." 
-              className="pl-10 pr-4 py-2" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                onClick={() => setSearchQuery('')}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Onglets principaux */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Templates de messages
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Historique ({notifications.length})
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Onglets pour filtrer les types de notifications */}
-        <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => setActiveTab(value as AlertTab)}>
-          <TabsList className="bg-white p-1 rounded-lg">
-            <TabsTrigger value="all" className="flex gap-2 items-center">
-              <Bell className="h-4 w-4" />
-              <span>Tout</span>
-              <Badge variant="secondary" className="ml-1">{counts.all}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="unread" className="flex gap-2 items-center">
-              <AlertCircle className="h-4 w-4" />
-              <span>Non lus</span>
-              <Badge variant="secondary" className="ml-1">{counts.unread}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="order" className="flex gap-2 items-center">
-              <ShoppingCart className="h-4 w-4" />
-              <span>Commandes</span>
-              <Badge variant="secondary" className="ml-1">{counts.order}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="stock" className="flex gap-2 items-center">
-              <Package className="h-4 w-4" />
-              <span>Stock</span>
-              <Badge variant="secondary" className="ml-1">{counts.stock}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="payment" className="flex gap-2 items-center">
-              <CreditCard className="h-4 w-4" />
-              <span>Paiements</span>
-              <Badge variant="secondary" className="ml-1">{counts.payment}</Badge>
-            </TabsTrigger>
-          </TabsList>
+        {/* Onglet Templates */}
+        <TabsContent value="templates" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Templates de messages par statut
+              </CardTitle>
+              <CardDescription>
+                Personnalisez les messages envoyés automatiquement selon le statut de la commande
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-          {/* Contenu de l'onglet actif */}
-          <TabsContent value={activeTab} className="mt-6">
-            {loading && !refreshing ? (
-              <div className="text-center py-10">
-                <div className="w-12 h-12 border-4 border-blue-400 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-                <h3 className="text-xl font-medium text-gray-600 mb-1">Chargement des notifications</h3>
-                <p className="text-gray-500">Veuillez patienter...</p>
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="text-center py-10">
-                <Bell className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <h3 className="text-xl font-medium text-gray-600 mb-1">Aucune notification trouvée</h3>
-                <p className="text-gray-500">
-                  {searchQuery ? 'Essayez une autre recherche' : activeTab !== 'all' ? 'Essayez un autre filtre' : 'Vous n\'avez aucune notification'}
+          {templates.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">Aucun template trouvé</h3>
+                <p className="text-gray-500 mb-4">
+                  Les templates de messages seront créés automatiquement lors du premier envoi.
                 </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {templates.map(template => (
+                <TemplateEditor key={template.id} template={template} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Onglet Historique */}
+        <TabsContent value="history" className="space-y-6">
+          {/* Filtres */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Rechercher par téléphone, nom, message..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filtrer par statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts ({counts.all})</SelectItem>
+                    <SelectItem value="sent">Envoyé ({counts.sent})</SelectItem>
+                    <SelectItem value="pending">En attente ({counts.pending})</SelectItem>
+                    <SelectItem value="failed">Échec ({counts.failed})</SelectItem>
+                    <SelectItem value="retry">Nouvelle tentative ({counts.retry})</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredNotifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`bg-white rounded-lg shadow-sm overflow-hidden group ${!notification.read ? 'bg-blue-50' : ''} ${getPriorityColor(notification.priority)}`}
-                  >
-                    <div className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex gap-3">
-                          <div className="mt-1">
-                            {getIcon(notification.type)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{notification.title}</h4>
-                              <Badge variant="outline" className="text-xs">
-                                {getTypeLabel(notification.type)}
-                              </Badge>
-                              {!notification.read && (
-                                <Badge className="bg-blue-500 text-white text-xs">Nouveau</Badge>
-                              )}
-                            </div>
-                            <p className="text-gray-600 text-sm mt-1">{notification.message}</p>
-                            <div className="text-xs text-gray-500 mt-2">
-                              {formatDistanceToNow(notification.createdAt, { addSuffix: true, locale: fr })}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          {!notification.read && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 p-0 w-8"
-                              onClick={() => markAsRead(notification.id)}
-                              title="Marquer comme lu"
-                            >
-                              <Check className="h-4 w-4 text-green-500" />
-                            </Button>
+            </CardContent>
+          </Card>
+
+          {/* Liste des notifications */}
+          {filteredNotifications.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Bell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">
+                  {searchQuery || statusFilter !== 'all' 
+                    ? 'Aucune notification trouvée' 
+                    : 'Aucune notification envoyée'
+                  }
+                </h3>
+                <p className="text-gray-500">
+                  {searchQuery || statusFilter !== 'all'
+                    ? 'Essayez de modifier vos critères de recherche.'
+                    : 'Les notifications WhatsApp apparaîtront ici une fois envoyées.'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredNotifications.map(notification => (
+                <Card key={notification.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <Phone className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium">{notification.phone_number}</span>
+                          {notification.status_change && (
+                            <span className="text-gray-500">({notification.status_change})</span>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 p-0 w-8"
-                            onClick={() => deleteNotification(notification.id)}
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {getStatusBadge(notification.message_status)}
+                        </div>
+                        
+                        {notification.order_id && (
+                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                            <div className="w-4" /> {/* Spacer */}
+                            <span>Commande: {notification.order_id}</span>
+                          </div>
+                        )}
+                        
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <p className="text-sm whitespace-pre-wrap">{notification.message_content}</p>
+                        </div>
+                        
+                        {notification.error_message && (
+                          <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                            <p className="text-sm text-red-600">{notification.error_message}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="ml-4 text-right">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Calendar className="h-4 w-4" />
+                          {formatDistanceToNow(new Date(notification.created_at), { 
+                            addSuffix: true, 
+                            locale: fr 
+                          })}
                         </div>
                       </div>
-                      {notification.link && (
-                        <div className="mt-3 text-right">
-                          <Link 
-                            href={notification.link} 
-                            onClick={() => !notification.read && markAsRead(notification.id)}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                          >
-                            Voir les détails
-                          </Link>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </ClientOnly>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

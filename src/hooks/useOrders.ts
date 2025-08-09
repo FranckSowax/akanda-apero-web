@@ -92,9 +92,9 @@ export function useOrders() {
       const updateData: OrderUpdate = { status }
       
       // Ajouter les timestamps selon le statut
-      if (status === 'confirmed') {
+      if (status === 'Confirmée') {
         updateData.confirmed_at = new Date().toISOString()
-      } else if (status === 'delivered') {
+      } else if (status === 'Livrée') {
         updateData.delivered_at = new Date().toISOString()
       }
 

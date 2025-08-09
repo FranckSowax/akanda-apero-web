@@ -147,7 +147,7 @@ export class OrderStatusMonitor {
         delivery_address: order.delivery_address,
         delivery_date: order.delivery_date,
         tracking_number: order.tracking_number,
-        items: orderItems?.map(item => ({
+        items: orderItems?.map((item: any) => ({
           name: item.products?.name || 'Produit',
           quantity: item.quantity
         })) || []

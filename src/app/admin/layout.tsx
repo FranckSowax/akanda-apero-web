@@ -37,6 +37,7 @@ const navigation = [
   { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart, color: 'text-orange-600' },
   { name: 'Problèmes', href: '/admin/problemes', icon: AlertTriangle, color: 'text-red-500' },
   { name: 'Livraisons', href: '/admin/deliveries', icon: Truck, color: 'text-red-600' },
+  { name: 'Notifications', href: '/admin/notifications', icon: Bell, color: 'text-blue-500' },
   { name: 'Catégories', href: '/admin/categories', icon: FolderOpen, color: 'text-purple-600' },
   { name: 'Produits', href: '/admin/products', icon: Package, color: 'text-green-600' },
   { name: 'Cocktail Kits', href: '/admin/cocktail-kits', icon: Megaphone, color: 'text-teal-600' },
@@ -59,6 +60,37 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { newOrder, dismissNotification } = useOrderNotificationsPolling();
+
+  const confirmOrder = async (orderId: string) => {
+    try {
+      console.log('🔄 Confirmation commande:', orderId);
+      
+      // Appeler l'API pour changer le statut en "Confirmée"
+      const response = await fetch(`/api/orders?id=${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'Confirmée'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la confirmation');
+      }
+
+      const result = await response.json();
+      console.log('✅ Commande confirmée:', result);
+      
+      // Optionnel : rafraîchir les données ou afficher un message de succès
+      // Vous pouvez ajouter ici une notification de succès
+      
+    } catch (error) {
+      console.error('❌ Erreur confirmation commande:', error);
+      throw error; // Re-lancer l'erreur pour que l'overlay puisse l'afficher
+    }
+  };
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -274,6 +306,7 @@ export default function AdminLayout({
           isVisible={!!newOrder}
           orderData={newOrder || undefined}
           onDismiss={dismissNotification}
+          onConfirmOrder={confirmOrder}
         />
       </ClientOnlyWrapper>
     </div>
