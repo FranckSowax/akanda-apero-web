@@ -44,7 +44,8 @@ export default function OrderNotificationOverlay({
     try {
       setIsConfirming(true);
       await onConfirmOrder(orderData.id);
-      onDismiss(); // Fermer l'overlay après confirmation
+      // Fermer l'overlay et couper l'alerte sonore après confirmation
+      onDismiss();
     } catch (error) {
       console.error('Erreur lors de la confirmation:', error);
       alert('Erreur lors de la confirmation de la commande');
@@ -204,8 +205,8 @@ export default function OrderNotificationOverlay({
               </div>
             </div>
 
-            {/* Boutons d'action */}
-            <div className="space-y-3 mt-6">
+            {/* Bouton d'action */}
+            <div className="mt-6">
               {onConfirmOrder && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -224,21 +225,7 @@ export default function OrderNotificationOverlay({
                   )}
                 </motion.button>
               )}
-              
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleDismiss}
-                className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 shadow-lg"
-              >
-                👁️ J'ai vu la commande
-              </motion.button>
             </div>
-
-            {/* Instructions */}
-            <p className="text-center text-xs text-gray-400 mt-3">
-              Cliquez n'importe où pour fermer cette notification
-            </p>
           </motion.div>
         </motion.div>
       )}
