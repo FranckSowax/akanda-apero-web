@@ -172,6 +172,35 @@ export async function POST(request: NextRequest) {
       deliveryTime
     );
     
+    // Créer l'enregistrement de notification dans la base de données
+    let currentNotificationId = notificationId;
+    if (orderId && !currentNotificationId) {
+      try {
+        const supabase = getSupabaseServiceClient();
+        const { data: notification, error } = await supabase
+          .from('whatsapp_notifications')
+          .insert({
+            order_id: orderId,
+            phone: formattedPhone,
+            message_content: message,
+            message_status: 'pending',
+            order_status: status,
+            created_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+        
+        if (error) {
+          console.error('❌ Erreur création notification:', error);
+        } else {
+          currentNotificationId = notification.id;
+          console.log('✅ Notification créée avec ID:', currentNotificationId);
+        }
+      } catch (dbError) {
+        console.error('❌ Erreur base de données:', dbError);
+      }
+    }
+    
     // Envoyer le message via l'API Whapi
     const response = await fetch(`${whapiUrl}/messages/text`, {
       method: 'POST',
@@ -203,13 +232,13 @@ export async function POST(request: NextRequest) {
       });
       
       // Enregistrer l'échec dans la base de données
-      if (orderId) {
+      if (orderId && currentNotificationId) {
         try {
           const supabase = getSupabaseServiceClient();
           await supabase
             .from('whatsapp_notifications')
             .update({ message_status: 'failed', error_message: JSON.stringify(responseData) })
-            .eq('id', notificationId);
+            .eq('id', currentNotificationId);
         } catch (dbError) {
           console.error('❌ Erreur sauvegarde échec:', dbError);
         }
@@ -234,12 +263,12 @@ export async function POST(request: NextRequest) {
     console.log('✅ Message WhatsApp envoyé:', responseData);
     
     // Enregistrer le succès dans la base de données
-    if (orderId) {
+    if (orderId && currentNotificationId) {
       const supabase = getSupabaseServiceClient();
       await supabase
         .from('whatsapp_notifications')
         .update({ message_status: 'sent' })
-        .eq('id', notificationId);
+        .eq('id', currentNotificationId);
       
       // Enregistrer le changement de statut
       await supabase
