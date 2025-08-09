@@ -47,6 +47,7 @@ const navigation = [
   { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp, color: 'text-cyan-600' },
   { name: 'Monitoring', href: '/admin/monitoring', icon: Activity, color: 'text-emerald-600' },
   { name: 'A/B Testing', href: '/admin/ab-testing', icon: TestTube, color: 'text-violet-600' },
+  { name: 'Debug WhatsApp', href: '/admin/test-whatsapp-debug', icon: TestTube, color: 'text-red-500' },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings, color: 'text-gray-600' },
 ];
 
