@@ -141,7 +141,14 @@ export async function POST(request: NextRequest) {
     if (!whapiToken) {
       console.error('❌ Token Whapi non configuré');
       return NextResponse.json(
-        { error: 'Service WhatsApp non configuré' },
+        { 
+          error: 'Token Whapi non configuré',
+          debug: {
+            hasWhapiToken: !!process.env.WHAPI_TOKEN,
+            hasPublicWhapiToken: !!process.env.NEXT_PUBLIC_WHAPI_TOKEN,
+            whapiUrl
+          }
+        },
         { status: 500 }
       );
     }
@@ -182,19 +189,44 @@ export async function POST(request: NextRequest) {
     const responseData = await response.json();
     
     if (!response.ok) {
-      console.error('❌ Erreur API Whapi:', responseData);
+      console.error('❌ Erreur API Whapi:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseData,
+        requestData: {
+          to: formattedPhone,
+          body: message,
+          typing_time: 3
+        },
+        whapiUrl,
+        hasToken: !!whapiToken
+      });
       
       // Enregistrer l'échec dans la base de données
       if (orderId) {
-        const supabase = getSupabaseServiceClient();
-        await supabase
-          .from('whatsapp_notifications')
-          .update({ message_status: 'failed', error_message: JSON.stringify(responseData) })
-          .eq('id', notificationId);
+        try {
+          const supabase = getSupabaseServiceClient();
+          await supabase
+            .from('whatsapp_notifications')
+            .update({ message_status: 'failed', error_message: JSON.stringify(responseData) })
+            .eq('id', notificationId);
+        } catch (dbError) {
+          console.error('❌ Erreur sauvegarde échec:', dbError);
+        }
       }
       
       return NextResponse.json(
-        { error: 'Erreur lors de l\'envoi du message', details: responseData },
+        { 
+          error: 'Erreur lors de l\'envoi du message', 
+          details: responseData,
+          debug: {
+            status: response.status,
+            statusText: response.statusText,
+            whapiUrl,
+            hasToken: !!whapiToken,
+            phone: formattedPhone
+          }
+        },
         { status: response.status }
       );
     }
@@ -228,10 +260,23 @@ export async function POST(request: NextRequest) {
       status: 'sent'
     });
     
-  } catch (error) {
-    console.error('❌ Erreur envoi WhatsApp:', error);
+  } catch (error: any) {
+    console.error('❌ Erreur générale WhatsApp:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    });
     return NextResponse.json(
-      { error: 'Erreur serveur lors de l\'envoi du message' },
+      { 
+        error: 'Erreur serveur lors de l\'envoi du message',
+        debug: {
+          errorMessage: error.message,
+          errorName: error.name,
+          hasWhapiToken: !!(process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN),
+          whapiUrl: process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud'
+        }
+      },
       { status: 500 }
     );
   }
