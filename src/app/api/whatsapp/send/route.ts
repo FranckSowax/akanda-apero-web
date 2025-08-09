@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialiser Supabase avec la clé service pour les permissions complètes
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+/**
+ * Crée une instance Supabase avec la clé service
+ */
+function getSupabaseServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase configuration missing');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 /**
  * Formate un numéro de téléphone pour l'API Whapi.Cloud
@@ -34,6 +42,7 @@ function formatPhoneNumber(phone: string): string {
  */
 async function getMessageTemplate(status: string): Promise<string | null> {
   try {
+    const supabase = getSupabaseServiceClient();
     const { data, error } = await supabase
       .from('whatsapp_templates')
       .select('message')
@@ -115,7 +124,7 @@ async function generateMessage(status: string, customerName: string, orderNumber
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { orderId, phone, status, orderNumber, customerName, totalAmount, deliveryDate, deliveryTime, message: customMessage } = body;
+    const { orderId, phone, status, orderNumber, customerName, totalAmount, deliveryDate, deliveryTime, message: customMessage, notificationId } = body;
     
     // Validation des paramètres requis
     if (!phone || (!status && !customMessage)) {
@@ -177,16 +186,11 @@ export async function POST(request: NextRequest) {
       
       // Enregistrer l'échec dans la base de données
       if (orderId) {
+        const supabase = getSupabaseServiceClient();
         await supabase
           .from('whatsapp_notifications')
-          .insert({
-            order_id: orderId,
-            phone_number: formattedPhone,
-            message_content: message,
-            message_status: 'failed',
-            error_message: JSON.stringify(responseData),
-            sent_at: new Date().toISOString()
-          });
+          .update({ message_status: 'failed', error_message: JSON.stringify(responseData) })
+          .eq('id', notificationId);
       }
       
       return NextResponse.json(
@@ -199,17 +203,11 @@ export async function POST(request: NextRequest) {
     
     // Enregistrer le succès dans la base de données
     if (orderId) {
+      const supabase = getSupabaseServiceClient();
       await supabase
         .from('whatsapp_notifications')
-        .insert({
-          order_id: orderId,
-          phone_number: formattedPhone,
-          message_content: message,
-          message_status: 'sent',
-          whapi_message_id: responseData.sent || responseData.id,
-          status_change: status,
-          sent_at: new Date().toISOString()
-        });
+        .update({ message_status: 'sent' })
+        .eq('id', notificationId);
       
       // Enregistrer le changement de statut
       await supabase
