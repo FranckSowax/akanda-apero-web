@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
           .from('whatsapp_notifications')
           .insert({
             order_id: orderId,
-            phone: formattedPhone,
+            phone_number: formattedPhone,
             message_content: message,
             message_status: 'pending',
             order_status: status,
