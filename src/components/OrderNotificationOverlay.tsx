@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, X, Clock, User, Euro } from 'lucide-react';
+import { useNotifications } from '../context/NotificationsContext';
 
 
 interface OrderData {
@@ -32,9 +33,11 @@ export default function OrderNotificationOverlay({
   onConfirmOrder
 }: OrderNotificationOverlayProps) {
   const [isConfirming, setIsConfirming] = React.useState(false);
+  const { stopNotificationSound } = useNotifications();
 
   const handleDismiss = () => {
-    // Le hook parent se charge d'arrêter le son
+    // Arrêter le son de notification
+    stopNotificationSound();
     onDismiss();
   };
 
@@ -44,7 +47,8 @@ export default function OrderNotificationOverlay({
     try {
       setIsConfirming(true);
       await onConfirmOrder(orderData.id);
-      // Fermer l'overlay et couper l'alerte sonore après confirmation
+      // Arrêter le son de notification et fermer l'overlay après confirmation
+      stopNotificationSound();
       onDismiss();
     } catch (error) {
       console.error('Erreur lors de la confirmation:', error);

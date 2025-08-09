@@ -31,6 +31,7 @@ interface NotificationsContextType {
   deleteNotification: (id: string) => Promise<boolean>;
   clearAll: () => void;
   refreshNotifications: () => Promise<void>;
+  stopNotificationSound: () => void;
 }
 
 // Création du contexte avec une valeur par défaut
@@ -175,6 +176,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     setNotifications([]);
   };
 
+  // Arrêter le son de notification
+  const stopNotificationSound = () => {
+    if (notificationSound) {
+      notificationSound.pause();
+      notificationSound.currentTime = 0;
+    }
+  };
+
   // S'abonner aux événements en temps réel
   useEffect(() => {
     if (!session?.user) return;
@@ -226,7 +235,8 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         markAllAsRead,
         deleteNotification,
         clearAll,
-        refreshNotifications
+        refreshNotifications,
+        stopNotificationSound
       }}
     >
       {children}
