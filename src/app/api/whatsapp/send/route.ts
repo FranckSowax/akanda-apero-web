@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Vérifier que les variables d'environnement sont configurées
-    const whapiToken = process.env.WHAPI_TOKEN;
-    const whapiUrl = process.env.WHAPI_BASE_URL || 'https://gate.whapi.cloud';
+    const whapiToken = process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN;
+    const whapiUrl = process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud';
     
     if (!whapiToken) {
       console.error('❌ Token Whapi non configuré');
@@ -239,11 +239,10 @@ export async function POST(request: NextRequest) {
 
 // Route GET pour tester la configuration
 export async function GET() {
-  const isConfigured = !!process.env.WHAPI_TOKEN;
+  const isConfigured = !!(process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN);
   
   return NextResponse.json({
     configured: isConfigured,
-    service: 'Whapi.Cloud',
-    baseUrl: process.env.WHAPI_BASE_URL || 'https://gate.whapi.cloud'
+    baseUrl: process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud'
   });
 }
