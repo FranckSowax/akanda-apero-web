@@ -33,11 +33,22 @@ export default function OrderNotificationOverlay({
   onConfirmOrder
 }: OrderNotificationOverlayProps) {
   const [isConfirming, setIsConfirming] = React.useState(false);
-  const { stopNotificationSound } = useNotifications();
+  
+  // Utilisation conditionnelle du hook pour éviter les erreurs de build
+  let stopNotificationSound: (() => void) | null = null;
+  try {
+    const notifications = useNotifications();
+    stopNotificationSound = notifications.stopNotificationSound;
+  } catch (error) {
+    // Hook non disponible (par exemple pendant le build statique)
+    console.warn('NotificationsProvider non disponible:', error);
+  }
 
   const handleDismiss = () => {
-    // Arrêter le son de notification
-    stopNotificationSound();
+    // Arrêter le son de notification si disponible
+    if (stopNotificationSound) {
+      stopNotificationSound();
+    }
     onDismiss();
   };
 
@@ -48,7 +59,9 @@ export default function OrderNotificationOverlay({
       setIsConfirming(true);
       await onConfirmOrder(orderData.id);
       // Arrêter le son de notification et fermer l'overlay après confirmation
-      stopNotificationSound();
+      if (stopNotificationSound) {
+        stopNotificationSound();
+      }
       onDismiss();
     } catch (error) {
       console.error('Erreur lors de la confirmation:', error);
