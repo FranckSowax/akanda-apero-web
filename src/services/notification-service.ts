@@ -239,18 +239,44 @@ export const NotificationService = {
   subscribeToPayments(callback: (notification: NotificationItem) => void) {
     return supabase
       .channel('payments')
+      // Abonnement existant (anglais)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: 'payment_status=in.(succeeded,failed)' },
         (payload) => {
           const order = payload.new;
           const isSuccess = order.payment_status === 'succeeded';
-          
           const notification: NotificationItem = {
             id: Date.now().toString(),
             title: isSuccess ? 'Paiement réussi' : 'Paiement échoué',
             message: isSuccess 
               ? `Le paiement pour la commande #${order.id.substring(0, 8)} a été confirmé` 
+              : `Le paiement pour la commande #${order.id.substring(0, 8)} a échoué`,
+            type: 'payment',
+            priority: isSuccess ? 'medium' : 'high',
+            read: false,
+            createdAt: new Date(),
+            link: `/admin/orders`,
+            metadata: { orderId: order.id }
+          };
+          callback(notification);
+        }
+      )
+      // Abonnement additionnel (français), sans filtre serveur pour garder la compatibilité
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        (payload) => {
+          const order = payload.new;
+          const status = order?.payment_status as string | undefined;
+          if (status !== 'Payé' && status !== 'Échoué') return; // ne réagit qu'aux statuts FR visés
+
+          const isSuccess = status === 'Payé';
+          const notification: NotificationItem = {
+            id: Date.now().toString(),
+            title: isSuccess ? 'Paiement réussi' : 'Paiement échoué',
+            message: isSuccess
+              ? `Le paiement pour la commande #${order.id.substring(0, 8)} a été confirmé`
               : `Le paiement pour la commande #${order.id.substring(0, 8)} a échoué`,
             type: 'payment',
             priority: isSuccess ? 'medium' : 'high',

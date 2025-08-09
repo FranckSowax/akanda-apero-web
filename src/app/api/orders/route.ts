@@ -529,6 +529,55 @@ export async function PATCH(request: NextRequest) {
     console.log(`🔄 PATCH /api/orders - Mise à jour commande ${orderId}:`, body);
     
     const supabase = getSupabaseClient();
+    
+    // Récupérer d'abord la commande pour avoir le statut précédent
+    const { data: currentOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+    
+    if (fetchError || !currentOrder) {
+      console.error('❌ Erreur récupération commande:', fetchError);
+      return NextResponse.json(
+        { error: 'Commande non trouvée', details: fetchError?.message },
+        { status: 404 }
+      );
+    }
+    
+    // Récupérer les infos du client séparément
+    console.log('🔍 Récupération infos client pour customer_id:', currentOrder.customer_id);
+    let customerWhatsapp = null;
+    let customerName = null;
+    if (currentOrder.customer_id) {
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .select('phone, first_name, last_name')
+        .eq('id', currentOrder.customer_id)
+        .single();
+      
+      console.log('📊 Résultat requête customer:', { customer, error: customerError });
+      
+      if (customer) {
+        // Supprimer le + au début du numéro si présent
+        customerWhatsapp = customer.phone ? customer.phone.replace(/^\+/, '') : null;
+        customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Client';
+        console.log('📱 Infos client récupérées:', { 
+          phoneOriginal: customer.phone,
+          phoneFormatted: customerWhatsapp, 
+          name: customerName 
+        });
+      } else {
+        console.log('⚠️ Aucune info client trouvée pour customer_id:', currentOrder.customer_id);
+      }
+    } else {
+      console.log('⚠️ Pas de customer_id dans la commande');
+    }
+    
+    const oldStatus = currentOrder.status;
+    const newStatus = body.status || oldStatus;
+    
+    // Mettre à jour la commande
     const { data: updatedOrder, error } = await supabase
       .from('orders')
       .update({
@@ -551,6 +600,44 @@ export async function PATCH(request: NextRequest) {
     }
     
     console.log('✅ Commande mise à jour:', updatedOrder.order_number);
+    
+    // Si le statut a changé et qu'on a un numéro WhatsApp, envoyer une notification
+    if (body.status && oldStatus !== newStatus && customerWhatsapp) {
+      console.log('📱 Envoi notification WhatsApp pour changement de statut:', {
+        oldStatus,
+        newStatus,
+        phone: customerWhatsapp
+      });
+      
+      try {
+        // Appeler l'API WhatsApp pour envoyer la notification
+        const notificationResponse = await fetch(`${request.nextUrl.origin}/api/whatsapp/send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: orderId,
+            phone: customerWhatsapp,
+            status: newStatus,
+            orderNumber: updatedOrder.order_number,
+            customerName: customerName || 'Client',
+            totalAmount: updatedOrder.total_amount,
+            deliveryDate: updatedOrder.delivery_date,
+            deliveryTime: updatedOrder.delivery_time
+          })
+        });
+        
+        if (!notificationResponse.ok) {
+          console.error('❌ Erreur envoi notification WhatsApp:', await notificationResponse.text());
+        } else {
+          console.log('✅ Notification WhatsApp envoyée avec succès');
+        }
+      } catch (notifError) {
+        console.error('❌ Erreur lors de l\'envoi de la notification WhatsApp:', notifError);
+        // On ne bloque pas la mise à jour même si la notification échoue
+      }
+    }
     
     return NextResponse.json({
       success: true,

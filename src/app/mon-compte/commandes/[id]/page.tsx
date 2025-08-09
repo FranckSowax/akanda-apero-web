@@ -486,12 +486,11 @@ export default function OrderDetailsPage() {
                       <span className="text-gray-600">Méthode</span>
                       <span className="font-medium">{order.payment_method}</span>
                     </div>
-                    
                     {order.payment_status && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Statut</span>
-                        <Badge className={order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                          {order.payment_status === 'paid' ? 'Payé' : 'En attente'}
+                        <Badge className={(order.payment_status === 'paid' || order.payment_status === 'Payé') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                          {(order.payment_status === 'paid' || order.payment_status === 'Payé') ? 'Payé' : 'En attente'}
                         </Badge>
                       </div>
                     )}
@@ -499,8 +498,6 @@ export default function OrderDetailsPage() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Informations client */}
             {order.customer && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>

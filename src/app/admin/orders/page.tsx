@@ -43,7 +43,7 @@ import OrderPreparationModal from '../../../components/admin/OrderPreparationMod
 import InvoiceModal from '../../../components/admin/InvoiceModal';
 import ReportProblemModal from '../../../components/ReportProblemModal';
 import { Order } from '../../../types/supabase';
-import { whapiService } from '../../../services/whapi';
+// Import WhatsApp supprimé - géré automatiquement par l'API
 
 // Statut des commandes avec leur couleur et icône respectifs
 const orderStatuses: Record<string, { color: string; icon: React.ReactNode }> = {
@@ -531,29 +531,10 @@ export default function OrdersPage() {
           return order;
         }));
 
-        // Envoyer notification WhatsApp si les infos client sont disponibles
-        if (order && order.customers?.phone && whapiService.isConfigured()) {
-          const customerName = `${order.customers.first_name || ''} ${order.customers.last_name || ''}`.trim() || 'Client';
-          const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase();
-          
-          // Envoyer la notification en arrière-plan (ne pas bloquer l'UI)
-          whapiService.sendStatusNotification(
-            order.customers.phone,
-            orderNumber,
-            status, // Le statut est déjà en français
-            customerName
-          ).then(result => {
-            if (result.sent) {
-              console.log(`✅ Notification WhatsApp envoyée pour la commande ${orderNumber}`);
-            } else {
-              console.warn(`⚠️ Échec envoi WhatsApp pour ${orderNumber}:`, result.error);
-            }
-          }).catch(err => {
-            console.error('Erreur notification WhatsApp:', err);
-          });
-        } else if (!whapiService.isConfigured()) {
-          console.info('ℹ️ Service WhatsApp non configuré - notification non envoyée');
-        }
+        // Les notifications WhatsApp sont envoyées automatiquement par l'API /api/orders
+        // lors de la mise à jour du statut (voir PATCH /api/orders)
+        console.log(`✅ Statut mis à jour pour la commande ${order?.order_number || order?.id.slice(0, 8).toUpperCase()}`);
+        console.log(`📱 Si le client a un numéro WhatsApp, il recevra automatiquement une notification`);
         
       } else if (error) {
         setError(`Erreur lors de la mise à jour du statut: ${error.message}`);

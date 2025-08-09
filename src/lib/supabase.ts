@@ -184,7 +184,7 @@ export type Database = {
           id: string
           customer_id: string | null
           order_number: string
-          status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'refunded'
+          status: 'Nouvelle' | 'Confirmée' | 'En préparation' | 'Prête' | 'En livraison' | 'Livrée' | 'Annulée'
           order_date: string
           confirmed_at: string | null
           delivered_at: string | null
@@ -199,7 +199,7 @@ export type Database = {
           delivery_notes: string | null
           estimated_delivery_at: string | null
           payment_method: string | null
-          payment_status: string
+          payment_status: 'En attente' | 'Payé' | 'Échoué' | 'Remboursé' | null
           payment_reference: string | null
           notes: string | null
           created_at: string
@@ -209,7 +209,7 @@ export type Database = {
           id?: string
           customer_id?: string | null
           order_number: string
-          status?: 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'refunded'
+          status?: 'Nouvelle' | 'Confirmée' | 'En préparation' | 'Prête' | 'En livraison' | 'Livrée' | 'Annulée'
           order_date?: string
           confirmed_at?: string | null
           delivered_at?: string | null
@@ -224,7 +224,7 @@ export type Database = {
           delivery_notes?: string | null
           estimated_delivery_at?: string | null
           payment_method?: string | null
-          payment_status?: string
+          payment_status?: 'En attente' | 'Payé' | 'Échoué' | 'Remboursé' | null
           payment_reference?: string | null
           notes?: string | null
           created_at?: string
@@ -234,7 +234,7 @@ export type Database = {
           id?: string
           customer_id?: string | null
           order_number?: string
-          status?: 'pending' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'refunded'
+          status?: 'Nouvelle' | 'Confirmée' | 'En préparation' | 'Prête' | 'En livraison' | 'Livrée' | 'Annulée'
           order_date?: string
           confirmed_at?: string | null
           delivered_at?: string | null
@@ -249,7 +249,7 @@ export type Database = {
           delivery_notes?: string | null
           estimated_delivery_at?: string | null
           payment_method?: string | null
-          payment_status?: string
+          payment_status?: 'En attente' | 'Payé' | 'Échoué' | 'Remboursé' | null
           payment_reference?: string | null
           notes?: string | null
           created_at?: string

@@ -159,7 +159,7 @@ export function useOrders() {
       if (error) throw error;
 
       // Formatage des données pour l'affichage
-      const formattedOrders = data?.map(order => {
+      const formattedOrders = data?.map((order: any) => {
         // Calculer le total des articles si nécessaire
         const orderTotal = order.total_amount || 
           order.order_items?.reduce((sum: number, item: OrderItem) => sum + (item.total_price || 0), 0) || 0;
@@ -348,17 +348,27 @@ export function useOrders() {
   // Fonction utilitaire pour traduire les statuts en français
   const translateOrderStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
+      // EN -> FR (compatibilité historique)
       'pending': 'En attente',
       'confirmed': 'Confirmée',
       'preparing': 'En préparation',
       'ready': 'Prête',
+      'ready_for_delivery': 'Prête',
       'out_for_delivery': 'En livraison',
       'delivered': 'Livrée',
       'delayed': 'Retardée',
-      'cancelled': 'Annulée'
+      'cancelled': 'Annulée',
+      'new': 'Nouvelle',
+      // Valeurs FR (passe-plat)
+      'Nouvelle': 'Nouvelle',
+      'Confirmée': 'Confirmée',
+      'En préparation': 'En préparation',
+      'Prête': 'Prête',
+      'En livraison': 'En livraison',
+      'Livrée': 'Livrée',
+      'Annulée': 'Annulée'
     };
-    
-    return statusMap[status] || 'Nouvelle';
+    return statusMap[status] || status || 'Nouvelle';
   };
 
   return {

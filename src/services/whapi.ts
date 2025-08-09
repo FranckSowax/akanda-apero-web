@@ -75,14 +75,21 @@ class WhapiService {
     // Supprimer tous les caractères non numériques sauf le +
     let cleaned = phone.replace(/[^\d+]/g, '');
     
-    // Si le numéro commence par 0, le remplacer par +241 (Gabon)
+    // Supprimer le + s'il existe (Whapi.Cloud n'accepte pas le +)
+    cleaned = cleaned.replace(/^\+/, '');
+    
+    // Si le numéro commence par 0, supposer qu'il s'agit d'un numéro local
     if (cleaned.startsWith('0')) {
-      cleaned = '+241' + cleaned.substring(1);
+      // Par défaut Gabon (241), mais peut être Suisse (41) selon le contexte
+      cleaned = '241' + cleaned.substring(1);
     }
     
-    // Si le numéro ne commence pas par +, ajouter +241
-    if (!cleaned.startsWith('+')) {
-      cleaned = '+241' + cleaned;
+    // Si le numéro ne commence pas par un code pays, ajouter le code approprié
+    if (cleaned.length <= 10) {
+      // Si c'est un numéro court, probablement local
+      if (!cleaned.startsWith('241') && !cleaned.startsWith('41') && !cleaned.startsWith('33')) {
+        cleaned = '241' + cleaned; // Par défaut Gabon
+      }
     }
     
     return cleaned;
