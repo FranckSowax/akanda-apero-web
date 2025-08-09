@@ -37,6 +37,12 @@ export class OrderStatusMonitor {
       return;
     }
 
+    // Vérifier que les variables d'environnement sont disponibles
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.warn('Supabase configuration missing. Order status monitor cannot start.');
+      return;
+    }
+
     this.isRunning = true;
     console.log('Starting order status monitor...');
 
@@ -225,7 +231,19 @@ export class OrderStatusMonitor {
 // Instance singleton
 export const orderStatusMonitor = new OrderStatusMonitor();
 
-// Auto-start en production
-if (process.env.NODE_ENV === 'production' && process.env.WHAPI_ENABLE_NOTIFICATIONS !== 'false') {
-  orderStatusMonitor.start();
+// Auto-start en production (mais pas pendant le build)
+if (
+  process.env.NODE_ENV === 'production' && 
+  process.env.WHAPI_ENABLE_NOTIFICATIONS !== 'false' &&
+  typeof window === 'undefined' && // Côté serveur seulement
+  !process.env.NETLIFY_BUILD_BASE // Pas pendant le build Netlify
+) {
+  // Démarrer avec un délai pour éviter les problèmes de build
+  setTimeout(() => {
+    try {
+      orderStatusMonitor.start();
+    } catch (error) {
+      console.warn('Could not start order status monitor:', error);
+    }
+  }, 5000);
 }
