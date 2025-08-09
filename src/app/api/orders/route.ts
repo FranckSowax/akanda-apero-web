@@ -602,6 +602,16 @@ export async function PATCH(request: NextRequest) {
     console.log('✅ Commande mise à jour:', updatedOrder.order_number);
     
     // Si le statut a changé et qu'on a un numéro WhatsApp, envoyer une notification
+    console.log('🔍 Vérification conditions notification WhatsApp:', {
+      hasBodyStatus: !!body.status,
+      oldStatus,
+      newStatus,
+      statusChanged: oldStatus !== newStatus,
+      hasCustomerWhatsapp: !!customerWhatsapp,
+      customerWhatsapp,
+      shouldSendNotification: body.status && oldStatus !== newStatus && customerWhatsapp
+    });
+    
     if (body.status && oldStatus !== newStatus && customerWhatsapp) {
       console.log('📱 Envoi notification WhatsApp pour changement de statut:', {
         oldStatus,
