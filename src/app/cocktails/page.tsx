@@ -4,12 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, 
-  Filter, 
-  Star, 
-  Clock, 
-  Percent, 
   ShoppingCart, 
+  Percent, 
+  Clock, 
+  ChevronDown, 
+  ChevronUp, 
+  ChefHat, 
+  Package, 
+  Settings, 
+  Zap, 
   Plus, 
   Minus,
   Wine,
@@ -17,14 +20,14 @@ import {
   Sparkles,
   Heart,
   Gift,
-  Zap,
   X,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   Check,
   Volume2,
-  Droplets
+  Droplets,
+  Search,
+  Filter,
+  Star
 } from 'lucide-react';
 import { ReadyCocktail, CocktailContainer, AlcoholDosage, ReadyCocktailVariant } from '../../types/supabase';
 import { ReadyCocktailsService } from '../../services/ready-cocktails-service';
@@ -284,27 +287,56 @@ export default function CocktailsPage() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100"
+              className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl shadow-xl p-6 border border-orange-100 relative overflow-hidden"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                🥤 Service Cocktails Prêts
-              </h2>
-              <div className="space-y-3 text-sm text-gray-600">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                  <span>Cocktails préparés par nos barmans experts</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Servis dans des gobelets fermés (500ml ou 750ml)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
-                  <span>Dosage d'alcool personnalisable</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
-                  <span>Prêts à déguster immédiatement</span>
+              {/* Décoration de fond */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/20 to-red-200/20 rounded-full -translate-y-16 translate-x-16"></div>
+              
+              <div className="relative">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-6">
+                  Service Cocktails
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <ChefHat className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Expertise Professionnelle</h3>
+                      <p className="text-sm text-gray-600">Cocktails préparés par nos barmans experts</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Package className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Conditionnement Premium</h3>
+                      <p className="text-sm text-gray-600">Servis dans des gobelets fermés (500ml ou 750ml)</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Settings className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Personnalisation</h3>
+                      <p className="text-sm text-gray-600">Dosage personnalisable selon vos préférences</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Zap className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Service Express</h3>
+                      <p className="text-sm text-gray-600">Prêts à déguster immédiatement</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
