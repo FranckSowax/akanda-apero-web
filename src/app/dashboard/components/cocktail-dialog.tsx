@@ -35,11 +35,16 @@ const colorThemes = [
 ];
 
 const categories = [
-  'Cocktails Classiques',
-  'Cocktails Tropicaux',
-  'Cocktails Signature',
-  'Cocktails Sans Alcool',
-  'Cocktails de Saison'
+  'Tropical',
+  'Classique',
+  'Fruité',
+  'Signature',
+  'Créatif',
+  'Local',
+  'Famille & Amis',
+  'Romantique',
+  'Détox',
+  'Anniversaire'
 ];
 
 export function CocktailDialog({ 
@@ -56,6 +61,7 @@ export function CocktailDialog({
     base_price: 0,
     default_alcohol_percentage: 12,
     category: '',
+    categories: [],
     flavor_profile: '',
     color_theme: 'green',
     emoji: '🍹',
@@ -130,6 +136,7 @@ export function CocktailDialog({
         base_price: 0,
         default_alcohol_percentage: 12,
         category: '',
+        categories: [],
         flavor_profile: '',
         color_theme: 'green',
         emoji: '🍹',
@@ -311,25 +318,53 @@ export function CocktailDialog({
             </div>
           </div>
 
-          {/* Catégorie et profil de saveur */}
+          {/* Catégories multiples et profil de saveur */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Catégorie</Label>
-              <Select 
-                value={formData.category || ''} 
-                onValueChange={(value) => handleInputChange('category', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une catégorie" />
-                </SelectTrigger>
-                <SelectContent>
+              <Label>Catégories</Label>
+              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-2">
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
+                    <div key={category} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`category-${category}`}
+                        checked={formData.categories?.includes(category) || false}
+                        onCheckedChange={(checked) => {
+                          const currentCategories = formData.categories || [];
+                          if (checked) {
+                            handleInputChange('categories', [...currentCategories, category]);
+                          } else {
+                            handleInputChange('categories', currentCategories.filter(c => c !== category));
+                          }
+                        }}
+                      />
+                      <Label 
+                        htmlFor={`category-${category}`} 
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {category}
+                      </Label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+              {/* Affichage des catégories sélectionnées */}
+              {formData.categories && formData.categories.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {formData.categories.map((category) => (
+                    <Badge key={category} variant="secondary" className="text-xs">
+                      {category}
+                      <X 
+                        className="h-3 w-3 ml-1 cursor-pointer" 
+                        onClick={() => {
+                          const currentCategories = formData.categories || [];
+                          handleInputChange('categories', currentCategories.filter(c => c !== category));
+                        }}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="flavor_profile">Profil de saveur</Label>
