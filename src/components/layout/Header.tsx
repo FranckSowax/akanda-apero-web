@@ -63,7 +63,8 @@ export const Header: React.FC = () => {
           <nav className="hidden md:flex space-x-4 lg:space-x-6">
             <Link href="/" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Accueil</Link>
             <Link href="/products" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Apéros</Link>
-            <Link href="/cocktails-maison" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Cocktails Maison</Link>
+            <Link href="/cocktails" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Cocktails</Link>
+            <Link href="/cocktails-maison" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Kits Cocktails</Link>
             <Link href="/contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200">Contact</Link>
           </nav>
         </div>
@@ -114,11 +115,18 @@ export const Header: React.FC = () => {
             Apéros
           </Link>
           <Link 
+            href="/cocktails" 
+            className="text-base font-medium text-gray-600 hover:text-gray-900 px-3 py-3 rounded-md hover:bg-gray-50 transition-colors duration-200 touch-manipulation"
+            onClick={() => dispatch({ type: 'TOGGLE_MENU' })}
+          >
+            Cocktails
+          </Link>
+          <Link 
             href="/cocktails-maison" 
             className="text-base font-medium text-gray-600 hover:text-gray-900 px-3 py-3 rounded-md hover:bg-gray-50 transition-colors duration-200 touch-manipulation"
             onClick={() => dispatch({ type: 'TOGGLE_MENU' })}
           >
-            Cocktails Maison
+            Kits Cocktails
           </Link>
           <Link 
             href="/contact" 

@@ -18,7 +18,13 @@ import Image from 'next/image';
 // Import des composants client séparés pour éviter les erreurs d'hydratation
 import { ProductDialog } from './components/product-dialog';
 import { CategoryDialog } from './components/category-dialog';
-
+import { CocktailDialog } from './components/cocktail-dialog';
+import { ContainerDialog } from './components/container-dialog';
+import { DosageDialog } from './components/dosage-dialog';
+import { DashboardCocktailsService } from '../../services/dashboard-cocktails-service';
+import { ReadyCocktail, CocktailContainer, AlcoholDosage } from '../../types/supabase';
+import { useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface Product {
   id: string;
@@ -54,11 +60,22 @@ export default function DashboardPage() {
   // États pour gérer les produits et catégories
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
-  
-  // États pour les dialogues
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  // États pour les cocktails
+  const [cocktails, setCocktails] = useState<ReadyCocktail[]>([]);
+  const [containers, setContainers] = useState<CocktailContainer[]>([]);
+  const [dosages, setDosages] = useState<AlcoholDosage[]>([]);
+  const [isCocktailDialogOpen, setIsCocktailDialogOpen] = useState(false);
+  const [isContainerDialogOpen, setIsContainerDialogOpen] = useState(false);
+  const [isDosageDialogOpen, setIsDosageDialogOpen] = useState(false);
+  const [editingCocktail, setEditingCocktail] = useState<ReadyCocktail | null>(null);
+  const [editingContainer, setEditingContainer] = useState<CocktailContainer | null>(null);
+  const [editingDosage, setEditingDosage] = useState<AlcoholDosage | null>(null);
+  const [loadingCocktails, setLoadingCocktails] = useState(false);
 
   // Gestion des produits
   const handleSaveProduct = (product: Product) => {
@@ -105,6 +122,145 @@ export default function DashboardPage() {
     setEditingProduct(null);
     setIsProductDialogOpen(true);
   };
+
+  // ===== GESTION DES COCKTAILS =====
+  
+  // Charger les données des cocktails
+  const loadCocktailsData = async () => {
+    try {
+      setLoadingCocktails(true);
+      const [cocktailsData, containersData, dosagesData] = await Promise.all([
+        DashboardCocktailsService.getAllCocktails(),
+        DashboardCocktailsService.getAllContainers(),
+        DashboardCocktailsService.getAllDosages()
+      ]);
+      
+      setCocktails(cocktailsData);
+      setContainers(containersData);
+      setDosages(dosagesData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des cocktails:', error);
+      toast.error('Erreur lors du chargement des données');
+    } finally {
+      setLoadingCocktails(false);
+    }
+  };
+
+  // Gestion des cocktails
+  const handleSaveCocktail = async (cocktail: Partial<ReadyCocktail>) => {
+    try {
+      if (editingCocktail) {
+        const updated = await DashboardCocktailsService.updateCocktail(editingCocktail.id, cocktail);
+        setCocktails(prev => prev.map(c => c.id === editingCocktail.id ? updated : c));
+        toast.success('Cocktail modifié avec succès');
+      } else {
+        const created = await DashboardCocktailsService.createCocktail(cocktail);
+        setCocktails(prev => [created, ...prev]);
+        toast.success('Cocktail créé avec succès');
+      }
+      setEditingCocktail(null);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du cocktail:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    }
+  };
+
+  const handleEditCocktail = (cocktail: ReadyCocktail) => {
+    setEditingCocktail(cocktail);
+    setIsCocktailDialogOpen(true);
+  };
+
+  const handleDeleteCocktail = async (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce cocktail ?')) {
+      try {
+        await DashboardCocktailsService.deleteCocktail(id);
+        setCocktails(prev => prev.filter(c => c.id !== id));
+        toast.success('Cocktail supprimé avec succès');
+      } catch (error) {
+        console.error('Erreur lors de la suppression du cocktail:', error);
+        toast.error('Erreur lors de la suppression');
+      }
+    }
+  };
+
+  // Gestion des contenants
+  const handleSaveContainer = async (container: Partial<CocktailContainer>) => {
+    try {
+      if (editingContainer) {
+        const updated = await DashboardCocktailsService.updateContainer(editingContainer.id, container);
+        setContainers(prev => prev.map(c => c.id === editingContainer.id ? updated : c));
+        toast.success('Contenant modifié avec succès');
+      } else {
+        const created = await DashboardCocktailsService.createContainer(container);
+        setContainers(prev => [...prev, created].sort((a, b) => a.sort_order - b.sort_order));
+        toast.success('Contenant créé avec succès');
+      }
+      setEditingContainer(null);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du contenant:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    }
+  };
+
+  const handleEditContainer = (container: CocktailContainer) => {
+    setEditingContainer(container);
+    setIsContainerDialogOpen(true);
+  };
+
+  const handleDeleteContainer = async (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce contenant ?')) {
+      try {
+        await DashboardCocktailsService.deleteContainer(id);
+        setContainers(prev => prev.filter(c => c.id !== id));
+        toast.success('Contenant supprimé avec succès');
+      } catch (error) {
+        console.error('Erreur lors de la suppression du contenant:', error);
+        toast.error('Erreur lors de la suppression');
+      }
+    }
+  };
+
+  // Gestion des dosages
+  const handleSaveDosage = async (dosage: Partial<AlcoholDosage>) => {
+    try {
+      if (editingDosage) {
+        const updated = await DashboardCocktailsService.updateDosage(editingDosage.id, dosage);
+        setDosages(prev => prev.map(d => d.id === editingDosage.id ? updated : d));
+        toast.success('Dosage modifié avec succès');
+      } else {
+        const created = await DashboardCocktailsService.createDosage(dosage);
+        setDosages(prev => [...prev, created].sort((a, b) => a.sort_order - b.sort_order));
+        toast.success('Dosage créé avec succès');
+      }
+      setEditingDosage(null);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du dosage:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    }
+  };
+
+  const handleEditDosage = (dosage: AlcoholDosage) => {
+    setEditingDosage(dosage);
+    setIsDosageDialogOpen(true);
+  };
+
+  const handleDeleteDosage = async (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce dosage ?')) {
+      try {
+        await DashboardCocktailsService.deleteDosage(id);
+        setDosages(prev => prev.filter(d => d.id !== id));
+        toast.success('Dosage supprimé avec succès');
+      } catch (error) {
+        console.error('Erreur lors de la suppression du dosage:', error);
+        toast.error('Erreur lors de la suppression');
+      }
+    }
+  };
+
+  // Charger les données au montage du composant
+  useEffect(() => {
+    loadCocktailsData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -185,16 +341,245 @@ export default function DashboardPage() {
       </div>
 
       <Tabs defaultValue="products" className="w-full">
-        <TabsList className="mb-3 xs:mb-4 sm:mb-6 w-full grid grid-cols-2 h-auto p-1">
+        <TabsList className="mb-3 xs:mb-4 sm:mb-6 w-full grid grid-cols-3 h-auto p-1">
           <TabsTrigger className="text-xs xs:text-sm sm:text-base flex-1 py-2 xs:py-2.5 sm:py-3 px-1 xs:px-2" value="products">
             <span className="hidden xs:inline">Gestion des Produits</span>
             <span className="xs:hidden">Produits</span>
+          </TabsTrigger>
+          <TabsTrigger className="text-xs xs:text-sm sm:text-base flex-1 py-2 xs:py-2.5 sm:py-3 px-1 xs:px-2" value="cocktails">
+            <span className="hidden xs:inline">Gestion des Cocktails</span>
+            <span className="xs:hidden">Cocktails</span>
           </TabsTrigger>
           <TabsTrigger className="text-xs xs:text-sm sm:text-base flex-1 py-2 xs:py-2.5 sm:py-3 px-1 xs:px-2" value="categories">
             <span className="hidden xs:inline">Gestion des Catégories</span>
             <span className="xs:hidden">Catégories</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Cocktails Tab */}
+        <TabsContent value="cocktails">
+          <div className="space-y-6">
+            {/* Cocktails Section */}
+            <Card className="border-0 xs:border shadow-sm">
+              <CardHeader className="p-3 xs:p-4 sm:p-6">
+                <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 xs:gap-4">
+                  <div className="flex-1">
+                    <CardTitle className="text-primary text-base xs:text-lg sm:text-xl">Cocktails Prêts à Boire</CardTitle>
+                    <CardDescription className="text-xs xs:text-sm mt-1">Gérez vos cocktails, leurs prix et disponibilité.</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setEditingCocktail(null);
+                      setIsCocktailDialogOpen(true);
+                    }} 
+                    className="w-full xs:w-auto text-xs xs:text-sm py-2 xs:py-2.5 px-3 xs:px-4"
+                  >
+                    <PlusCircle className="mr-1 xs:mr-2 h-3 w-3 xs:h-4 xs:w-4" /> 
+                    <span className="hidden xs:inline">Ajouter un cocktail</span>
+                    <span className="xs:hidden">Ajouter</span>
+                  </Button>
+                </div>
+
+                <CocktailDialog
+                  isOpen={isCocktailDialogOpen}
+                  onOpenChange={setIsCocktailDialogOpen}
+                  onSave={handleSaveCocktail}
+                  editingCocktail={editingCocktail}
+                />
+              </CardHeader>
+              <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
+                {loadingCocktails ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Table pour écrans moyens et grands */}
+                    <div className="hidden lg:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Cocktail</TableHead>
+                            <TableHead>Catégorie</TableHead>
+                            <TableHead className="text-right">Prix de base</TableHead>
+                            <TableHead className="text-center">% Alcool</TableHead>
+                            <TableHead className="text-center">Populaire</TableHead>
+                            <TableHead className="text-center">Statut</TableHead>
+                            <TableHead className="w-[100px] text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {cocktails.map((cocktail) => (
+                            <TableRow key={cocktail.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-2xl">{cocktail.emoji}</span>
+                                  <div>
+                                    <div className="font-medium">{cocktail.name}</div>
+                                    <div className="text-sm text-gray-500">{cocktail.flavor_profile}</div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>{cocktail.category}</TableCell>
+                              <TableCell className="text-right">{cocktail.base_price?.toLocaleString()} XAF</TableCell>
+                              <TableCell className="text-center">{cocktail.default_alcohol_percentage}%</TableCell>
+                              <TableCell className="text-center">{cocktail.is_featured ? 'Oui' : 'Non'}</TableCell>
+                              <TableCell className="text-center">
+                                <span className={`px-2 py-1 rounded-full text-xs ${cocktail.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                  {cocktail.is_active ? 'Actif' : 'Inactif'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex gap-1 justify-end">
+                                  <Button variant="ghost" size="sm" onClick={() => handleEditCocktail(cocktail)}>
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleDeleteCocktail(cocktail.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Cards pour mobile et tablette */}
+                    <div className="lg:hidden space-y-3">
+                      {cocktails.map((cocktail) => (
+                        <Card key={cocktail.id} className="p-3 xs:p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3 flex-1">
+                              <span className="text-2xl">{cocktail.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm xs:text-base truncate">{cocktail.name}</h3>
+                                <p className="text-xs xs:text-sm text-gray-500">{cocktail.category}</p>
+                                <div className="flex gap-4 mt-1 text-xs text-gray-600">
+                                  <span>{cocktail.base_price?.toLocaleString()} XAF</span>
+                                  <span>{cocktail.default_alcohol_percentage}% alcool</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 ml-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditCocktail(cocktail)}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteCocktail(cocktail.id)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Contenants et Dosages */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Contenants */}
+              <Card className="border-0 xs:border shadow-sm">
+                <CardHeader className="p-3 xs:p-4 sm:p-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-primary text-base xs:text-lg">Contenants</CardTitle>
+                      <CardDescription className="text-xs xs:text-sm mt-1">Gérez les types de gobelets.</CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        setEditingContainer(null);
+                        setIsContainerDialogOpen(true);
+                      }} 
+                      size="sm"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <ContainerDialog
+                    isOpen={isContainerDialogOpen}
+                    onOpenChange={setIsContainerDialogOpen}
+                    onSave={handleSaveContainer}
+                    editingContainer={editingContainer}
+                  />
+                </CardHeader>
+                <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
+                  <div className="space-y-2">
+                    {containers.map((container) => (
+                      <div key={container.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium text-sm">{container.name}</div>
+                          <div className="text-xs text-gray-500">{container.volume_ml}ml - +{container.base_price} XAF</div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditContainer(container)}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteContainer(container.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Dosages */}
+              <Card className="border-0 xs:border shadow-sm">
+                <CardHeader className="p-3 xs:p-4 sm:p-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-primary text-base xs:text-lg">Dosages d'Alcool</CardTitle>
+                      <CardDescription className="text-xs xs:text-sm mt-1">Gérez les niveaux d'alcool.</CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        setEditingDosage(null);
+                        setIsDosageDialogOpen(true);
+                      }} 
+                      size="sm"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <DosageDialog
+                    isOpen={isDosageDialogOpen}
+                    onOpenChange={setIsDosageDialogOpen}
+                    onSave={handleSaveDosage}
+                    editingDosage={editingDosage}
+                  />
+                </CardHeader>
+                <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
+                  <div className="space-y-2">
+                    {dosages.map((dosage) => (
+                      <div key={dosage.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium text-sm">{dosage.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {dosage.percentage}% - {dosage.price_modifier > 0 ? `+${dosage.price_modifier} XAF` : 'Gratuit'}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditDosage(dosage)}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteDosage(dosage.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Products Tab */}
         <TabsContent value="products">

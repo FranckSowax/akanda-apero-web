@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, X, Send } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase/client';
 
 interface Order {
   id: string;

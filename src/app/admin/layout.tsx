@@ -40,6 +40,7 @@ const navigation = [
   { name: 'Notifications', href: '/admin/notifications', icon: Bell, color: 'text-blue-500' },
   { name: 'Catégories', href: '/admin/categories', icon: FolderOpen, color: 'text-purple-600' },
   { name: 'Produits', href: '/admin/products', icon: Package, color: 'text-green-600' },
+  { name: 'Cocktails', href: '/admin/cocktails', icon: Globe, color: 'text-amber-600' },
   { name: 'Cocktail Kits', href: '/admin/cocktail-kits', icon: Megaphone, color: 'text-teal-600' },
   { name: 'Clients', href: '/admin/customers', icon: Users, color: 'text-indigo-600' },
   { name: 'Promotions', href: '/admin/promotions', icon: Gift, color: 'text-pink-600' },

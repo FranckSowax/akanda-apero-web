@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase/client';
 import { CartItem } from '../context/types';
 
 export interface UserCart {

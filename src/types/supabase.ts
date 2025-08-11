@@ -251,6 +251,80 @@ export type CocktailOption = {
 };
 
 // =====================================================
+// TYPES COCKTAILS PRÊTS À BOIRE
+// =====================================================
+
+export type CocktailContainer = {
+  id: string;
+  name: string;
+  volume_ml: number;
+  base_price: number;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AlcoholDosage = {
+  id: string;
+  name: string;
+  percentage: number;
+  price_modifier: number;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReadyCocktail = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  short_description: string | null;
+  base_price: number;
+  image_url: string | null;
+  emoji: string;
+  color_theme: string | null;
+  category: string | null;
+  flavor_profile: string | null;
+  main_ingredients: string[] | null;
+  default_alcohol_percentage: number;
+  is_active: boolean;
+  is_featured: boolean;
+  stock_status: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReadyCocktailVariant = {
+  id: string;
+  cocktail_id: string;
+  container_id: string;
+  dosage_id: string;
+  final_price: number;
+  stock_quantity: number;
+  is_available: boolean;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  cocktail?: ReadyCocktail;
+  container?: CocktailContainer;
+  dosage?: AlcoholDosage;
+};
+
+// Type pour l'affichage complet d'un cocktail avec ses options
+export type ReadyCocktailWithOptions = ReadyCocktail & {
+  containers: CocktailContainer[];
+  dosages: AlcoholDosage[];
+  variants: ReadyCocktailVariant[];
+};
+
+// =====================================================
 // TYPES BANNIÈRES
 // =====================================================
 
