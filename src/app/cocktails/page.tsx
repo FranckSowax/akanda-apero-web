@@ -530,6 +530,33 @@ const CocktailCard: React.FC<CocktailCardProps> = ({
     }
   };
 
+  const getCategoryColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'tropical':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'classique':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'fruité':
+        return 'bg-pink-100 text-pink-800 border-pink-200';
+      case 'signature':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'créatif':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'local':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'famille & amis':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'romantique':
+        return 'bg-rose-100 text-rose-800 border-rose-200';
+      case 'détox':
+        return 'bg-lime-100 text-lime-800 border-lime-200';
+      case 'anniversaire':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   return (
     <motion.div
       layout
@@ -565,9 +592,6 @@ const CocktailCard: React.FC<CocktailCardProps> = ({
               </div>
             )}
           </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-1">
-            <span className="text-white text-xs font-medium">{cocktail.category}</span>
-          </div>
         </div>
 
         {/* Prix de base - réduit */}
@@ -591,7 +615,27 @@ const CocktailCard: React.FC<CocktailCardProps> = ({
           {cocktail.short_description || cocktail.description}
         </p>
 
-
+        {/* Badges de catégories avec codes couleur */}
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2">
+            {cocktail.categories && cocktail.categories.length > 0 ? (
+              cocktail.categories.map((category, index) => (
+                <span
+                  key={index}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border ${getCategoryColor(category)}`}
+                >
+                  {category}
+                </span>
+              ))
+            ) : cocktail.category ? (
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium border ${getCategoryColor(cocktail.category)}`}
+              >
+                {cocktail.category}
+              </span>
+            ) : null}
+          </div>
+        </div>
 
         {/* Ingrédients principaux */}
         {cocktail.main_ingredients && cocktail.main_ingredients.length > 0 && (
@@ -702,6 +746,7 @@ const CocktailCard: React.FC<CocktailCardProps> = ({
             <div>
               <span className="text-sm text-gray-500 font-medium">Prix total</span>
               <div className="text-3xl font-bold text-gray-900">{formatPrice(finalPrice)}</div>
+              <span className="text-xs text-gray-400">prix pour un cocktail</span>
             </div>
           </div>
           <motion.button

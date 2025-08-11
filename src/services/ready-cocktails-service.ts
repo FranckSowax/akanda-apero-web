@@ -20,13 +20,14 @@ export class ReadyCocktailsService {
     try {
       let query = supabaseClient
         .from('ready_cocktails')
-        .select('*')
+        .select('*, categories')
         .eq('is_active', true)
         .order('is_featured', { ascending: false })
         .order('name', { ascending: true });
 
       if (options?.category) {
-        query = query.eq('category', options.category);
+        // Support pour catégories multiples : recherche dans le tableau categories ou dans category (compatibilité)
+        query = query.or(`category.eq.${options.category},categories.cs.{${options.category}}`);
       }
 
       if (options?.featured !== undefined) {

@@ -288,7 +288,8 @@ export type ReadyCocktail = {
   image_url: string | null;
   emoji: string;
   color_theme: string | null;
-  category: string | null;
+  category: string | null; // Maintenu pour compatibilité
+  categories: string[] | null; // Nouveau: support des catégories multiples
   flavor_profile: string | null;
   main_ingredients: string[] | null;
   default_alcohol_percentage: number;
