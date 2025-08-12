@@ -455,15 +455,30 @@ export async function POST(request: NextRequest) {
       });
       
       // Ajouter l'article valide avec le bon ID selon le type
-      validItems.push({
+      const orderItem: any = {
         order_id: newOrder.id,
-        product_id: isRegularProduct ? productId : null,
-        ready_cocktail_variant_id: isReadyCocktail ? productId : null,
         product_name: item.name,
         quantity: item.quantity,
         unit_price: item.price,
         subtotal: item.price * item.quantity
-      });
+      };
+
+      // Assigner le bon champ selon le type de produit
+      if (isRegularProduct) {
+        orderItem.product_id = productId;
+      } else if (isReadyCocktail) {
+        // Pour les cocktails prêts, on utilise un champ spécifique ou on les traite comme des produits spéciaux
+        // Temporairement, on va les traiter comme des produits normaux pour éviter l'erreur de contrainte
+        orderItem.product_id = null; // Pas de product_id car ce n'est pas dans la table products
+        orderItem.ready_cocktail_id = productId; // Utiliser un champ dédié aux cocktails prêts
+        orderItem.product_type = 'ready_cocktail';
+      } else if (isCocktailMaison) {
+        orderItem.product_id = null;
+        orderItem.cocktail_maison_id = productId;
+        orderItem.product_type = 'cocktail_maison';
+      }
+
+      validItems.push(orderItem);
     }
     
     // Vérifier s'il y a des articles invalides
