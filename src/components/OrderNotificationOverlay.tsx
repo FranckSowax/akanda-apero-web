@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, X, Clock, User, Euro } from 'lucide-react';
+import { ShoppingBag, X, Clock, User, DollarSign } from 'lucide-react';
 import { useNotifications } from '../context/NotificationsContext';
 
 
@@ -177,11 +177,11 @@ export default function OrderNotificationOverlay({
               {/* Montant */}
               <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <Euro size={16} className="text-green-600" />
+                  <DollarSign size={16} className="text-green-600" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Montant</p>
-                  <p className="font-semibold text-gray-800">{orderData.totalAmount.toFixed(2)} €</p>
+                  <p className="font-semibold text-gray-800">{orderData.totalAmount.toLocaleString()} FCFA</p>
                 </div>
               </div>
 

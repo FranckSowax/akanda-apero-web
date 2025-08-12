@@ -54,13 +54,21 @@ export function useOrderNotificationsPolling() {
         return null;
       }
 
-      // Récupérer les articles de la commande
+      // Récupérer les articles de la commande avec tous les types de produits
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
           quantity,
           unit_price,
+          product_name,
+          product_type,
           products (
+            name
+          ),
+          ready_cocktails (
+            name
+          ),
+          cocktails_maison (
             name
           )
         `)
@@ -75,10 +83,30 @@ export function useOrderNotificationsPolling() {
                           `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() ||
                           'Client Inconnu';
 
-      const items = orderItems?.map(item => {
-        const product = Array.isArray(item.products) ? item.products[0] : item.products;
+      const items = orderItems?.map((item: any) => {
+        // Déterminer le nom du produit selon le type
+        let productName = 'Produit Inconnu';
+        
+        // Priorité 1: Utiliser product_name si disponible (stocké directement)
+        if (item.product_name) {
+          productName = item.product_name;
+        }
+        // Priorité 2: Selon le type de produit, récupérer depuis la table appropriée
+        else if (item.product_type === 'ready_cocktail' && item.ready_cocktails) {
+          const cocktail = Array.isArray(item.ready_cocktails) ? item.ready_cocktails[0] : item.ready_cocktails;
+          productName = cocktail?.name || 'Cocktail Prêt';
+        }
+        else if (item.product_type === 'cocktail_maison' && item.cocktails_maison) {
+          const cocktailMaison = Array.isArray(item.cocktails_maison) ? item.cocktails_maison[0] : item.cocktails_maison;
+          productName = cocktailMaison?.name || 'Kit Cocktail';
+        }
+        else if (item.products) {
+          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+          productName = product?.name || 'Produit';
+        }
+        
         return {
-          name: product?.name || 'Produit Inconnu',
+          name: productName,
           quantity: item.quantity || 1,
           price: Number(item.unit_price) || 0
         };
