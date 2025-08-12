@@ -385,18 +385,56 @@ export async function POST(request: NextRequest) {
       });
       
       // Vérifier dans la vue unifiée qui combine tous les types de produits
-      const { data: product, error } = await supabase
+      let { data: product, error } = await supabase
         .from('products_unified')
         .select('id, name, source_table')
         .eq('id', productId)
         .single();
       
+      // Si pas trouvé dans products_unified, vérifier dans ready_cocktails
       if (error || !product) {
-        console.warn(`⚠️ Article invalide - non trouvé:`, { 
+        console.log(`🔍 Produit non trouvé dans products_unified, vérification dans ready_cocktails...`);
+        const { data: readyCocktail, error: cocktailError } = await supabase
+          .from('ready_cocktails')
+          .select('id, name')
+          .eq('id', productId)
+          .eq('is_active', true)
+          .single();
+        
+        if (readyCocktail && !cocktailError) {
+          console.log(`✅ Cocktail prêt trouvé:`, { id: productId, name: readyCocktail.name });
+          product = { 
+            id: readyCocktail.id, 
+            name: readyCocktail.name, 
+            source_table: 'ready_cocktails' 
+          };
+        } else {
+          // Si toujours pas trouvé, vérifier dans cocktails_maison
+          console.log(`🔍 Produit non trouvé dans ready_cocktails, vérification dans cocktails_maison...`);
+          const { data: cocktailMaison, error: maisonError } = await supabase
+            .from('cocktails_maison')
+            .select('id, name')
+            .eq('id', productId)
+            .eq('is_active', true)
+            .single();
+          
+          if (cocktailMaison && !maisonError) {
+            console.log(`✅ Kit cocktail trouvé:`, { id: productId, name: cocktailMaison.name });
+            product = { 
+              id: cocktailMaison.id, 
+              name: cocktailMaison.name, 
+              source_table: 'cocktails_maison' 
+            };
+          }
+        }
+      }
+      
+      if (!product) {
+        console.warn(`⚠️ Article invalide - non trouvé dans aucune table:`, { 
           index: index + 1, 
           id: productId, 
           name: item.name,
-          error: error?.message 
+          originalError: error?.message 
         });
         invalidItems.push({ index: index + 1, id: productId, name: item.name });
         continue;

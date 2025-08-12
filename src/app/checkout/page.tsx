@@ -582,6 +582,53 @@ export default function CheckoutPage() {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       return uuidRegex.test(uuid);
     };
+
+    // Fonction pour valider un article du panier (produits, cocktails, etc.)
+    const isValidCartItem = (item: any) => {
+      const productId = String(item.product?.id || '');
+      const productName = String(item.product?.name || '').trim();
+      const productPrice = item.product?.price;
+      const quantity = item.quantity;
+
+      // Vérifications de base
+      if (!productId || productId === '' || productId === '0') {
+        return { valid: false, reason: 'ID manquant ou invalide' };
+      }
+
+      if (!productName || productName.length === 0) {
+        return { valid: false, reason: 'Nom du produit manquant' };
+      }
+
+      if (productPrice == null || isNaN(Number(productPrice)) || Number(productPrice) <= 0) {
+        return { valid: false, reason: 'Prix invalide' };
+      }
+
+      if (!quantity || quantity <= 0) {
+        return { valid: false, reason: 'Quantité invalide' };
+      }
+
+      // Vérification spécifique pour les UUIDs (produits classiques et cocktails)
+      if (isValidUUID(productId)) {
+        return { valid: true, reason: 'UUID valide' };
+      }
+
+      // Vérification pour les cocktails prêts à boire (peuvent avoir des IDs différents)
+      if (item.product?.type === 'ready_cocktail' || item.cocktailId || item.containerId || item.dosageId) {
+        // Pour les cocktails, vérifier que les IDs essentiels sont présents
+        if (productId.length > 0 && productName.length > 0) {
+          return { valid: true, reason: 'Cocktail valide' };
+        }
+      }
+
+      // Vérification pour les kits cocktails
+      if (item.product?.type === 'cocktail_kit' || productName.toLowerCase().includes('kit')) {
+        if (productId.length > 0 && productName.length > 0) {
+          return { valid: true, reason: 'Kit cocktail valide' };
+        }
+      }
+
+      return { valid: false, reason: `ID non reconnu: ${productId}` };
+    };
     
     // Analyser les articles du panier sans les modifier
     const originalCartLength = cartItems.length;
@@ -595,20 +642,26 @@ export default function CheckoutPage() {
     
     cartItems.forEach(item => {
       const productId = String(item.product?.id || '');
-      const isValid = isValidUUID(productId);
+      const validation = isValidCartItem(item);
       
-      if (isValid) {
+      if (validation.valid) {
         validCartItems.push(item);
+        console.log('✅ Article valide:', { 
+          id: productId, 
+          name: item.product?.name,
+          reason: validation.reason 
+        });
       } else {
         invalidCartItems.push({
           item,
           id: productId,
           name: item.product?.name || 'Produit inconnu',
-          reason: productId === '' ? 'ID manquant' : `ID invalide: ${productId}`
+          reason: validation.reason
         });
         console.warn('🧽 Article avec ID invalide détecté:', { 
           id: productId, 
           name: item.product?.name,
+          reason: validation.reason,
           item: item 
         });
       }
