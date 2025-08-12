@@ -440,20 +440,25 @@ export async function POST(request: NextRequest) {
         continue;
       }
       
-      // Déterminer si c'est un cocktail maison (pas un produit normal)
-      const isCocktailMaison = product.source_table !== 'product';
+      // Déterminer le type de produit
+      const isReadyCocktail = product.source_table === 'ready_cocktails';
+      const isCocktailMaison = product.source_table === 'cocktails_maison';
+      const isRegularProduct = product.source_table === 'product' || !product.source_table;
       
       console.log(`✅ Produit trouvé:`, { 
         id: productId, 
         name: item.name, 
         source: product.source_table,
-        isCocktailMaison: isCocktailMaison
+        isReadyCocktail: isReadyCocktail,
+        isCocktailMaison: isCocktailMaison,
+        isRegularProduct: isRegularProduct
       });
       
-      // Ajouter l'article valide
+      // Ajouter l'article valide avec le bon ID selon le type
       validItems.push({
         order_id: newOrder.id,
-        product_id: isCocktailMaison ? null : productId,
+        product_id: isRegularProduct ? productId : null,
+        ready_cocktail_variant_id: isReadyCocktail ? productId : null,
         product_name: item.name,
         quantity: item.quantity,
         unit_price: item.price,

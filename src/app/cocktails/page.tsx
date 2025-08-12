@@ -121,18 +121,10 @@ export default function CocktailsPage() {
         return;
       }
 
-      // Générer un UUID valide pour l'ID du produit
-      const generateUUID = () => {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-          const r = Math.random() * 16 | 0;
-          const v = c == 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-      };
-
       // Créer un objet Product compatible avec le système de panier existant
+      // Utiliser l'ID réel du cocktail au lieu d'un UUID généré
       const cartItem = {
-        id: generateUUID(),
+        id: cocktailId, // Utiliser l'ID réel du cocktail depuis la base de données
         name: `${cocktail.name} (${container.name}, ${dosage.name})`,
         description: `${cocktail.description || cocktail.short_description} - Contenant: ${container.name} (${container.volume_ml}ml) - Dosage: ${dosage.name}`,
         price: finalPrice,
