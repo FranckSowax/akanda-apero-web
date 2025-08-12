@@ -480,10 +480,12 @@ const CocktailCard: React.FC<CocktailCardProps> = ({
 
   useEffect(() => {
     if (containers.length > 0 && !selectedContainer) {
-      setSelectedContainer(containers[0].id);
+      setSelectedContainer(containers[0].id); // Sélectionner le premier contenant par défaut
     }
     if (dosages.length > 0 && !selectedDosage) {
-      setSelectedDosage(dosages[1]?.id || dosages[0].id); // Sélectionner "Standard" par défaut
+      // Chercher le dosage "Standard" par nom, sinon prendre le premier
+      const standardDosage = dosages.find(d => d.name.toLowerCase() === 'standard');
+      setSelectedDosage(standardDosage?.id || dosages[0].id);
     }
   }, [containers, dosages, selectedContainer, selectedDosage]);
 
