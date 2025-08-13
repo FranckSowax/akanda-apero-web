@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase/client';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { normalizeGabonPhone, isValidGabonPhone } from '../../utils/phoneUtils';
 import Image from 'next/image';
 import { Header } from '../../components/layout/Header';
 import { 
@@ -229,6 +233,14 @@ export default function AuthPage() {
       showMessage("Le mot de passe doit contenir au moins 6 caractères.", 'error');
       return;
     }
+
+    // Valider et normaliser le numéro de téléphone gabonais
+    if (!isValidGabonPhone(phone)) {
+      showMessage("Veuillez entrer un numéro de téléphone gabonais valide (ex: 077889988 ou +24177889988).", 'error');
+      return;
+    }
+
+    const normalizedPhone = normalizeGabonPhone(phone);
     
     setLoading(true);
     
@@ -242,7 +254,7 @@ export default function AuthPage() {
           data: {
             first_name: firstName,
             last_name: lastName,
-            phone: phone
+            phone: normalizedPhone
           }
         }
       });
@@ -260,7 +272,7 @@ export default function AuthPage() {
                 first_name: firstName,
                 last_name: lastName,
                 email: email,
-                phone: phone,
+                phone: normalizedPhone,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               }

@@ -17,7 +17,7 @@ import MobileLoadingOverlay from '@/components/MobileLoadingOverlay';
 import { LocationMap } from '../../components/ui/location-map';
 import { useAppContext } from '../../context/AppContext';
 import { formatPrice } from '../../lib/utils/formatters';
-import { formatGabonPhone, isValidGabonPhone, getPhoneValidationError } from '../../lib/utils/phone';
+import { normalizeGabonPhone, isValidGabonPhone } from '../../utils/phoneUtils';
 import { useOrders } from '../../hooks/supabase/useOrders';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { useUserProfile } from '../../hooks/supabase/useUserProfile';
@@ -492,8 +492,17 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     setDeliveryInfo(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
+
+    // Valider le numéro de téléphone en temps réel
+    if (name === 'phone' && value.trim()) {
+      const phoneValidation = normalizeGabonPhone(value);
+      if (!phoneValidation.isValid) {
+        // Optionnel: afficher un message d'erreur en temps réel
+        console.log('Numéro de téléphone invalide:', phoneValidation.error);
+      }
+    }
   };
 
   // Handle location selection - Mémorisé avec useCallback pour éviter le clignotement de la carte
@@ -714,6 +723,41 @@ export default function CheckoutPage() {
       form.reportValidity();
       return;
     }
+    // Validation des numéros de téléphone gabonais
+    console.log('📱 Validation des numéros de téléphone...');
+    
+    // Valider le numéro de téléphone principal
+    if (deliveryInfo.phone && deliveryInfo.phone.trim()) {
+      const phoneValidation = normalizeGabonPhone(deliveryInfo.phone);
+      if (!phoneValidation.isValid) {
+        const errorMsg = `Numéro de téléphone invalide: ${phoneValidation.error}. Veuillez utiliser un format gabonais (ex: 077889988 ou +24177889988)`;
+        setOrderError(errorMsg);
+        setMobileOverlay({
+          visible: true,
+          status: 'error',
+          message: errorMsg
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Valider le numéro WhatsApp
+    if (paymentInfo.whatsapp && paymentInfo.whatsapp.trim()) {
+      const whatsappValidation = normalizeGabonPhone(paymentInfo.whatsapp);
+      if (!whatsappValidation.isValid) {
+        const errorMsg = `Numéro WhatsApp invalide: ${whatsappValidation.error}. Veuillez utiliser un format gabonais (ex: 077889988 ou +24177889988)`;
+        setOrderError(errorMsg);
+        setMobileOverlay({
+          visible: true,
+          status: 'error',
+          message: errorMsg
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setOrderError(null);
     
@@ -761,12 +805,14 @@ export default function CheckoutPage() {
         source: 'Formulaire de checkout uniquement'
       });
       
-      // Formater le numéro WhatsApp pour les notifications
-      const formattedWhatsApp = formatGabonPhone(paymentInfo.whatsapp);
+      // Normaliser le numéro WhatsApp pour les notifications
+      const whatsappResult = normalizeGabonPhone(paymentInfo.whatsapp);
+      const normalizedWhatsApp = whatsappResult.normalizedPhone;
       
       // Utiliser le numéro de téléphone du profil pour les données client
-      const profilePhone = deliveryInfo.phone || profile?.phone || formattedWhatsApp;
-      const formattedProfilePhone = formatGabonPhone(profilePhone);
+      const profilePhone = deliveryInfo.phone || profile?.phone || normalizedWhatsApp;
+      const profilePhoneResult = normalizeGabonPhone(profilePhone);
+      const normalizedProfilePhone = profilePhoneResult.normalizedPhone;
       
       // Utiliser les articles validés par notre logique de checkout
       console.log('🛑️ Utilisation des articles validés:', validCartItems.length);
@@ -827,7 +873,7 @@ export default function CheckoutPage() {
           email: customerEmail,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          phone: formattedProfilePhone
+          phone: normalizedProfilePhone
         },
         deliveryInfo: {
           address: deliveryInfo.address.trim(),
@@ -843,7 +889,7 @@ export default function CheckoutPage() {
         },
         paymentInfo: {
           method: paymentInfo.method,
-          ...(paymentInfo.method === 'mobile_money' && { whatsapp: formattedWhatsApp }),
+          ...(paymentInfo.method === 'mobile_money' && { whatsapp: normalizedWhatsApp }),
           ...(paymentInfo.method === 'card' && {
             cardNumber: paymentInfo.cardNumber?.trim() || '',
             cardName: paymentInfo.cardName?.trim() || '',
@@ -875,9 +921,9 @@ export default function CheckoutPage() {
       console.log('🔍 Validation des données avant envoi:');
       console.log('📞 Numéros de téléphone:', {
         whatsappOriginal: paymentInfo.whatsapp,
-        whatsappFormaté: formattedWhatsApp,
+        whatsappFormaté: normalizedWhatsApp,
         profilePhone: profilePhone,
-        profilePhoneFormaté: formattedProfilePhone,
+        profilePhoneFormaté: normalizedProfilePhone,
         utilisePour: 'customerInfo.phone'
       });
       console.log('  - customerInfo:', orderData.customerInfo);
