@@ -247,19 +247,19 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
       <Header />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
           
           {/* Hero Slider - Large Card */}
-          <div className="lg:col-span-2 relative rounded-3xl overflow-hidden">
+          <div className="lg:col-span-2 relative rounded-2xl sm:rounded-3xl overflow-hidden w-full">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentSlide}
-                className="rounded-3xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden h-full"
+                className="rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-6 lg:p-8 text-white relative overflow-hidden h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] w-full"
                 style={{
                   backgroundImage: `url(${heroSlides[currentSlide] ? (heroSlides[currentSlide] as any).image_url || (heroSlides[currentSlide] as any).bgImage : 'https://i.imgur.com/hr8w6tp.png'})`,
                   backgroundSize: 'cover',
@@ -272,46 +272,46 @@ export default function Home() {
                 transition={{ duration: 0.5, ease: "easeInOut" }}
               >
                 {/* Color Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${heroSlides[currentSlide]?.gradient || 'from-orange-400/50 to-orange-500/50'} rounded-3xl`}></div>
-                <div className="relative z-10 h-full flex flex-col justify-end pb-8">
+                <div className={`absolute inset-0 bg-gradient-to-br ${heroSlides[currentSlide]?.gradient || 'from-orange-400/50 to-orange-500/50'} rounded-2xl sm:rounded-3xl`}></div>
+                <div className="relative z-10 h-full flex flex-col justify-end pb-4 sm:pb-6 lg:pb-8">
                   {/* Slide Indicators */}
-                  <div className="absolute top-0 left-0 flex items-center space-x-2 mb-4">
+                  <div className="absolute top-3 sm:top-4 left-3 sm:left-4 flex items-center space-x-2 mb-4">
                     <div className="flex space-x-1">
                       {heroSlides.map((_, index) => (
                         <button
                           key={index}
                           onClick={() => goToSlide(index)}
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            index === currentSlide ? 'w-6 bg-white' : 'w-2 bg-white opacity-60 hover:opacity-80'
+                          className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 touch-manipulation ${
+                            index === currentSlide ? 'w-4 sm:w-6 bg-white' : 'w-1.5 sm:w-2 bg-white opacity-60 hover:opacity-80'
                           }`}
                         />
                       ))}
                     </div>
                   </div>
 
-                  <div className="mt-auto">
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-3 sm:mb-4 leading-tight">
+                  <div className="mt-auto w-full">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black mb-2 sm:mb-3 lg:mb-4 leading-tight break-words">
                       {(heroSlides[currentSlide]?.title || 'COCKTAIL\nTIME!').split('\n').map((line, index) => (
-                        <span key={index}>
-                          {line}<br />
+                        <span key={index} className="block">
+                          {line}
                         </span>
                       ))}
                     </h1>
                     
-                    <p className="text-sm sm:text-base md:text-lg mb-4 sm:mb-6 opacity-90 leading-relaxed">
+                    <p className="text-xs sm:text-sm md:text-base lg:text-lg mb-3 sm:mb-4 lg:mb-6 opacity-90 leading-relaxed break-words">
                       {(heroSlides[currentSlide]?.subtitle || 'Cocktails artisanaux préparés\nspécialement pour vous').split('\n').map((line, index) => (
-                        <span key={index}>
-                          {line}<br />
+                        <span key={index} className="block">
+                          {line}
                         </span>
                       ))}
                     </p>
                     
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                      <div className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-full font-bold text-sm sm:text-base md:text-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 lg:space-x-4 w-full">
+                      <div className="bg-green-600 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-full font-bold text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap">
                         À PARTIR DE {heroSlides[currentSlide]?.price || '2500 XAF'}
                       </div>
-                      <div className="flex items-center space-x-1 text-xs sm:text-sm">
-                        <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
+                      <div className="flex items-center space-x-1 text-xs sm:text-sm whitespace-nowrap">
+                        <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current flex-shrink-0" />
                         <span>{heroSlides[currentSlide]?.rating || '4.8'} depuis {heroSlides[currentSlide]?.year || '2020'}</span>
                       </div>
                     </div>
@@ -323,22 +323,22 @@ export default function Home() {
             {/* Navigation Arrows */}
             <button 
               onClick={prevSlide}
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-200 backdrop-blur-sm"
+              className="absolute left-2 sm:left-3 lg:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-200 backdrop-blur-sm touch-manipulation z-20"
             >
-              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
             </button>
             
             <button 
               onClick={nextSlide}
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-200 backdrop-blur-sm"
+              className="absolute right-2 sm:right-3 lg:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-200 backdrop-blur-sm touch-manipulation z-20"
             >
-              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
             </button>
           </div>
           
           {/* Cocktail Kits Card */}
           <motion.div 
-            className="rounded-3xl p-6 text-white relative overflow-hidden h-full"
+            className="rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white relative overflow-hidden h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] w-full"
             style={{
               backgroundImage: `url(${cocktailKitBg})`,
               backgroundSize: 'cover',
@@ -403,7 +403,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <h2 className="text-2xl font-black text-gray-900 mb-6">⭐ TOP-5 FAVORIS</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-4 sm:mb-6">⭐ TOP-5 FAVORIS</h2>
             
             {loading ? (
               <div className="flex justify-center py-8">
@@ -497,7 +497,7 @@ export default function Home() {
             )}
              
             {/* Voir tous les produits button */}
-            <Link href="/products" className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-full font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2">
+            <Link href="/products" className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-full font-bold text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2 touch-manipulation">
               <span>VOIR TOUS LES PRODUITS</span>
               <ChevronRight className="w-4 h-4" />
             </Link>
