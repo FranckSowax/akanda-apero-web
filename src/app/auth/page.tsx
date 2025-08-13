@@ -287,7 +287,7 @@ export default function AuthPage() {
         }
       }
       
-      showMessage("Inscription réussie! Veuillez vérifier votre e-mail pour confirmer votre compte.", 'success');
+      showMessage("Inscription réussie! 📧 Un email de confirmation a été envoyé à votre adresse. Veuillez cliquer sur le lien dans l'email pour activer votre compte et pouvoir vous connecter.", 'success');
       setEmail('');
       setPassword('');
       setFirstName('');
@@ -781,6 +781,22 @@ export default function AuthPage() {
                         </p>
                       </div>
                     )}
+                   </div>
+
+                  {/* Notice de validation d'email */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start">
+                      <Mail className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="text-blue-800 font-medium mb-1">
+                          📧 Validation d'email requise
+                        </p>
+                        <p className="text-blue-700">
+                          Après votre inscription, vous recevrez un email de confirmation. 
+                          <strong className="font-medium"> Vous devez cliquer sur le lien dans cet email pour activer votre compte</strong> et pouvoir vous connecter.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   
                   <Button 

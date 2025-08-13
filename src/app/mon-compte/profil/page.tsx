@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { useToast } from '../../../components/ui/use-toast';
 import UserAccountLayout from '../../../components/layout/UserAccountLayout';
 import { supabase } from '../../../lib/supabase/client';
+import { normalizeGabonPhone, isValidGabonPhone } from '../../../utils/phoneUtils';
 import { 
   User, 
   Phone, 
@@ -227,6 +228,38 @@ export default function UserProfilePage() {
     
     setSaving(true);
     try {
+      // Valider et normaliser le numéro de téléphone
+      let normalizedPhone = profile.phone;
+      if (profile.phone && profile.phone.trim()) {
+        const phoneValidation = normalizeGabonPhone(profile.phone);
+        if (!phoneValidation.isValid) {
+          toast({
+            title: "Numéro de téléphone invalide",
+            description: `${phoneValidation.error}. Veuillez utiliser un format gabonais (ex: 077889988 ou +24177889988)`,
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+        normalizedPhone = phoneValidation.normalizedPhone;
+      }
+
+      // Valider et normaliser le numéro WhatsApp
+      let normalizedWhatsApp = profile.whatsapp;
+      if (profile.whatsapp && profile.whatsapp.trim()) {
+        const whatsappValidation = normalizeGabonPhone(profile.whatsapp);
+        if (!whatsappValidation.isValid) {
+          toast({
+            title: "Numéro WhatsApp invalide",
+            description: `${whatsappValidation.error}. Veuillez utiliser un format gabonais (ex: 077889988 ou +24177889988)`,
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+        normalizedWhatsApp = whatsappValidation.normalizedPhone;
+      }
+      
       // Séparer le nom complet en prénom et nom
       const nameParts = profile.full_name.trim().split(' ');
       const firstName = nameParts[0] || '';
@@ -236,7 +269,8 @@ export default function UserProfilePage() {
         email: currentUser.email,
         first_name: firstName,
         last_name: lastName,
-        phone: profile.phone
+        phone: normalizedPhone,
+        whatsapp: normalizedWhatsApp
       });
       
       const { error } = await supabase
@@ -245,9 +279,16 @@ export default function UserProfilePage() {
           email: currentUser.email,
           first_name: firstName,
           last_name: lastName,
-          phone: profile.phone,
+          phone: normalizedPhone,
           updated_at: new Date().toISOString()
         });
+
+      // Mettre à jour le profil local avec les numéros normalisés
+      setProfile(prev => ({
+        ...prev,
+        phone: normalizedPhone,
+        whatsapp: normalizedWhatsApp
+      }));
 
       if (error) {
         throw error;
@@ -392,9 +433,22 @@ export default function UserProfilePage() {
                 </label>
                 <Input
                   value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setProfile({ ...profile, phone: value });
+                    
+                    // Validation en temps réel
+                    if (value.trim() && isEditing) {
+                      const phoneValidation = normalizeGabonPhone(value);
+                      if (!phoneValidation.isValid) {
+                        console.log('Téléphone invalide:', phoneValidation.error);
+                      }
+                    }
+                  }}
                   disabled={!isEditing}
-                  placeholder="07 XX XX XX XX"
+                  placeholder="Ex: 077889988 ou +24177889988"
+                  type="tel"
+                  inputMode="tel"
                 />
               </div>
               <div>
@@ -403,9 +457,22 @@ export default function UserProfilePage() {
                 </label>
                 <Input
                   value={profile.whatsapp}
-                  onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setProfile({ ...profile, whatsapp: value });
+                    
+                    // Validation en temps réel
+                    if (value.trim() && isEditing) {
+                      const whatsappValidation = normalizeGabonPhone(value);
+                      if (!whatsappValidation.isValid) {
+                        console.log('WhatsApp invalide:', whatsappValidation.error);
+                      }
+                    }
+                  }}
                   disabled={!isEditing}
-                  placeholder="07 XX XX XX XX"
+                  placeholder="Ex: 077889988 ou +24177889988"
+                  type="tel"
+                  inputMode="tel"
                 />
               </div>
               <div>

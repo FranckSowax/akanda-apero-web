@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { normalizeGabonPhone, isValidGabonPhone } from '../../../utils/phoneUtils';
 
 // Créer un client Supabase pour l'admin
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -272,13 +273,24 @@ export default function WhatsAppAdminPage() {
 
         <div style={{ marginBottom: '10px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-            Numéro WhatsApp (format: +41XXXXXXXXX)
+            Numéro WhatsApp (format gabonais: 077889988 ou +24177889988)
           </label>
           <input
             type="tel"
             value={testPhone}
-            onChange={(e) => setTestPhone(e.target.value)}
-            placeholder="+41791234567"
+            onChange={(e) => {
+              const value = e.target.value;
+              setTestPhone(value);
+              
+              // Validation en temps réel pour les numéros gabonais
+              if (value.trim()) {
+                const phoneValidation = normalizeGabonPhone(value);
+                if (!phoneValidation.isValid) {
+                  console.log('Numéro WhatsApp invalide:', phoneValidation.error);
+                }
+              }
+            }}
+            placeholder="Ex: 077889988 ou +24177889988"
             style={{
               width: '100%',
               padding: '8px',

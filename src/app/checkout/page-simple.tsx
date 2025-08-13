@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CreditCard, MapPin, ShoppingBag, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { normalizeGabonPhone, isValidGabonPhone } from '../../utils/phoneUtils';
 
 // Utiliser des composants simples au lieu des imports UI
 const Button = ({ children, onClick, disabled, variant = 'primary', className = '' }: any) => (
@@ -146,13 +147,37 @@ export default function CheckoutPage() {
     
     if (formStep === 'delivery') {
       if (!deliveryInfo.fullName.trim()) errors.push('Nom complet requis');
-      if (!deliveryInfo.phone.trim()) errors.push('Numéro de téléphone requis');
+      if (!deliveryInfo.phone.trim()) {
+        errors.push('Numéro de téléphone requis');
+      } else {
+        // Valider le format du numéro de téléphone gabonais
+        const phoneValidation = normalizeGabonPhone(deliveryInfo.phone);
+        if (!phoneValidation.isValid) {
+          errors.push(`Téléphone invalide: ${phoneValidation.error}`);
+        }
+      }
       if (deliveryOption !== 'pickup' && !deliveryInfo.address.trim()) {
         errors.push('Adresse de livraison requise');
       }
     } else if (formStep === 'payment') {
-      if (!paymentInfo.mobileNumber.trim()) errors.push('Numéro mobile requis');
-      if (!paymentInfo.whatsapp.trim()) errors.push('Numéro WhatsApp requis');
+      if (!paymentInfo.mobileNumber.trim()) {
+        errors.push('Numéro mobile requis');
+      } else {
+        // Valider le format du numéro mobile gabonais
+        const mobileValidation = normalizeGabonPhone(paymentInfo.mobileNumber);
+        if (!mobileValidation.isValid) {
+          errors.push(`Mobile invalide: ${mobileValidation.error}`);
+        }
+      }
+      if (!paymentInfo.whatsapp.trim()) {
+        errors.push('Numéro WhatsApp requis');
+      } else {
+        // Valider le format du numéro WhatsApp gabonais
+        const whatsappValidation = normalizeGabonPhone(paymentInfo.whatsapp);
+        if (!whatsappValidation.isValid) {
+          errors.push(`WhatsApp invalide: ${whatsappValidation.error}`);
+        }
+      }
     }
     
     if (errors.length > 0) {
