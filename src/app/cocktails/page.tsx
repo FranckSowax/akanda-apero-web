@@ -81,6 +81,7 @@ export default function CocktailsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -270,10 +271,126 @@ export default function CocktailsPage() {
 
       {/* Section principale */}
       <div id="cocktails-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        
+        {/* Menu déroulant mobile pour les catégories */}
+        <div className="lg:hidden mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100"
+          >
+            {/* Barre de recherche mobile */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un cocktail..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                />
+              </div>
+            </div>
+            
+            {/* Dropdown des catégories */}
+            <div className="relative">
+              <button
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4" />
+                  <span>
+                    {selectedCategory === 'all' 
+                      ? 'Toutes les catégories' 
+                      : selectedCategory
+                    }
+                  </span>
+                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                    {filteredCocktails.length}
+                  </span>
+                </div>
+                <motion.div
+                  animate={{ rotate: showCategoryDropdown ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </motion.div>
+              </button>
+              
+              <AnimatePresence>
+                {showCategoryDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 max-h-64 overflow-y-auto"
+                  >
+                    <div className="p-2">
+                      <button
+                        onClick={() => {
+                          setSelectedCategory('all');
+                          setShowCategoryDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                          selectedCategory === 'all'
+                            ? 'bg-orange-500 text-white'
+                            : 'text-gray-700 hover:bg-orange-50'
+                        }`}
+                      >
+                        <span>🍹 Tous les cocktails</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                          selectedCategory === 'all'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {cocktails.length}
+                        </span>
+                      </button>
+                      {categories.map(category => {
+                        const count = cocktails.filter(c => c.category === category).length;
+                        const emoji = category.includes('Classique') ? '🥃' : 
+                                     category.includes('Tropical') ? '🌴' : 
+                                     category.includes('Signature') ? '⭐' : 
+                                     category.includes('Sans Alcool') ? '🚫' : '🍸';
+                        return (
+                          <button
+                            key={category}
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setShowCategoryDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                              selectedCategory === category
+                                ? 'bg-orange-500 text-white'
+                                : 'text-gray-700 hover:bg-orange-50'
+                            }`}
+                          >
+                            <span>{emoji} {category}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                              selectedCategory === category
+                                ? 'bg-white/20 text-white'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
+        
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
           
-          {/* Barre latérale */}
-          <div className="lg:w-80 space-y-4 sm:space-y-6">
+          {/* Barre latérale - Desktop uniquement */}
+          <div className="hidden lg:block lg:w-80 space-y-4 sm:space-y-6">
             
             {/* Informations sur le service */}
             <motion.div
@@ -397,11 +514,11 @@ export default function CocktailsPage() {
 
           {/* Contenu principal */}
           <div className="flex-1">
-            {/* En-tête de section */}
+            {/* En-tête de section - Desktop uniquement */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              className="mb-6 hidden lg:block"
             >
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 {selectedCategory === 'all' ? 'Tous nos cocktails' : selectedCategory}
@@ -410,12 +527,23 @@ export default function CocktailsPage() {
                 {filteredCocktails.length} cocktail{filteredCocktails.length > 1 ? 's' : ''} disponible{filteredCocktails.length > 1 ? 's' : ''}
               </p>
             </motion.div>
+            
+            {/* En-tête mobile simplifié */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 lg:hidden"
+            >
+              <h2 className="text-xl font-bold text-gray-900">
+                {selectedCategory === 'all' ? 'Nos cocktails' : selectedCategory}
+              </h2>
+            </motion.div>
 
             {/* Grille des cocktails */}
             <AnimatePresence>
               <motion.div 
                 layout
-                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6"
               >
                 {filteredCocktails.map((cocktail, index) => (
                   <motion.div
