@@ -76,6 +76,7 @@ export default function ProblemsPage() {
   const fetchProblems = async () => {
     try {
       setLoading(true);
+      
       const { data, error } = await supabase
         .from('problemes')
         .select('*')
