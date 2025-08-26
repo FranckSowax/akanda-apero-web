@@ -9,29 +9,28 @@ export default function ProblemeTableInitializer() {
 
   useEffect(() => {
     const initializeTable = async () => {
-      try {
-        // Tester d'abord si la table existe
-        const testResult = await MigrationService.testProblemeTable();
+      console.log('🚀 Initialisation de la table problemes...');
+      
+      // Créer la table si nécessaire
+      const tableResult = await MigrationService.createProblemeTable();
+      
+      if (tableResult.success) {
+        console.log('✅ Table problemes initialisée avec succès');
         
-        if (testResult.success) {
-          setIsInitialized(true);
-          return;
-        }
-
-        // Si la table n'existe pas, essayer de la créer
-        console.log('Table problemes non trouvée, tentative de création...');
-        const createResult = await MigrationService.createProblemeTable();
+        // Créer les politiques RLS permissives
+        console.log('🔐 Création des politiques RLS permissives...');
+        const policiesResult = await MigrationService.createProblemesPolicies();
         
-        if (createResult.success) {
+        if (policiesResult.success) {
+          console.log('✅ Politiques RLS permissives créées avec succès');
           setIsInitialized(true);
-          console.log('Table problemes initialisée avec succès');
         } else {
-          setError('Impossible de créer la table problemes. Veuillez la créer manuellement dans Supabase.');
-          console.error('Erreur lors de la création de la table:', createResult.error);
+          console.error('❌ Erreur lors de la création des politiques RLS:', policiesResult.error);
+          setError('Impossible de créer les politiques RLS pour la table problemes.');
         }
-      } catch (err) {
-        setError('Erreur lors de l\'initialisation de la table problemes');
-        console.error('Erreur:', err);
+      } else {
+        console.error('❌ Erreur lors de l\'initialisation de la table problemes:', tableResult.error);
+        setError('Impossible de créer la table problemes. Veuillez la créer manuellement dans Supabase.');
       }
     };
 

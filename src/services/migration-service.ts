@@ -65,23 +65,90 @@ export class MigrationService {
             BEFORE UPDATE ON problemes 
             FOR EACH ROW 
             EXECUTE FUNCTION update_updated_at_column();
+
+        -- Activer RLS
+        ALTER TABLE problemes ENABLE ROW LEVEL SECURITY;
+
+        -- Politique permissive pour la lecture (comme pour orders)
+        CREATE POLICY "Allow read access to problemes" ON problemes
+        FOR SELECT USING (true);
+
+        -- Politique permissive pour l'insertion (comme pour orders)
+        CREATE POLICY "Allow insert access to problemes" ON problemes
+        FOR INSERT WITH CHECK (true);
+
+        -- Politique permissive pour la mise à jour (comme pour orders)
+        CREATE POLICY "Allow update access to problemes" ON problemes
+        FOR UPDATE USING (true);
+
+        -- Politique permissive pour la suppression (comme pour orders)
+        CREATE POLICY "Allow delete access to problemes" ON problemes
+        FOR DELETE USING (true);
       `;
 
-      // Exécuter le SQL via rpc si disponible
-      const { data, error } = await supabase.rpc('exec_sql', { 
-        sql: createTableSQL 
+      // Exécuter la requête SQL via RPC
+      const { data, error } = await supabase.rpc('execute_sql', {
+        sql_query: createTableSQL
       });
 
       if (error) {
-        console.error('Erreur lors de la création de la table:', error);
+        console.error('Erreur lors de la création de la table problemes:', error);
         return { success: false, error };
       }
 
-      console.log('Table problemes créée avec succès');
+      console.log('✅ Table problemes créée avec succès avec politiques RLS permissives');
       return { success: true };
 
     } catch (error) {
-      console.error('Erreur lors de la migration:', error);
+      console.error('Erreur lors de la création de la table problemes:', error);
+      return { success: false, error };
+    }
+  }
+
+  /**
+   * Crée des politiques RLS permissives pour la table problemes
+   */
+  static async createProblemesPolicies(): Promise<{ success: boolean; error?: any }> {
+    try {
+      const policiesSQL = `
+        -- Activer RLS si pas déjà fait
+        ALTER TABLE problemes ENABLE ROW LEVEL SECURITY;
+
+        -- Supprimer les anciennes politiques si elles existent
+        DROP POLICY IF EXISTS "Allow read access to problemes" ON problemes;
+        DROP POLICY IF EXISTS "Allow insert access to problemes" ON problemes;
+        DROP POLICY IF EXISTS "Allow update access to problemes" ON problemes;
+        DROP POLICY IF EXISTS "Allow delete access to problemes" ON problemes;
+
+        -- Créer des politiques permissives (comme pour orders)
+        CREATE POLICY "Allow read access to problemes" ON problemes
+        FOR SELECT USING (true);
+
+        CREATE POLICY "Allow insert access to problemes" ON problemes
+        FOR INSERT WITH CHECK (true);
+
+        CREATE POLICY "Allow update access to problemes" ON problemes
+        FOR UPDATE USING (true);
+
+        CREATE POLICY "Allow delete access to problemes" ON problemes
+        FOR DELETE USING (true);
+      `;
+
+      // Exécuter la requête SQL via RPC
+      const { data, error } = await supabase.rpc('execute_sql', {
+        sql_query: policiesSQL
+      });
+
+      if (error) {
+        console.error('Erreur lors de la création des politiques RLS:', error);
+        return { success: false, error };
+      }
+
+      console.log('✅ Politiques RLS permissives créées pour la table problemes');
+      return { success: true };
+
+    } catch (error) {
+      console.error('Erreur lors de la création des politiques RLS:', error);
       return { success: false, error };
     }
   }
