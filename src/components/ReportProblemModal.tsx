@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, X, Send } from 'lucide-react';
-import { supabase } from '../lib/supabase/client';
+import { ProblemsService, CreateProblemData } from '../services/problems-service';
 
 interface Order {
   id: string;
@@ -63,28 +63,27 @@ export default function ReportProblemModal({
     setError('');
 
     try {
-      const problemData = {
+      const problemData: CreateProblemData = {
         order_id: order.id,
         order_number: order.order_number,
         customer_name: order.customer_name,
-        customer_email: order.customer_email || null,
-        customer_phone: order.customer_phone || null,
+        customer_email: order.customer_email || undefined,
+        customer_phone: order.customer_phone || undefined,
         total_amount: order.total_amount,
-        problem_type: formData.problem_type,
+        problem_type: formData.problem_type as 'livraison' | 'produit' | 'service' | 'paiement' | 'autre',
         problem_description: formData.problem_description.trim(),
-        urgency_level: formData.urgency_level,
+        urgency_level: formData.urgency_level as 'faible' | 'normale' | 'haute' | 'critique',
         reported_by_customer: formData.reported_by_customer,
-        admin_notes: formData.admin_notes.trim() || null,
-        status: 'nouveau'
+        admin_notes: formData.admin_notes.trim() || undefined
       };
 
-      const { error: insertError } = await supabase
-        .from('problemes')
-        .insert([problemData]);
+      const { data, error: insertError } = await ProblemsService.createProblem(problemData);
 
       if (insertError) {
         console.error('Erreur lors de la création du problème:', insertError);
-        setError('Erreur lors de la création du signalement. Veuillez réessayer.');
+        // Améliorer l'affichage de l'erreur
+        const errorMessage = insertError.message || insertError.details || 'Erreur inconnue';
+        setError(`Erreur lors de la création du signalement: ${errorMessage}`);
         return;
       }
 

@@ -31,6 +31,7 @@ import { useOrderNotificationsPolling } from '../../hooks/useOrderNotificationsP
 
 import OrderNotificationOverlay from '../../components/OrderNotificationOverlay';
 import ClientOnlyWrapper from '../../components/ClientOnlyWrapper';
+import ProblemeTableInitializer from '../../components/admin/ProblemeTableInitializer';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, color: 'text-blue-600' },

@@ -123,6 +123,57 @@ export const supabaseServer = createMcpServer({
       }
     },
     
-    // Ajoutez d'autres ressources selon vos besoins
+    // Ressources pour les problèmes
+    {
+      name: 'problemes',
+      read: async () => {
+        const { data, error } = await supabase
+          .from('problemes')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw new Error(error.message);
+        return data;
+      },
+      create: async ({ body }) => {
+        const { data, error } = await supabase
+          .from('problemes')
+          .insert(body)
+          .select();
+        
+        if (error) throw new Error(error.message);
+        return data[0];
+      },
+      update: async ({ params, body }) => {
+        const { data, error } = await supabase
+          .from('problemes')
+          .update(body)
+          .match({ id: params.id })
+          .select();
+        
+        if (error) throw new Error(error.message);
+        return data[0];
+      },
+      delete: async ({ params }) => {
+        const { error } = await supabase
+          .from('problemes')
+          .delete()
+          .match({ id: params.id });
+        
+        if (error) throw new Error(error.message);
+        return { success: true };
+      }
+    },
+    
+    // Ressource pour exécuter du SQL brut (pour les migrations)
+    {
+      name: 'sql',
+      execute: async ({ body }) => {
+        const { data, error } = await supabase.rpc('execute_sql', { sql_query: body.query });
+        
+        if (error) throw new Error(error.message);
+        return data;
+      }
+    }
   ]
 });

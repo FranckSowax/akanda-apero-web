@@ -261,6 +261,68 @@ export type Database = {
           updated_at?: string
         }
       }
+      problemes: {
+        Row: {
+          id: string
+          order_id: string
+          order_number: string
+          customer_name: string
+          customer_email: string | null
+          customer_phone: string | null
+          total_amount: number
+          problem_type: 'livraison' | 'produit' | 'service' | 'paiement' | 'autre'
+          problem_description: string
+          urgency_level: 'faible' | 'normale' | 'haute' | 'critique'
+          status: 'nouveau' | 'en_cours' | 'resolu' | 'ferme'
+          reported_by_customer: boolean
+          admin_notes: string | null
+          resolution_notes: string | null
+          assigned_to: string | null
+          created_at: string
+          updated_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          order_number: string
+          customer_name: string
+          customer_email?: string | null
+          customer_phone?: string | null
+          total_amount: number
+          problem_type: 'livraison' | 'produit' | 'service' | 'paiement' | 'autre'
+          problem_description: string
+          urgency_level?: 'faible' | 'normale' | 'haute' | 'critique'
+          status?: 'nouveau' | 'en_cours' | 'resolu' | 'ferme'
+          reported_by_customer?: boolean
+          admin_notes?: string | null
+          resolution_notes?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          updated_at?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          order_number?: string
+          customer_name?: string
+          customer_email?: string | null
+          customer_phone?: string | null
+          total_amount?: number
+          problem_type?: 'livraison' | 'produit' | 'service' | 'paiement' | 'autre'
+          problem_description?: string
+          urgency_level?: 'faible' | 'normale' | 'haute' | 'critique'
+          status?: 'nouveau' | 'en_cours' | 'resolu' | 'ferme'
+          reported_by_customer?: boolean
+          admin_notes?: string | null
+          resolution_notes?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          updated_at?: string
+          resolved_at?: string | null
+        }
+      }
     }
   }
 }
