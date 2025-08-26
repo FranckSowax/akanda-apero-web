@@ -118,7 +118,7 @@ export function useOrderNotificationsPolling() {
         customerName,
         totalAmount: Number(order.total_amount) || 0,
         items,
-        timestamp: new Date(order.created_at).toLocaleString('fr-FR')
+        timestamp: order.created_at
       };
 
       console.log('✅ Détails de la commande récupérés:', orderDetails);

@@ -213,10 +213,22 @@ export default function OrderNotificationOverlay({
                 <div>
                   <p className="text-sm text-gray-500">Reçue à</p>
                   <p className="font-semibold text-gray-800">
-                    {new Date(orderData.timestamp).toLocaleTimeString('fr-FR', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {(() => {
+                      try {
+                        const date = new Date(orderData.timestamp);
+                        if (isNaN(date.getTime())) {
+                          return 'Maintenant';
+                        }
+                        return date.toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+                      } catch (error) {
+                        return 'Maintenant';
+                      }
+                    })()}
                   </p>
                 </div>
               </div>
