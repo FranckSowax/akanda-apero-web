@@ -1,0 +1,178 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Customer } from '../../../../lib/types';
+
+// Base de données fictive pour les clients (dupliquée pour la démo)
+let customers: Customer[] = [
+  {
+    id: 1,
+    name: "Michel Dupont",
+    email: "michel.dupont@email.com",
+    phone: "+225 07 01 02 03 04",
+    location: "Cocody, Abidjan",
+    status: 'Actif',
+    totalOrders: 12,
+    totalSpent: 580000,
+    loyaltyPoints: 350,
+    lastOrderDate: "2025-05-06T10:30:00.000Z",
+    joinDate: "2024-01-15T08:00:00.000Z",
+    createdAt: "2024-01-15T08:00:00.000Z",
+    updatedAt: "2025-05-06T10:30:00.000Z"
+  },
+  // Autres clients...
+];
+
+// GET /api/customers/:id
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver le client correspondant à l'ID
+  const customer = customers.find(c => c.id === id);
+  
+  if (!customer) {
+    return NextResponse.json({
+      success: false,
+      error: 'Client non trouvé'
+    }, { status: 404 });
+  }
+  
+  return NextResponse.json({
+    success: true,
+    data: customer
+  });
+}
+
+// PUT /api/customers/:id
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    
+    // Trouver l'index du client
+    const customerIndex = customers.findIndex(c => c.id === id);
+    
+    if (customerIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Client non trouvé'
+      }, { status: 404 });
+    }
+    
+    // Mettre à jour le client
+    const updatedCustomer = {
+      ...customers[customerIndex],
+      ...body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    customers[customerIndex] = updatedCustomer;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedCustomer,
+      message: 'Client mis à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du client:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du client'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/customers/:id
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver l'index du client
+  const customerIndex = customers.findIndex(c => c.id === id);
+  
+  if (customerIndex === -1) {
+    return NextResponse.json({
+      success: false,
+      error: 'Client non trouvé'
+    }, { status: 404 });
+  }
+  
+  // Supprimer le client
+  customers.splice(customerIndex, 1);
+  
+  return NextResponse.json({
+    success: true,
+    message: 'Client supprimé avec succès'
+  });
+}
+
+// PATCH /api/customers/:id/status - Mettre à jour le statut du client
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+    
+    // Trouver l'index du client
+    const customerIndex = customers.findIndex(c => c.id === id);
+    
+    if (customerIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Client non trouvé'
+      }, { status: 404 });
+    }
+    
+    const customer = customers[customerIndex];
+    let updatedCustomer = { ...customer, updatedAt: new Date().toISOString() };
+    let message = '';
+    
+    // Mettre à jour en fonction de l'action
+    if (action === 'status' && body.status) {
+      updatedCustomer.status = body.status;
+      message = 'Statut du client mis à jour avec succès';
+    } else if (action === 'loyalty-points' && body.points) {
+      if (body.operation === 'add') {
+        updatedCustomer.loyaltyPoints += body.points;
+        message = `${body.points} points de fidélité ajoutés avec succès`;
+      } else if (body.operation === 'redeem' && customer.loyaltyPoints >= body.points) {
+        updatedCustomer.loyaltyPoints -= body.points;
+        message = `${body.points} points de fidélité échangés avec succès`;
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: 'Points de fidélité insuffisants ou opération non valide'
+        }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: 'Action non valide ou données manquantes'
+      }, { status: 400 });
+    }
+    
+    customers[customerIndex] = updatedCustomer;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedCustomer,
+      message
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du client:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du client'
+    }, { status: 500 });
+  }
+}

@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #f5a623;
+  --primary-hover: #e09000;
+  --background-light: #f9f9f9;
+  --text-dark: #333333;
+  --text-light: #666666;
+}
+
+body {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+}
+
+/* Animation pour les produits */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fadeInUp {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Animation pour les catégories */
+.category-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.category-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+.category-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+.category-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Styles pour les notifications */
+.notification-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.notification-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+.notification-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+.notification-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Styles pour le menu utilisateur mobile */
+.user-menu-container {
+  position: relative;
+}
+
+/* Amélioration du menu déroulant sur mobile */
+@media (max-width: 768px) {
+  .user-menu-container .absolute {
+    position: fixed !important;
+    top: auto !important;
+    right: 1rem !important;
+    left: auto !important;
+    margin-top: 0.5rem;
+    width: auto;
+    min-width: 200px;
+    max-width: calc(100vw - 2rem);
+    z-index: 9999;
+  }
+}
+
+/* Amélioration du touch sur mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Styles pour le panier mobile */
+.cart-item-mobile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.cart-item-mobile .product-image {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+}
+
+.cart-item-mobile .product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Amélioration des boutons sur mobile */
+@media (max-width: 640px) {
+  .mobile-button {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+}
+
+/* Autres styles personnalisés */
+.product-card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.price-tag {
+  position: relative;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+  border-radius: 0.25rem;
+}
+
+.price-tag:after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -4px;
+  transform: translateY(-50%);
+  border-width: 4px 0 4px 4px;
+  border-style: solid;
+  border-color: transparent transparent transparent var(--primary-color);
+}
+
+.discount-badge {
+  background-color: #e53e3e;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}

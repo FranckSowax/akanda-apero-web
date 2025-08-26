@@ -1,0 +1,47 @@
+/* Optimisations pour les appareils mobiles */
+
+/* Suppression de la surbrillance au toucher */
+* { 
+  -webkit-tap-highlight-color: rgba(0,0,0,0); 
+}
+
+/* Amélioration de la réponse tactile */
+button, 
+a, 
+input[type="submit"],
+.tabs-trigger,
+[role="button"],
+[role="tab"] { 
+  touch-action: manipulation; 
+}
+
+/* Désactivation du menu contextuel sur les éléments interactifs */
+input, 
+button, 
+a { 
+  -webkit-touch-callout: none; 
+}
+
+/* Augmenter la taille des zones interactives pour le mobile */
+@media (max-width: 768px) {
+  button,
+  .button,
+  [role="button"] {
+    min-height: 44px; /* Taille minimale recommandée pour les cibles tactiles */
+    font-size: 16px; /* Taille de texte minimum recommandée pour mobile */
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* Évite le zoom automatique sur iOS */
+  }
+}
+
+/* Amélioration du feedback visuel pour les interactions tactiles */
+button:active,
+a:active,
+[role="button"]:active,
+[role="tab"]:active {
+  opacity: 0.8;
+}

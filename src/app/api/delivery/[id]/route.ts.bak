@@ -1,0 +1,275 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Delivery, DeliveryPerson } from '../../../../lib/types';
+
+// Base de données fictive pour les livraisons (dupliquée pour la démo)
+let deliveries: Delivery[] = [
+  {
+    id: 1,
+    orderId: "ORD-2025050601",
+    customerId: 1,
+    customerName: "Michel Dupont",
+    customerPhone: "+225 07 01 02 03 04",
+    address: "Cocody, Rue des Jardins, Abidjan",
+    items: ["Pack The Party Mix (x2)", "Cocktail DIY Kit"],
+    totalItems: 3,
+    amount: 58000,
+    status: 'Livrée',
+    deliveryPersonId: 1,
+    deliveryPerson: "Konan Kouadio",
+    assignedTime: "2025-05-06T10:35:00.000Z",
+    estimatedDelivery: "2025-05-06T11:30:00.000Z",
+    actualDelivery: "2025-05-06T11:25:00.000Z",
+    createdAt: "2025-05-06T10:30:00.000Z",
+    updatedAt: "2025-05-06T11:25:00.000Z"
+  },
+  // Autres livraisons...
+];
+
+// Base de données fictive pour les livreurs (dupliquée pour la démo)
+let deliveryPersons: DeliveryPerson[] = [
+  {
+    id: 1,
+    name: "Konan Kouadio",
+    phone: "+225 07 12 34 56 78",
+    vehicle: "Moto",
+    status: 'En ligne',
+    activeDeliveries: 0,
+    totalDeliveries: 67,
+    avatarUrl: "https://randomuser.me/api/portraits/men/1.jpg",
+    location: "Cocody, Abidjan",
+    createdAt: "2024-10-15T09:00:00.000Z",
+    updatedAt: "2025-05-06T11:25:00.000Z"
+  },
+  // Autres livreurs...
+];
+
+// GET /api/delivery/:id
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  const id = parseInt(context.params.id);
+  
+  // Trouver la livraison correspondant à l'ID
+  const delivery = deliveries.find(d => d.id === id);
+  
+  if (!delivery) {
+    return NextResponse.json({
+      success: false,
+      error: 'Livraison non trouvée'
+    }, { status: 404 });
+  }
+  
+  return NextResponse.json({
+    success: true,
+    data: delivery
+  });
+}
+
+// PUT /api/delivery/:id
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const body = await request.json();
+    
+    // Trouver l'index de la livraison
+    const deliveryIndex = deliveries.findIndex(d => d.id === id);
+    
+    if (deliveryIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Livraison non trouvée'
+      }, { status: 404 });
+    }
+    
+    // Mettre à jour la livraison
+    const updatedDelivery = {
+      ...deliveries[deliveryIndex],
+      ...body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Si le livreur a changé, mettre à jour les informations liées au livreur
+    if (body.deliveryPersonId && body.deliveryPersonId !== deliveries[deliveryIndex].deliveryPersonId) {
+      const deliveryPerson = deliveryPersons.find(p => p.id === body.deliveryPersonId);
+      if (deliveryPerson) {
+        updatedDelivery.deliveryPerson = deliveryPerson.name;
+        updatedDelivery.assignedTime = new Date().toISOString();
+        
+        // Mettre à jour l'ancien livreur s'il existe
+        if (deliveries[deliveryIndex].deliveryPersonId) {
+          const oldDeliveryPersonIndex = deliveryPersons.findIndex(p => p.id === deliveries[deliveryIndex].deliveryPersonId);
+          if (oldDeliveryPersonIndex !== -1) {
+            deliveryPersons[oldDeliveryPersonIndex] = {
+              ...deliveryPersons[oldDeliveryPersonIndex],
+              activeDeliveries: Math.max(0, deliveryPersons[oldDeliveryPersonIndex].activeDeliveries - 1),
+              status: deliveryPersons[oldDeliveryPersonIndex].activeDeliveries <= 1 ? 'En ligne' : 'Occupé',
+              updatedAt: new Date().toISOString()
+            };
+          }
+        }
+        
+        // Mettre à jour le nouveau livreur
+        const newDeliveryPersonIndex = deliveryPersons.findIndex(p => p.id === body.deliveryPersonId);
+        if (newDeliveryPersonIndex !== -1) {
+          deliveryPersons[newDeliveryPersonIndex] = {
+            ...deliveryPersons[newDeliveryPersonIndex],
+            activeDeliveries: deliveryPersons[newDeliveryPersonIndex].activeDeliveries + 1,
+            status: 'Occupé',
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
+    }
+    
+    deliveries[deliveryIndex] = updatedDelivery;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedDelivery,
+      message: 'Livraison mise à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la livraison:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour de la livraison'
+    }, { status: 500 });
+  }
+}
+
+// PATCH /api/delivery/:id/status ou /api/delivery/:id/assign
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string  } }
+) {
+  try {
+    const id = parseInt(context.params.id);
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+    const body = await request.json();
+    
+    // Trouver l'index de la livraison
+    const deliveryIndex = deliveries.findIndex(d => d.id === id);
+    
+    if (deliveryIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Livraison non trouvée'
+      }, { status: 404 });
+    }
+    
+    const delivery = deliveries[deliveryIndex];
+    let updatedDelivery = { ...delivery, updatedAt: new Date().toISOString() };
+    let message = '';
+    
+    // Traiter les différentes actions
+    if (action === 'status' && body.status) {
+      updatedDelivery.status = body.status;
+      message = `Statut de la livraison mis à jour vers ${body.status}`;
+      
+      // Si la livraison est marquée comme livrée
+      if (body.status === 'Livrée' && !updatedDelivery.actualDelivery) {
+        updatedDelivery.actualDelivery = new Date().toISOString();
+        
+        // Mettre à jour le livreur si assigné
+        if (updatedDelivery.deliveryPersonId) {
+          const deliveryPersonIndex = deliveryPersons.findIndex(p => p.id === updatedDelivery.deliveryPersonId);
+          if (deliveryPersonIndex !== -1) {
+            deliveryPersons[deliveryPersonIndex] = {
+              ...deliveryPersons[deliveryPersonIndex],
+              activeDeliveries: Math.max(0, deliveryPersons[deliveryPersonIndex].activeDeliveries - 1),
+              totalDeliveries: deliveryPersons[deliveryPersonIndex].totalDeliveries + 1,
+              status: deliveryPersons[deliveryPersonIndex].activeDeliveries <= 1 ? 'En ligne' : 'Occupé',
+              updatedAt: new Date().toISOString()
+            };
+          }
+        }
+      }
+    } else if (action === 'assign' && body.deliveryPersonId) {
+      const deliveryPerson = deliveryPersons.find(p => p.id === body.deliveryPersonId);
+      
+      if (!deliveryPerson) {
+        return NextResponse.json({
+          success: false,
+          error: 'Livreur non trouvé'
+        }, { status: 404 });
+      }
+      
+      // Si déjà assigné à un autre livreur, mettre à jour l'ancien livreur
+      if (updatedDelivery.deliveryPersonId && updatedDelivery.deliveryPersonId !== body.deliveryPersonId) {
+        const oldDeliveryPersonIndex = deliveryPersons.findIndex(p => p.id === updatedDelivery.deliveryPersonId);
+        if (oldDeliveryPersonIndex !== -1) {
+          deliveryPersons[oldDeliveryPersonIndex] = {
+            ...deliveryPersons[oldDeliveryPersonIndex],
+            activeDeliveries: Math.max(0, deliveryPersons[oldDeliveryPersonIndex].activeDeliveries - 1),
+            status: deliveryPersons[oldDeliveryPersonIndex].activeDeliveries <= 1 ? 'En ligne' : 'Occupé',
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
+      
+      // Mettre à jour le nouveau livreur
+      const newDeliveryPersonIndex = deliveryPersons.findIndex(p => p.id === body.deliveryPersonId);
+      if (newDeliveryPersonIndex !== -1) {
+        deliveryPersons[newDeliveryPersonIndex] = {
+          ...deliveryPersons[newDeliveryPersonIndex],
+          activeDeliveries: deliveryPersons[newDeliveryPersonIndex].activeDeliveries + 1,
+          status: 'Occupé',
+          updatedAt: new Date().toISOString()
+        };
+      }
+      
+      // Mettre à jour la livraison
+      updatedDelivery.deliveryPersonId = body.deliveryPersonId;
+      updatedDelivery.deliveryPerson = deliveryPerson.name;
+      updatedDelivery.assignedTime = new Date().toISOString();
+      updatedDelivery.status = 'En cours';
+      
+      message = `Livraison assignée à ${deliveryPerson.name}`;
+    } else if (action === 'complete' && body.actualDelivery) {
+      updatedDelivery.status = 'Livrée';
+      updatedDelivery.actualDelivery = body.actualDelivery;
+      message = 'Livraison marquée comme complétée';
+      
+      // Mettre à jour le livreur si assigné
+      if (updatedDelivery.deliveryPersonId) {
+        const deliveryPersonIndex = deliveryPersons.findIndex(p => p.id === updatedDelivery.deliveryPersonId);
+        if (deliveryPersonIndex !== -1) {
+          deliveryPersons[deliveryPersonIndex] = {
+            ...deliveryPersons[deliveryPersonIndex],
+            activeDeliveries: Math.max(0, deliveryPersons[deliveryPersonIndex].activeDeliveries - 1),
+            totalDeliveries: deliveryPersons[deliveryPersonIndex].totalDeliveries + 1,
+            status: deliveryPersons[deliveryPersonIndex].activeDeliveries <= 1 ? 'En ligne' : 'Occupé',
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
+    } else if (action === 'issue' && body.issue) {
+      updatedDelivery.status = 'Problème';
+      message = 'Problème de livraison signalé';
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: 'Action ou données invalides'
+      }, { status: 400 });
+    }
+    
+    deliveries[deliveryIndex] = updatedDelivery;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedDelivery,
+      message
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la livraison:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour de la livraison'
+    }, { status: 500 });
+  }
+}

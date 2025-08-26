@@ -1,0 +1,121 @@
+.heroSection {
+  background-color: #f5e5a0;
+  padding: 80px 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.productCard {
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.productCard:hover {
+  transform: translateY(-8px);
+}
+
+.categorySection {
+  padding: 80px 0;
+}
+
+.benefitsSection {
+  padding: 80px 0;
+  text-align: center;
+  background-color: #f9f9f9;
+}
+
+.benefitIcon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background-color: #f5f5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promoSection {
+  background-color: #f0f8ff;
+  padding: 80px 0;
+  margin: 40px 0;
+}
+
+.secondPromoSection {
+  background-color: #fff0f5;
+  padding: 80px 0;
+  margin: 40px 0;
+}
+
+.socialSection {
+  padding: 80px 0;
+  background-color: #f5e5a0;
+}
+
+.socialGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+.socialImage {
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.testimonialSection {
+  padding: 80px 0;
+}
+
+.testimonialCard {
+  padding: 24px;
+  border-radius: 16px;
+  background-color: #f9f9f9;
+}
+
+.stat {
+  font-size: 64px;
+  font-weight: bold;
+  color: #f5a623;
+  line-height: 1;
+}
+
+.largeHeading {
+  font-size: 48px;
+  line-height: 1.2;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.sectionHeading {
+  font-size: 36px;
+  margin-bottom: 48px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.accentText {
+  color: #f5a623;
+}
+
+.categoryButton {
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.categoryButton:hover {
+  background-color: #f5a623;
+  color: white;
+}
+
+.categoryButton.active {
+  background-color: #f5a623;
+  color: white;
+}

@@ -1,0 +1,34 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--production=false"
+  # Variables Supabase - CONFIGURER DANS L'INTERFACE NETLIFY (pas ici !)
+  # NEXT_PUBLIC_SUPABASE_URL = "À configurer dans Netlify UI"
+  # NEXT_PUBLIC_SUPABASE_ANON_KEY = "À configurer dans Netlify UI"
+  # NEXT_PUBLIC_SITE_URL = "À configurer dans Netlify UI"
+
+# Configuration des en-têtes de sécurité renforcée
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Headers de sécurité renforcés
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-DNS-Prefetch-Control = "on"
+    
+    # CSP sécurisé pour Supabase
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co blob:; font-src 'self' https://fonts.gstatic.com; frame-src 'none'; object-src 'none'"
+    
+    # CORS restreint (ajuster selon vos besoins)
+    Access-Control-Allow-Origin = "https://akanda-apero.netlify.app"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"

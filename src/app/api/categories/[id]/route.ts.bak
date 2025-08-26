@@ -1,0 +1,118 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Category } from '../../../../lib/types';
+
+// Base de données fictive pour les catégories
+let categories: Category[] = [
+  {
+    id: 1,
+    name: "Packs",
+    description: "Packs et assortiments de boissons pour toutes les occasions",
+    icon: "Package",
+    color: "#F5A623", // Orange Akanda
+    productCount: 5,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 2,
+    name: "Spiritueux",
+    description: "Spiritueux de qualité supérieure pour les connaisseurs",
+    icon: "Wine",
+    color: "#D4AF37", // Or
+    productCount: 8,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  // Autres catégories...
+];
+
+// GET /api/categories/:id
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = parseInt(params.id);
+  
+  // Trouver la catégorie correspondant à l'ID
+  const category = categories.find(c => c.id === id);
+  
+  if (!category) {
+    return NextResponse.json({
+      success: false,
+      error: 'Catégorie non trouvée'
+    }, { status: 404 });
+  }
+  
+  return NextResponse.json({
+    success: true,
+    data: category
+  });
+}
+
+// PUT /api/categories/:id
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = parseInt(params.id);
+    const body = await request.json();
+    
+    // Trouver l'index de la catégorie
+    const categoryIndex = categories.findIndex(c => c.id === id);
+    
+    if (categoryIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Catégorie non trouvée'
+      }, { status: 404 });
+    }
+    
+    // Mettre à jour la catégorie
+    const updatedCategory = {
+      ...categories[categoryIndex],
+      ...body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    categories[categoryIndex] = updatedCategory;
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedCategory,
+      message: 'Catégorie mise à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la catégorie:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur lors de la mise à jour de la catégorie'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/categories/:id
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = parseInt(params.id);
+  
+  // Trouver l'index de la catégorie
+  const categoryIndex = categories.findIndex(c => c.id === id);
+  
+  if (categoryIndex === -1) {
+    return NextResponse.json({
+      success: false,
+      error: 'Catégorie non trouvée'
+    }, { status: 404 });
+  }
+  
+  // Supprimer la catégorie
+  categories.splice(categoryIndex, 1);
+  
+  return NextResponse.json({
+    success: true,
+    message: 'Catégorie supprimée avec succès'
+  });
+}

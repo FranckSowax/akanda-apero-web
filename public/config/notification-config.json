@@ -1,0 +1,32 @@
+{
+  "orderAlert": {
+    "enabled": true,
+    "volume": 0.8,
+    "repeat": true,
+    "repeatInterval": 6000,
+    "description": "Mélodie zen très douce inspirée des carillons apaisants",
+    "sequence": [
+      { "note": "La4", "frequency": 440.00, "duration": 400, "volume": 0.3 },
+      { "note": "pause", "frequency": 0, "duration": 100, "volume": 0 },
+      { "note": "Do5", "frequency": 523.25, "duration": 400, "volume": 0.35 },
+      { "note": "pause", "frequency": 0, "duration": 100, "volume": 0 },
+      { "note": "Mi5", "frequency": 659.25, "duration": 600, "volume": 0.4 },
+      { "note": "pause_contemplative", "frequency": 0, "duration": 400, "volume": 0 },
+      { "note": "Mi5_retour", "frequency": 659.25, "duration": 300, "volume": 0.3 },
+      { "note": "pause", "frequency": 0, "duration": 100, "volume": 0 },
+      { "note": "Do5_retour", "frequency": 523.25, "duration": 300, "volume": 0.25 },
+      { "note": "pause", "frequency": 0, "duration": 100, "volume": 0 },
+      { "note": "La4_final", "frequency": 440.00, "duration": 800, "volume": 0.2 }
+    ]
+  },
+  "vibration": {
+    "enabled": true,
+    "pattern": [200, 100, 200, 100, 200]
+  },
+  "overlay": {
+    "backgroundColor": "rgba(34, 197, 94, 0.85)",
+    "animationDuration": 1500,
+    "autoHide": false,
+    "showOrderDetails": true
+  }
+}
