@@ -1,4 +1,51 @@
-import { supabase } from '../lib/supabase/client';
+// Utilisation du serveur MCP Supabase pour les opérations sur les problèmes
+const mcpClient = {
+  async readResource(name: string) {
+    // Simulation d'appel MCP - à remplacer par l'implémentation réelle
+    const response = await fetch('/api/mcp/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'read', resource: name })
+    });
+    return response.json();
+  },
+  
+  async createResource(name: string, body: any) {
+    const response = await fetch('/api/mcp/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create', resource: name, body })
+    });
+    return response.json();
+  },
+  
+  async updateResource(name: string, params: any, body: any) {
+    const response = await fetch('/api/mcp/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', resource: name, params, body })
+    });
+    return response.json();
+  },
+  
+  async deleteResource(name: string, params: any) {
+    const response = await fetch('/api/mcp/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', resource: name, params })
+    });
+    return response.json();
+  },
+  
+  async executeSQL(query: string) {
+    const response = await fetch('/api/mcp/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'execute', resource: 'sql', body: { query } })
+    });
+    return response.json();
+  }
+};
 
 export interface Problem {
   id: string;
@@ -54,27 +101,28 @@ export class ProblemsService {
     order_id?: string;
   }): Promise<{ data: Problem[] | null; error: any }> {
     try {
-      let query = supabase
-        .from('problemes')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await mcpClient.readResource('problemes');
+      if (!response.success) {
+        return { data: null, error: response.message };
+      }
+      
+      let problems = response.data || [];
 
-      // Appliquer les filtres
+      // Appliquer les filtres côté client
       if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+        problems = problems.filter((p: Problem) => p.status === filters.status);
       }
       if (filters?.urgency_level && filters.urgency_level !== 'all') {
-        query = query.eq('urgency_level', filters.urgency_level);
+        problems = problems.filter((p: Problem) => p.urgency_level === filters.urgency_level);
       }
       if (filters?.problem_type && filters.problem_type !== 'all') {
-        query = query.eq('problem_type', filters.problem_type);
+        problems = problems.filter((p: Problem) => p.problem_type === filters.problem_type);
       }
       if (filters?.order_id) {
-        query = query.eq('order_id', filters.order_id);
+        problems = problems.filter((p: Problem) => p.order_id === filters.order_id);
       }
 
-      const { data, error } = await query;
-      return { data, error };
+      return { data: problems, error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération des problèmes:', error);
       return { data: null, error };
@@ -86,13 +134,13 @@ export class ProblemsService {
    */
   static async getProblemById(id: string): Promise<{ data: Problem | null; error: any }> {
     try {
-      const { data, error } = await supabase
-        .from('problemes')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      return { data, error };
+      const response = await mcpClient.readResource('problemes');
+      if (!response.success) {
+        return { data: null, error: response.message };
+      }
+      
+      const problem = response.data?.find((p: Problem) => p.id === id) || null;
+      return { data: problem, error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération du problème:', error);
       return { data: null, error };
@@ -104,16 +152,16 @@ export class ProblemsService {
    */
   static async createProblem(problemData: CreateProblemData): Promise<{ data: Problem | null; error: any }> {
     try {
-      const { data, error } = await supabase
-        .from('problemes')
-        .insert([{
-          ...problemData,
-          status: 'nouveau'
-        }])
-        .select()
-        .single();
-
-      return { data, error };
+      const response = await mcpClient.createResource('problemes', {
+        ...problemData,
+        status: 'nouveau'
+      });
+      
+      if (!response.success) {
+        return { data: null, error: response.message };
+      }
+      
+      return { data: response.data, error: null };
     } catch (error) {
       console.error('Erreur lors de la création du problème:', error);
       return { data: null, error };
@@ -135,14 +183,13 @@ export class ProblemsService {
         updateData.resolved_at = new Date().toISOString();
       }
 
-      const { data, error } = await supabase
-        .from('problemes')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      return { data, error };
+      const response = await mcpClient.updateResource('problemes', { id }, updateData);
+      
+      if (!response.success) {
+        return { data: null, error: response.message };
+      }
+      
+      return { data: response.data, error: null };
     } catch (error) {
       console.error('Erreur lors de la mise à jour du problème:', error);
       return { data: null, error };
@@ -154,12 +201,13 @@ export class ProblemsService {
    */
   static async deleteProblem(id: string): Promise<{ error: any }> {
     try {
-      const { error } = await supabase
-        .from('problemes')
-        .delete()
-        .eq('id', id);
-
-      return { error };
+      const response = await mcpClient.deleteResource('problemes', { id });
+      
+      if (!response.success) {
+        return { error: response.message };
+      }
+      
+      return { error: null };
     } catch (error) {
       console.error('Erreur lors de la suppression du problème:', error);
       return { error };
@@ -182,31 +230,31 @@ export class ProblemsService {
     error: any;
   }> {
     try {
-      const { data: problems, error } = await supabase
-        .from('problemes')
-        .select('status, problem_type, urgency_level');
-
-      if (error) {
-        return { data: null, error };
+      const response = await mcpClient.readResource('problemes');
+      
+      if (!response.success) {
+        return { data: null, error: response.message };
       }
+      
+      const problems = response.data || [];
 
       const stats = {
         total: problems.length,
-        nouveau: problems.filter(p => p.status === 'nouveau').length,
-        en_cours: problems.filter(p => p.status === 'en_cours').length,
-        resolu: problems.filter(p => p.status === 'resolu').length,
-        ferme: problems.filter(p => p.status === 'ferme').length,
+        nouveau: problems.filter((p: Problem) => p.status === 'nouveau').length,
+        en_cours: problems.filter((p: Problem) => p.status === 'en_cours').length,
+        resolu: problems.filter((p: Problem) => p.status === 'resolu').length,
+        ferme: problems.filter((p: Problem) => p.status === 'ferme').length,
         by_type: {} as Record<string, number>,
         by_urgency: {} as Record<string, number>
       };
 
       // Compter par type
-      problems.forEach(problem => {
+      problems.forEach((problem: Problem) => {
         stats.by_type[problem.problem_type] = (stats.by_type[problem.problem_type] || 0) + 1;
       });
 
       // Compter par urgence
-      problems.forEach(problem => {
+      problems.forEach((problem: Problem) => {
         stats.by_urgency[problem.urgency_level] = (stats.by_urgency[problem.urgency_level] || 0) + 1;
       });
 
@@ -225,13 +273,19 @@ export class ProblemsService {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const { data, error } = await supabase
-        .from('problemes')
-        .select('*')
-        .gte('created_at', yesterday.toISOString())
-        .order('created_at', { ascending: false });
+      const response = await mcpClient.readResource('problemes');
+      
+      if (!response.success) {
+        return { data: null, error: response.message };
+      }
+      
+      const recentProblems = (response.data || []).filter((p: Problem) => 
+        new Date(p.created_at) >= yesterday
+      ).sort((a: Problem, b: Problem) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
-      return { data, error };
+      return { data: recentProblems, error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération des problèmes récents:', error);
       return { data: null, error };

@@ -15,7 +15,7 @@ import {
   Trash2,
   AlertCircle
 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { ProblemsService } from '../../../services/problems-service';
 
 interface Problem {
   id: string;
@@ -70,23 +70,21 @@ export default function ProblemsPage() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
+    console.log('🚀 Page problèmes - useEffect déclenché');
     fetchProblems();
   }, []);
 
   const fetchProblems = async () => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('problemes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      console.log('Tentative de récupération des problèmes via MCP...');
+      const { data, error } = await ProblemsService.getProblems();
+      console.log('Réponse MCP:', { data, error });
       if (error) {
         console.error('Erreur lors du chargement des problèmes:', error);
         return;
       }
-
+      console.log('Nombre de problèmes récupérés:', data?.length || 0);
       setProblems(data || []);
     } catch (error) {
       console.error('Erreur:', error);
@@ -106,10 +104,7 @@ export default function ProblemsPage() {
         updateData.resolved_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
-        .from('problemes')
-        .update(updateData)
-        .eq('id', problemId);
+      const { data, error } = await ProblemsService.updateProblem(problemId, { status: newStatus as any });
 
       if (error) {
         console.error('Erreur lors de la mise à jour:', error);

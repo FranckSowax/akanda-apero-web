@@ -9,8 +9,12 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
   console.warn('Supabase configuration missing. Using placeholder values. Please configure your environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-export const supabaseClient = createClientComponentClient<Database>()
+// Singleton pattern pour éviter les multiples instances
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+let supabaseClientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null;
+
+export const supabase = supabaseInstance || (supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey))
+export const supabaseClient = supabaseClientInstance || (supabaseClientInstance = createClientComponentClient<Database>())
 
 // Types pour la base de données Akanda Apéro
 export type Database = {
