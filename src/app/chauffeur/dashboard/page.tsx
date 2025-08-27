@@ -22,9 +22,9 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 
 interface Livraison {
   id: string;
@@ -34,6 +34,7 @@ interface Livraison {
   telephone_client: string;
   statut: string;
   frais_livraison: number;
+  montant_livraison?: number;
   created_at: string;
   updated_at: string;
   commande?: {
@@ -47,6 +48,7 @@ interface Notification {
   id: string;
   chauffeur_id: string;
   message: string;
+  titre?: string;
   type: string;
   read: boolean;
   created_at: string;
@@ -616,11 +618,11 @@ export default function DashboardChauffeur() {
                         <MapPin className="w-4 h-4 text-gray-500 mt-1" />
                         <p className="text-gray-700">{livraison.adresse_livraison}</p>
                       </div>
-                      {livraison.montant_total && (
+                      {livraison.montant_livraison && (
                         <div className="flex items-center space-x-2">
                           <Euro className="w-4 h-4 text-green-600" />
                           <p className="text-green-700 font-bold">
-                            {(livraison.montant_total * 656).toFixed(0)} <span className="text-sm">FCFA</span> 
+                            {(livraison.montant_livraison * 656).toFixed(0)} <span className="text-sm">FCFA</span> 
                             <span className="text-sm text-gray-500">+ {livraison.frais_livraison || 5} FCFA livraison</span>
                           </p>
                         </div>

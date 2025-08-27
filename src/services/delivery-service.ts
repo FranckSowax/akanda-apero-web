@@ -59,24 +59,23 @@ export interface Livraison {
   numero_commande: string;
   nom_client: string;
   telephone_client?: string;
+  chauffeur_id?: string;
+  statut_livraison: 'en_attente' | 'assignee' | 'en_cours' | 'livree' | 'annulee' | 'recherche_chauffeur' | 'affecte' | 'en_route_pickup' | 'recupere' | 'en_livraison' | 'livre';
   adresse_livraison: string;
-  quartier?: string;
   latitude?: number;
   longitude?: number;
-  type_livraison: 'standard' | 'express' | 'programmee';
-  lien_waze?: string;
-  montant_livraison: number;
-  statut_livraison: 'en_attente' | 'recherche_chauffeur' | 'affecte' | 'en_route_pickup' | 'recupere' | 'en_livraison' | 'livre' | 'annule';
-  chauffeur_id?: string;
-  affecte_a?: string;
-  recupere_a?: string;
-  livre_a?: string;
-  temps_estime_pickup?: number;
-  temps_estime_livraison?: number;
   distance_km?: number;
+  temps_estime_minutes?: number;
+  heure_assignation?: string;
+  heure_debut?: string;
+  heure_fin?: string;
   notes_chauffeur?: string;
   notes_admin?: string;
   notes_livraison?: string;
+  montant_total?: number;
+  montant_livraison?: number;
+  frais_livraison?: number;
+  lien_waze?: string;
   created_at: string;
   updated_at: string;
 }
@@ -84,6 +83,7 @@ export interface Livraison {
 export interface Chauffeur {
   id: string;
   nom: string;
+  prenom?: string;
   telephone: string;
   email?: string;
   vehicule_type?: string;
@@ -168,12 +168,12 @@ const DeliveryService = {
       };
 
       // Ajouter des timestamps selon le statut
-      if (newStatus === 'affecte') {
-        updateData.affecte_a = new Date().toISOString();
-      } else if (newStatus === 'recupere') {
-        updateData.recupere_a = new Date().toISOString();
-      } else if (newStatus === 'livre') {
-        updateData.livre_a = new Date().toISOString();
+      if (newStatus === 'assignee') {
+        updateData.heure_assignation = new Date().toISOString();
+      } else if (newStatus === 'en_cours') {
+        updateData.heure_debut = new Date().toISOString();
+      } else if (newStatus === 'livree') {
+        updateData.heure_fin = new Date().toISOString();
       }
 
       const response = await mcpClient.updateResource('livraisons', { id: livraisonId }, updateData);
@@ -328,11 +328,11 @@ const DeliveryService = {
       const stats = {
         total_livraisons: livraisons.length,
         en_attente: livraisons.filter(l => l.statut_livraison === 'en_attente').length,
-        affectees: livraisons.filter(l => l.statut_livraison === 'affecte').length,
-        en_cours: livraisons.filter(l => ['en_route_pickup', 'recupere', 'en_livraison'].includes(l.statut_livraison)).length,
-        livrees: livraisons.filter(l => l.statut_livraison === 'livre').length,
-        annulees: livraisons.filter(l => l.statut_livraison === 'annule').length,
-        montant_total: livraisons.reduce((sum, l) => sum + (l.montant_livraison || 0), 0)
+        affectees: livraisons.filter(l => l.statut_livraison === 'assignee').length,
+        en_cours: livraisons.filter(l => l.statut_livraison === 'en_cours').length,
+        livrees: livraisons.filter(l => l.statut_livraison === 'livree').length,
+        annulees: livraisons.filter(l => l.statut_livraison === 'annulee').length,
+        montant_total: livraisons.reduce((sum, l) => sum + (l.montant_total || 0), 0)
       };
       
       return { data: stats, error: null };

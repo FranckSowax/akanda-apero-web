@@ -28,12 +28,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 interface Chauffeur {
   id: string;
   nom: string;
-  prenom: string;
+  prenom?: string;
   telephone: string;
   email?: string;
   disponible: boolean;
-  vehicule_type: string;
-  vehicule_plaque: string;
+  vehicule_type?: string;
+  vehicule_plaque?: string;
   notes?: string;
   created_at?: string;
   latitude?: number;

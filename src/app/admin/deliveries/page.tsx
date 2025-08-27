@@ -230,7 +230,7 @@ const DeliveriesPage = () => {
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Livrées</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {livraisons.filter(l => l.statut_livraison === 'livre').length}
+                  {livraisons.filter(l => l.statut_livraison === 'livree').length}
                 </p>
               </div>
             </div>
