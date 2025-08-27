@@ -124,19 +124,33 @@ async function generateMessage(status: string, customerName: string, orderNumber
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { orderId, phone, status, orderNumber, customerName, totalAmount, deliveryDate, deliveryTime, message: customMessage, notificationId } = body;
-    
-    // Validation des paramètres requis
-    if (!phone || (!status && !customMessage)) {
+    console.log('📨 WhatsApp Send Request:', body);
+
+    const { orderId, phone, status, orderNumber, customerName, totalAmount } = body;
+
+    if (!phone || !status) {
       return NextResponse.json(
-        { error: 'Paramètres manquants : phone et (status ou message) sont requis' },
+        { success: false, error: 'Phone and status are required' },
         { status: 400 }
       );
     }
-    
-    // Vérifier que les variables d'environnement sont configurées
+
+    // Configuration Whapi
     const whapiToken = process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN;
-    const whapiUrl = process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud';
+    const whapiBaseUrl = process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud';
+
+    console.log('🔍 WhatsApp Configuration:', {
+      hasToken: !!whapiToken,
+      tokenLength: whapiToken ? whapiToken.length : 0,
+      baseUrl: whapiBaseUrl,
+      environment: process.env.NODE_ENV,
+      allEnvVars: {
+        WHAPI_TOKEN: !!process.env.WHAPI_TOKEN,
+        NEXT_PUBLIC_WHAPI_TOKEN: !!process.env.NEXT_PUBLIC_WHAPI_TOKEN,
+        WHAPI_BASE_URL: !!process.env.WHAPI_BASE_URL,
+        NEXT_PUBLIC_WHAPI_BASE_URL: !!process.env.NEXT_PUBLIC_WHAPI_BASE_URL
+      }
+    });
     
     if (!whapiToken) {
       console.error('❌ Token Whapi non configuré');
@@ -303,7 +317,7 @@ export async function POST(request: NextRequest) {
           errorMessage: error.message,
           errorName: error.name,
           hasWhapiToken: !!(process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN),
-          whapiUrl: process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud'
+          whapiUrl: whapiBaseUrl
         }
       },
       { status: 500 }
@@ -313,10 +327,20 @@ export async function POST(request: NextRequest) {
 
 // Route GET pour tester la configuration
 export async function GET() {
-  const isConfigured = !!(process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN);
+  const whapiToken = process.env.WHAPI_TOKEN;
+  const whapiBaseUrl = process.env.WHAPI_BASE_URL || 'https://gate.whapi.cloud';
+  
+  console.log('🔍 WhatsApp API Configuration Check:', {
+    hasToken: !!whapiToken,
+    tokenLength: whapiToken ? whapiToken.length : 0,
+    baseUrl: whapiBaseUrl,
+    environment: process.env.NODE_ENV
+  });
   
   return NextResponse.json({
-    configured: isConfigured,
-    baseUrl: process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud'
+    configured: !!(whapiToken && whapiBaseUrl),
+    baseUrl: whapiBaseUrl,
+    hasToken: !!whapiToken,
+    environment: process.env.NODE_ENV
   });
 }
