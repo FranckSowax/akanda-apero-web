@@ -290,7 +290,16 @@ export async function POST(request: NextRequest) {
           });
           
           // Déclencher les notifications WhatsApp pour tous les changements de statut
-          if (data.status && updatedCommande.length > 0) {
+          console.log('🔍 Vérification condition notification:', {
+            hasDataStatus: !!data.status,
+            dataStatus: data.status,
+            updatedCommandeType: typeof updatedCommande,
+            isArray: Array.isArray(updatedCommande),
+            length: updatedCommande?.length,
+            updatedCommande: updatedCommande
+          });
+          
+          if (data.status && Array.isArray(updatedCommande) && updatedCommande.length > 0) {
             const order = updatedCommande[0];
             console.log('🔄 Déclenchement notifications pour changement de statut:', {
               orderId: params.id,
