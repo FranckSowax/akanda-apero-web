@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
           debug: {
             hasWhapiToken: !!process.env.WHAPI_TOKEN,
             hasPublicWhapiToken: !!process.env.NEXT_PUBLIC_WHAPI_TOKEN,
-            whapiUrl
+            whapiUrl: whapiBaseUrl
           }
         },
         { status: 500 }
@@ -176,18 +176,16 @@ export async function POST(request: NextRequest) {
       orderNumber 
     });
     
-    // Utiliser le message personnalisé ou générer selon le statut
-    const message = customMessage || await generateMessage(
+    // Générer le message selon le statut
+    const message = generateMessage(
       status, 
       customerName || 'Client',
       orderNumber || 'TEST', 
-      totalAmount,
-      deliveryDate,
-      deliveryTime
+      totalAmount
     );
     
     // Créer l'enregistrement de notification dans la base de données
-    let currentNotificationId = notificationId;
+    let currentNotificationId;
     if (orderId && !currentNotificationId) {
       try {
         const supabase = getSupabaseServiceClient();
@@ -216,7 +214,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Envoyer le message via l'API Whapi
-    const response = await fetch(`${whapiUrl}/messages/text`, {
+    const response = await fetch(`${whapiBaseUrl}/messages/text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -241,7 +239,7 @@ export async function POST(request: NextRequest) {
           body: message,
           typing_time: 3
         },
-        whapiUrl,
+        whapiUrl: whapiBaseUrl,
         hasToken: !!whapiToken
       });
       
@@ -265,7 +263,7 @@ export async function POST(request: NextRequest) {
           debug: {
             status: response.status,
             statusText: response.statusText,
-            whapiUrl,
+            whapiUrl: whapiBaseUrl,
             hasToken: !!whapiToken,
             phone: formattedPhone
           }
@@ -317,7 +315,7 @@ export async function POST(request: NextRequest) {
           errorMessage: error.message,
           errorName: error.name,
           hasWhapiToken: !!(process.env.WHAPI_TOKEN || process.env.NEXT_PUBLIC_WHAPI_TOKEN),
-          whapiUrl: whapiBaseUrl
+          whapiUrl: process.env.WHAPI_BASE_URL || process.env.NEXT_PUBLIC_WHAPI_BASE_URL || 'https://gate.whapi.cloud'
         }
       },
       { status: 500 }
