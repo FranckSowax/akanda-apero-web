@@ -283,6 +283,11 @@ export async function POST(request: NextRequest) {
           }
 
           const updatedCommande = await updateCommandeResponse.json();
+          console.log('📋 Commande mise à jour:', {
+            dataStatus: data.status,
+            updatedCommandeLength: updatedCommande?.length,
+            updatedCommande: updatedCommande
+          });
           
           // Déclencher les notifications WhatsApp pour tous les changements de statut
           if (data.status && updatedCommande.length > 0) {
