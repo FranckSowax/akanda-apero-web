@@ -233,6 +233,7 @@ export function useOrders() {
       }
 
       console.log('✅ Résultat MCP:', result);
+    console.log('🔍 Debug info détaillé:', JSON.stringify(result.debug, null, 2));
 
       console.log('✅ Statut commande mis à jour:', result.order);
       
