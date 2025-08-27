@@ -378,6 +378,21 @@ export async function POST(request: NextRequest) {
               }
             } catch (notificationError) {
               console.error('❌ Erreur notifications:', notificationError);
+              // Ajouter l'erreur au debug pour visibilité côté client
+              return NextResponse.json({ 
+                success: true, 
+                data: updatedCommande,
+                message: 'Commande mise à jour avec succès',
+                debug: {
+                  notificationTriggered: true,
+                  hasStatus: !!data.status,
+                  isArray: Array.isArray(updatedCommande),
+                  length: updatedCommande?.length,
+                  customerId: updatedCommande?.[0]?.customer_id,
+                  orderNumber: updatedCommande?.[0]?.order_number,
+                  notificationError: notificationError instanceof Error ? notificationError.message : String(notificationError)
+                }
+              });
             }
           }
           
@@ -389,7 +404,9 @@ export async function POST(request: NextRequest) {
               notificationTriggered: data.status && Array.isArray(updatedCommande) && updatedCommande.length > 0,
               hasStatus: !!data.status,
               isArray: Array.isArray(updatedCommande),
-              length: updatedCommande?.length
+              length: updatedCommande?.length,
+              customerId: updatedCommande?.[0]?.customer_id,
+              orderNumber: updatedCommande?.[0]?.order_number
             }
           });
       }
