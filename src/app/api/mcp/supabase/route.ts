@@ -50,36 +50,65 @@ export async function POST(request: NextRequest) {
       hasData: !!data
     });
 
-    // Gestion des livraisons
+    // Gestion des livraisons - utiliser la table orders avec un système de livraison intégré
     if (resource === 'livraisons') {
       switch (action) {
         case 'read':
-          let url = `${supabaseUrl}/rest/v1/livraisons?select=*`;
+          // Récupérer les commandes en préparation
+          let ordersUrl = `${supabaseUrl}/rest/v1/orders?select=id,order_number,customer_id,delivery_address,delivery_district,delivery_option,delivery_cost,total_amount,subtotal,gps_latitude,gps_longitude,status,created_at,updated_at&status=eq.En%20préparation`;
           
           if (params?.chauffeur_id) {
-            url += `&chauffeur_id=eq.${params.chauffeur_id}`;
+            ordersUrl += `&chauffeur_id=eq.${params.chauffeur_id}`;
           }
           if (params?.statut) {
-            url += `&statut=eq.${params.statut}`;
+            ordersUrl += `&status=eq.${encodeURIComponent(params.statut)}`;
           }
-          url += '&order=created_at.desc';
+          ordersUrl += '&order=created_at.desc';
 
-          const response = await fetch(url, {
+          const ordersResponse = await fetch(ordersUrl, {
             headers: {
               'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`
             }
           });
 
-          if (!response.ok) {
-            throw new Error(`Erreur Supabase: ${response.status}`);
+          if (!ordersResponse.ok) {
+            const errorText = await ordersResponse.text();
+            console.error('❌ Erreur Supabase orders:', ordersResponse.status, errorText);
+            throw new Error(`Erreur Supabase: ${ordersResponse.status} - ${errorText}`);
           }
 
-          const livraisons = await response.json();
-          return NextResponse.json({ data: livraisons });
+          const orders = await ordersResponse.json();
+          console.log('📋 Commandes récupérées:', orders.length);
+
+          // Récupérer les informations clients pour chaque commande
+          const ordersWithCustomers = await Promise.all(
+            orders.map(async (order: any) => {
+              if (!order.customer_id) return { ...order, customers: null };
+              
+              const customerUrl = `${supabaseUrl}/rest/v1/customers?select=name,phone&id=eq.${order.customer_id}`;
+              const customerResponse = await fetch(customerUrl, {
+                headers: {
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`
+                }
+              });
+
+              if (customerResponse.ok) {
+                const customers = await customerResponse.json();
+                return { ...order, customers: customers[0] || null };
+              } else {
+                console.warn(`⚠️ Client non trouvé pour customer_id: ${order.customer_id}`);
+                return { ...order, customers: null };
+              }
+            })
+          );
+
+          console.log('📋 Livraisons avec clients récupérées:', ordersWithCustomers.length);
+          return NextResponse.json({ success: true, data: ordersWithCustomers });
 
         case 'update':
-          const updateUrl = `${supabaseUrl}/rest/v1/livraisons?id=eq.${params.id}`;
+          const updateUrl = `${supabaseUrl}/rest/v1/deliveries?id=eq.${params.id}`;
           const updateResponse = await fetch(updateUrl, {
             method: 'PATCH',
             headers: {
@@ -371,40 +400,8 @@ export async function POST(request: NextRequest) {
               if (data.status === 'En préparation') {
                 console.log('🚚 Création livraison pour statut En préparation');
                 
-                // Créer une nouvelle livraison avec les infos de la commande
-                const deliveryData = {
-                  order_id: params.id,
-                  customer_id: order.customer_id,
-                  delivery_address: order.delivery_address,
-                  delivery_district: order.delivery_district,
-                  delivery_instructions: order.delivery_instructions || '',
-                  gps_latitude: order.gps_latitude,
-                  gps_longitude: order.gps_longitude,
-                  delivery_cost: order.delivery_cost || 0,
-                  status: 'en_attente',
-                  created_at: new Date().toISOString()
-                };
-
-                console.log('📦 Données livraison:', deliveryData);
-
-                const deliveryResponse = await fetch(`${supabaseUrl}/rest/v1/deliveries`, {
-                  method: 'POST',
-                  headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                  },
-                  body: JSON.stringify(deliveryData)
-                });
-
-                if (deliveryResponse.ok) {
-                  const delivery = await deliveryResponse.json();
-                  console.log('✅ Livraison créée:', delivery);
-                } else {
-                  const errorText = await deliveryResponse.text();
-                  console.error('❌ Erreur création livraison:', errorText);
-                }
+                // Pas besoin de créer une livraison séparée - utiliser directement la table orders
+                console.log('✅ Livraison intégrée dans la commande (statut En préparation)');
 
                 // Déclencher webhook pour notifications chauffeurs
                 console.log('🚚 Déclenchement webhook chauffeurs pour En préparation');
