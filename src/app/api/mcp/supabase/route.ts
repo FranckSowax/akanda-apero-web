@@ -33,11 +33,22 @@ export async function POST(request: NextRequest) {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Configuration Supabase manquante:', {
+        supabaseUrl: !!supabaseUrl,
+        supabaseKey: !!supabaseKey
+      });
       return NextResponse.json({ 
         success: false, 
         error: 'Configuration Supabase manquante' 
       }, { status: 500 });
     }
+
+    console.log('✅ Configuration Supabase OK:', {
+      action,
+      resource,
+      hasParams: !!params,
+      hasData: !!data
+    });
 
     // Gestion des livraisons
     if (resource === 'livraisons') {
@@ -463,17 +474,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.error('❌ Resource ou action non supportée:', {
+      resource,
+      action,
+      availableResources: ['livraisons', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
+    });
+    
     return NextResponse.json({ 
       success: false, 
-      error: `Resource ou action non supportée: ${resource}/${action}` 
+      error: `Resource ou action non supportée: ${resource}/${action}`,
+      availableResources: ['livraisons', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
     }, { status: 400 });
 
   } catch (error) {
     console.error('❌ Erreur MCP API:', error);
+    console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json({ 
       success: false, 
-      error: 'Erreur interne du serveur',
-      details: error instanceof Error ? error.message : 'Erreur inconnue'
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+      details: error instanceof Error ? error.stack : 'No details'
     }, { status: 500 });
   }
 }
