@@ -214,6 +214,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Envoyer le message via l'API Whapi
+    // Format correct selon documentation: https://support.whapi.cloud/help-desk/sending/send-text-message/whatsapp-api-send-message-node-js
     const requestBody = {
       to: formattedPhone,
       body: message,
@@ -222,14 +223,16 @@ export async function POST(request: NextRequest) {
     
     console.log('📤 Requête Whapi:', {
       url: `${whapiBaseUrl}/messages/text`,
-      body: requestBody
+      body: requestBody,
+      message: message
     });
     
     const response = await fetch(`${whapiBaseUrl}/messages/text`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${whapiToken}`,
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'authorization': `Bearer ${whapiToken}`,
       },
       body: JSON.stringify(requestBody)
     });
