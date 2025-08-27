@@ -367,10 +367,52 @@ export async function POST(request: NextRequest) {
                 console.error('❌ Erreur récupération client:', await customerResponse.text());
               }
 
-              // Déclencher webhook pour notifications chauffeurs si statut "En préparation"
+              // Créer livraison et déclencher webhook pour notifications chauffeurs si statut "En préparation"
               if (data.status === 'En préparation') {
+                console.log('🚚 Création livraison pour statut En préparation');
+                
+                // Créer une nouvelle livraison avec les infos de la commande
+                const deliveryData = {
+                  order_id: params.id,
+                  customer_id: order.customer_id,
+                  delivery_address: order.delivery_address,
+                  delivery_district: order.delivery_district,
+                  delivery_instructions: order.delivery_instructions || '',
+                  gps_latitude: order.gps_latitude,
+                  gps_longitude: order.gps_longitude,
+                  delivery_cost: order.delivery_cost || 0,
+                  status: 'en_attente',
+                  created_at: new Date().toISOString()
+                };
+
+                console.log('📦 Données livraison:', deliveryData);
+
+                const deliveryResponse = await fetch(`${supabaseUrl}/rest/v1/deliveries`, {
+                  method: 'POST',
+                  headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                  },
+                  body: JSON.stringify(deliveryData)
+                });
+
+                if (deliveryResponse.ok) {
+                  const delivery = await deliveryResponse.json();
+                  console.log('✅ Livraison créée:', delivery);
+                } else {
+                  const errorText = await deliveryResponse.text();
+                  console.error('❌ Erreur création livraison:', errorText);
+                }
+
+                // Déclencher webhook pour notifications chauffeurs
                 console.log('🚚 Déclenchement webhook chauffeurs pour En préparation');
-                const webhookResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/orders/webhook`, {
+                const webhookUrl = process.env.NODE_ENV === 'production' 
+                  ? 'https://akanda-apero.netlify.app/api/orders/webhook'
+                  : 'http://localhost:3002/api/orders/webhook';
+                
+                const webhookResponse = await fetch(webhookUrl, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
