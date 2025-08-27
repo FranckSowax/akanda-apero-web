@@ -329,7 +329,14 @@ export async function POST(request: NextRequest) {
                   console.log('📱 Envoi notification WhatsApp à:', customer.phone);
                   
                   // Envoyer notification WhatsApp via l'API existante
-                  const notificationResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/whatsapp/send`, {
+                  // Utiliser l'URL absolue pour éviter les problèmes de réseau en production
+                  const whatsappUrl = process.env.NODE_ENV === 'production' 
+                    ? 'https://akanda-apero.netlify.app/api/whatsapp/send'
+                    : 'http://localhost:3002/api/whatsapp/send';
+                  
+                  console.log('🌐 URL WhatsApp:', whatsappUrl);
+                  
+                  const notificationResponse = await fetch(whatsappUrl, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
