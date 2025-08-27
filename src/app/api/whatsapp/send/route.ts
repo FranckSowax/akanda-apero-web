@@ -214,17 +214,24 @@ export async function POST(request: NextRequest) {
     }
     
     // Envoyer le message via l'API Whapi
+    const requestBody = {
+      to: formattedPhone,
+      body: message,
+      typing_time: 3
+    };
+    
+    console.log('📤 Requête Whapi:', {
+      url: `${whapiBaseUrl}/messages/text`,
+      body: requestBody
+    });
+    
     const response = await fetch(`${whapiBaseUrl}/messages/text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${whapiToken}`,
       },
-      body: JSON.stringify({
-        to: formattedPhone,
-        body: message,
-        typing_time: 3
-      })
+      body: JSON.stringify(requestBody)
     });
     
     const responseData = await response.json();
