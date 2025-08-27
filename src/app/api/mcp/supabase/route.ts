@@ -384,7 +384,13 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ 
             success: true, 
             data: updatedCommande,
-            message: 'Commande mise à jour avec succès'
+            message: 'Commande mise à jour avec succès',
+            debug: {
+              notificationTriggered: data.status && Array.isArray(updatedCommande) && updatedCommande.length > 0,
+              hasStatus: !!data.status,
+              isArray: Array.isArray(updatedCommande),
+              length: updatedCommande?.length
+            }
           });
       }
     }
