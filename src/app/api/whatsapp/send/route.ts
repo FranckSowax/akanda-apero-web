@@ -220,22 +220,16 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Test avec message simple pour déboguer
-    const simpleMessage = "Test message simple";
-    
     // Envoyer le message via l'API Whapi
-    // Format correct selon documentation: https://support.whapi.cloud/help-desk/sending/send-text-message/whatsapp-api-send-message-node-js
+    // Format identique à test-config qui fonctionne
     const requestBody = {
       to: formattedPhone,
-      body: simpleMessage,
-      typing_time: 3
+      body: message
     };
     
     console.log('📤 Requête Whapi:', {
       url: `${whapiBaseUrl}/messages/text`,
       body: requestBody,
-      originalMessage: message,
-      simpleMessage: simpleMessage,
       bodyType: typeof requestBody.body,
       bodyValue: requestBody.body
     });
@@ -243,9 +237,8 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${whapiBaseUrl}/messages/text`, {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'authorization': `Bearer ${whapiToken}`,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${whapiToken}`,
       },
       body: JSON.stringify(requestBody)
     });
