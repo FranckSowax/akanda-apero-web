@@ -188,35 +188,51 @@ export function useOrders() {
     }
   };
 
-  // Mise à jour du statut d'une commande via l'API
+  // Mise à jour du statut d'une commande via MCP
   const updateOrderStatus = async (orderId: string, status: string): Promise<{ success: boolean; error: Error | null }> => {
     try {
       console.log('🔄 updateOrderStatus appelé avec:', { orderId, status });
       setLoading(true);
       setError(null);
 
-      const url = `/api/orders?id=${orderId}`;
-      console.log('📡 Requête vers:', url);
+      const url = `/api/mcp/supabase`;
+      console.log('📡 Requête MCP vers:', url);
       
       const response = await fetch(url, {
-        method: 'PATCH',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: status
+          action: 'update',
+          resource: 'commandes',
+          params: { id: orderId },
+          data: { status: status }
         }),
       });
 
-      const result = await response.json();
+      console.log('📊 Réponse brute:', response.status, response.statusText);
+      
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log('📄 Contenu réponse:', responseText);
+        
+        if (!responseText.trim()) {
+          throw new Error('Réponse vide du serveur');
+        }
+        
+        result = JSON.parse(responseText);
+      } catch (parseError: any) {
+        console.error('❌ Erreur parsing JSON:', parseError);
+        throw new Error(`Réponse JSON invalide: ${parseError?.message || 'Erreur inconnue'}`);
+      }
 
       if (!response.ok) {
         throw new Error(result.error || `Erreur HTTP: ${response.status}`);
       }
 
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la mise à jour du statut');
-      }
+      console.log('✅ Résultat MCP:', result);
 
       console.log('✅ Statut commande mis à jour:', result.order);
       

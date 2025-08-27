@@ -38,6 +38,7 @@ const navigation = [
   { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart, color: 'text-orange-600' },
   { name: 'Problèmes', href: '/admin/problemes', icon: AlertTriangle, color: 'text-red-500' },
   { name: 'Livraisons', href: '/admin/deliveries', icon: Truck, color: 'text-red-600' },
+  { name: 'Chauffeurs', href: '/admin/chauffeurs', icon: Users, color: 'text-emerald-600' },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell, color: 'text-blue-500' },
   { name: 'Catégories', href: '/admin/categories', icon: FolderOpen, color: 'text-purple-600' },
   { name: 'Produits', href: '/admin/products', icon: Package, color: 'text-green-600' },
