@@ -177,12 +177,19 @@ export async function POST(request: NextRequest) {
     });
     
     // Générer le message selon le statut
-    const message = generateMessage(
+    const message = await generateMessage(
       status, 
       customerName || 'Client',
       orderNumber || 'TEST', 
       totalAmount
     );
+    
+    console.log('📝 Message généré:', {
+      status,
+      messageType: typeof message,
+      messageLength: message?.length,
+      messagePreview: message?.substring(0, 100)
+    });
     
     // Créer l'enregistrement de notification dans la base de données
     let currentNotificationId;
