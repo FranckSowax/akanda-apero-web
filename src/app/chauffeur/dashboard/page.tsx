@@ -1,460 +1,322 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useChauffeurAuth } from '../../../context/ChauffeurAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { MapPin, Phone, Clock, Package, Bell, BellOff, Navigation, LogOut, CheckCircle, XCircle, User, Truck, Zap, TrendingUp, Calendar, Activity, Euro, X, Check } from 'lucide-react';
-import { useChauffeurAuth } from '../../../contexts/ChauffeurAuthContext';
+import { 
+  MapPin, 
+  Truck, 
+  Clock, 
+  DollarSign, 
+  Package, 
+  Bell, 
+  LogOut,
+  Check 
+} from 'lucide-react';
 
-interface Livraison {
+interface Delivery {
   id: string;
-  commande_id: string;
-  chauffeur_id: string | null;
-  adresse_livraison: string;
-  telephone_client: string;
-  statut: string;
-  frais_livraison: number;
-  montant_livraison?: number;
+  order_id: string;
+  client_name: string;
+  client_phone: string;
+  delivery_address: string;
+  total_amount: number;
+  status: string;
   created_at: string;
-  updated_at: string;
-  commande?: {
-    client_nom: string;
-    client_telephone: string;
-    total: number;
-  };
+  notes?: string;
 }
 
 interface Notification {
   id: string;
-  chauffeur_id?: string;
-  message: string;
-  titre?: string;
   type: string;
-  read?: boolean;
+  title: string;
+  message: string;
+  data: any;
+  read: boolean;
   created_at: string;
-  livraison_id?: string;
-  order_id?: string;
-  order_number?: string;
-  delivery_address?: string;
-  delivery_district?: string;
-  delivery_cost?: number;
-  customer_name?: string;
-  total_amount?: number;
-  gps_latitude?: number;
-  gps_longitude?: number;
+}
+
+interface Stats {
+  totalDeliveries: number;
+  completedDeliveries: number;
+  totalGains: number;
+  averageGain: number;
+  todayDeliveries: number;
+  todayGains: number;
+  upcomingOrders: number;
 }
 
 export default function DashboardChauffeur() {
+  const { chauffeur, logout } = useChauffeurAuth();
   const router = useRouter();
-  const [livraisons, setLivraisons] = useState<Livraison[]>([]);
+  
+  // États principaux
+  const [isOnline, setIsOnline] = useState(false);
+  const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [activeDeliveries, setActiveDeliveries] = useState<Delivery[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalDeliveries: 0,
+    completedDeliveries: 0,
+    totalGains: 0,
+    averageGain: 0,
+    todayDeliveries: 0,
+    todayGains: 0,
+    upcomingOrders: 0
+  });
+  
+  // États pour les notifications
   const [showNotificationOverlay, setShowNotificationOverlay] = useState(false);
   const [currentOrderNotification, setCurrentOrderNotification] = useState<Notification | null>(null);
-  const [disponible, setDisponible] = useState(false);
+  
+  // États de chargement
   const [loading, setLoading] = useState(true);
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [chauffeur, setChauffeur] = useState<any>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Utiliser le contexte d'authentification chauffeur
-  const { chauffeurId, chauffeurNom, isAuthenticated, loading: authLoading, clearChauffeurAuth } = useChauffeurAuth();
-
+  // Vérification de l'authentification
   useEffect(() => {
-    if (chauffeurId) {
-      checkAuth();
-      loadData();
-      const cleanupLocation = startLocationTracking();
-      
-      // Immédiatement marquer comme "en ligne" à la connexion
-      updateHeartbeat();
-      
-      // Polling pour notifications temps réel ET mise à jour activité
-      const notificationInterval = setInterval(() => {
-        loadData();
-        // Mettre à jour l'activité pour rester "en ligne"
-        updateHeartbeat();
-      }, 10000); // Vérifier toutes les 10 secondes (réduit la fréquence)
-      
-      return () => {
-        clearInterval(notificationInterval);
-        if (cleanupLocation) cleanupLocation();
-      };
-    }
-  }, [chauffeurId]);
-
-  // Fonction pour maintenir le chauffeur "en ligne"
-  const updateHeartbeat = async () => {
-    try {
-      if (typeof window === 'undefined' || !chauffeurId) return;
-      
-      console.log('💓 Heartbeat - Mise à jour statut pour:', chauffeurId);
-
-      // Validation UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(chauffeurId)) {
-        console.error('ID chauffeur invalide (pas un UUID):', chauffeurId);
-        clearChauffeurAuth();
-        router.push('/chauffeur/connexion');
-        return;
-      }
-      
-      const response = await fetch('/api/chauffeurs/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chauffeur_id: chauffeurId,
-          disponible: true // Forcer à true car connecté = disponible
-        })
-      });
-
-      if (response.ok) {
-        console.log('✅ Heartbeat - Statut mis à jour: en_ligne');
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Erreur mise à jour heartbeat:', response.status, errorText);
-      }
-    } catch (error) {
-      console.error('❌ Erreur heartbeat:', error);
-    }
-  };
-
-
-  const checkAuth = async () => {
-    if (typeof window === 'undefined') return;
-    
-    const token = localStorage.getItem('chauffeur_token');
-    if (!token) {
+    if (!chauffeur) {
       router.push('/chauffeur/connexion');
       return;
     }
+  }, [chauffeur, router]);
 
-    try {
-      const response = await fetch('/api/chauffeurs/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', token })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setChauffeur(data.chauffeur);
-        setDisponible(data.chauffeur.disponible);
-      } else {
-        localStorage.clear();
-        router.push('/chauffeur/connexion');
-      }
-    } catch (error) {
-      console.error('Erreur auth:', error);
-      router.push('/chauffeur/connexion');
-    }
-  };
-
-  const loadData = async () => {
-    try {
-      if (!chauffeurId) return;
-      
-      // Charger les livraisons assignées
-      const livraisonsResponse = await fetch(`/api/chauffeurs/livraisons?chauffeur_id=${chauffeurId}`);
-      if (livraisonsResponse.ok) {
-        const livraisonsData = await livraisonsResponse.json();
-        setLivraisons(livraisonsData.livraisons || []);
-      }
-
-      // Charger les notifications
-      try {
-        const notificationsResponse = await fetch(`/api/notifications?chauffeur_id=${chauffeurId}`);
-        if (notificationsResponse.ok) {
-          const notificationsData = await notificationsResponse.json();
-          setNotifications(notificationsData.notifications || []);
-          
-          // Afficher overlay si nouvelles notifications de commande
-          const unreadNotifications = notificationsData.notifications?.filter((n: any) => !n.read) || [];
-          const orderNotifications = unreadNotifications.filter((n: any) => n.type === 'nouvelle_commande');
-          
-          if (orderNotifications.length > 0 && !currentOrderNotification) {
-            setCurrentOrderNotification(orderNotifications[0]);
-          }
-          
-          if (unreadNotifications.length > 0) {
-            setShowNotificationOverlay(true);
-          }
-        } else {
-          console.warn('⚠️ Erreur chargement notifications:', notificationsResponse.status);
-          setNotifications([]);
+  // Initialisation de la géolocalisation
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setPosition({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('❌ Erreur géolocalisation:', error);
         }
-      } catch (notificationError) {
-        console.error('❌ Erreur notifications:', notificationError);
-        setNotifications([]);
+      );
+    }
+  }, []);
+
+  // Heartbeat et mise à jour de position
+  useEffect(() => {
+    if (!chauffeur || !position || !isOnline) return;
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await fetch('/api/chauffeurs/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chauffeur_id: chauffeur.id,
+            latitude: position.latitude,
+            longitude: position.longitude
+          })
+        });
+
+        await fetch('/api/chauffeurs/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chauffeur_id: chauffeur.id,
+            latitude: position.latitude,
+            longitude: position.longitude
+          })
+        });
+      } catch (error) {
+        console.error('❌ Erreur heartbeat:', error);
+      }
+    }, 30000); // Toutes les 30 secondes
+
+    return () => clearInterval(heartbeatInterval);
+  }, [chauffeur, position, isOnline]);
+
+  // Polling des notifications
+  useEffect(() => {
+    if (!chauffeur) return;
+
+    const pollNotifications = async () => {
+      try {
+        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeur.id}&type=nouvelle_commande&read=false`);
+        if (response.ok) {
+          const data = await response.json();
+          const notificationsArray = Array.isArray(data) ? data : [];
+          setNotifications(notificationsArray);
+          
+          // Vérifier s'il y a une nouvelle notification non lue
+          const newNotification = notificationsArray.find((n: Notification) => !n.read && n.type === 'nouvelle_commande');
+          if (newNotification && (!currentOrderNotification || newNotification.id !== currentOrderNotification.id)) {
+            setCurrentOrderNotification(newNotification);
+            setShowNotificationOverlay(true);
+            
+            // Son de notification
+            try {
+              const audio = new Audio('/sounds/notification.mp3');
+              audio.play().catch(e => console.log('Son non disponible:', e));
+            } catch (e) {
+              console.log('Son non disponible:', e);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erreur polling notifications:', error);
+      }
+    };
+
+    const interval = setInterval(pollNotifications, 5000);
+    pollNotifications(); // Premier appel immédiat
+
+    return () => clearInterval(interval);
+  }, [chauffeur, currentOrderNotification]);
+
+  // Chargement des données
+  const loadData = async () => {
+    if (!chauffeur) return;
+
+    try {
+      setLoading(true);
+
+      // Charger les livraisons actives
+      const deliveriesResponse = await fetch(`/api/chauffeurs/active-deliveries?chauffeur_id=${chauffeur.id}`);
+      if (deliveriesResponse.ok) {
+        const deliveriesData = await deliveriesResponse.json();
+        const deliveriesArray = Array.isArray(deliveriesData) ? deliveriesData : [];
+        setActiveDeliveries(deliveriesArray);
+      }
+
+      // Charger les statistiques
+      const statsResponse = await fetch(`/api/chauffeurs/livraisons?chauffeur_id=${chauffeur.id}`);
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        const statsArray = Array.isArray(statsData) ? statsData : [];
+        
+        const totalGains = statsArray.reduce((sum: number, delivery: any) => sum + (delivery.total_amount || 0), 0);
+        const completedCount = statsArray.filter((d: any) => d.status === 'delivered').length;
+        
+        // Statistiques du jour
+        const today = new Date().toISOString().split('T')[0];
+        const todayDeliveries = statsArray.filter((d: any) => d.created_at?.startsWith(today));
+        const todayGains = todayDeliveries.reduce((sum: number, delivery: any) => sum + (delivery.total_amount || 0), 0);
+
+        // Charger les commandes confirmées (à venir)
+        const upcomingResponse = await fetch(`/api/orders?status=Confirmée&chauffeur_id=${chauffeur.id}`);
+        let upcomingCount = 0;
+        if (upcomingResponse.ok) {
+          const upcomingData = await upcomingResponse.json();
+          upcomingCount = Array.isArray(upcomingData) ? upcomingData.length : 0;
+        }
+
+        setStats({
+          totalDeliveries: statsArray.length,
+          completedDeliveries: completedCount,
+          totalGains,
+          averageGain: statsArray.length > 0 ? totalGains / statsArray.length : 0,
+          todayDeliveries: todayDeliveries.length,
+          todayGains,
+          upcomingOrders: upcomingCount
+        });
       }
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      console.error('❌ Erreur chargement données:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const startLocationTracking = () => {
-    if (!navigator.geolocation) {
-      console.warn('Géolocalisation non supportée par ce navigateur');
-      return;
-    }
+  // Chargement initial
+  useEffect(() => {
+    loadData();
+  }, [chauffeur]);
 
-    const handleLocationSuccess = (position: GeolocationPosition) => {
-      const { latitude, longitude } = position.coords;
-      console.log('Position mise à jour:', { latitude, longitude });
-      
-      setPosition({ lat: latitude, lng: longitude });
-      updateLocation(latitude, longitude);
-    };
+  // Basculer le statut en ligne/hors ligne
+  const toggleOnlineStatus = async () => {
+    if (!chauffeur) return;
 
-    const handleLocationError = (error: GeolocationPositionError) => {
-      // Réduire le niveau de log pour éviter le spam
-      console.warn('Géolocalisation indisponible:', {
-        code: error.code,
-        message: error.message
-      });
-      
-      // Continuer sans géolocalisation - ne pas bloquer l'app
-      // Le chauffeur peut toujours recevoir des notifications
-    };
-
-    const locationOptions: PositionOptions = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 60000
-    };
-
-    // Position initiale
-    navigator.geolocation.getCurrentPosition(
-      handleLocationSuccess,
-      handleLocationError,
-      locationOptions
-    );
-
-    // Mise à jour périodique de la position
-    const locationInterval = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(
-        handleLocationSuccess,
-        handleLocationError,
-        locationOptions
-      );
-    }, 30000); // Toutes les 30 secondes
-
-    // Nettoyer l'interval au démontage du composant
-    return () => clearInterval(locationInterval);
-  };
-
-  const updateLocation = async (lat: number, lng: number) => {
+    setUpdatingStatus(true);
     try {
-      if (typeof window === 'undefined' || !chauffeurId) return;
-      
-      // Mettre à jour la position GPS
-      await fetch('/api/chauffeurs/location', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chauffeur_id: chauffeurId,
-          latitude: lat,
-          longitude: lng,
-          timestamp: new Date().toISOString()
-        })
-      });
-
-      // Mettre à jour l'état local
-      setPosition({ lat, lng });
-      
-      // Mettre à jour le heartbeat avec la position
-      await fetch('/api/chauffeurs/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chauffeur_id: chauffeurId,
-          disponible: true // Connecté = disponible
-        })
-      });
-    } catch (error) {
-      console.error('Erreur mise à jour position:', error);
-    }
-  };
-
-  const setupNotificationListener = () => {
-    let errorCount = 0;
-    const maxErrors = 3;
-    
-    // Simulation d'écoute des notifications en temps réel
-    const interval = setInterval(async () => {
-      const chauffeurId = localStorage.getItem('chauffeur_id');
-      
-      // Arrêter le polling si trop d'erreurs consécutives
-      if (errorCount >= maxErrors) {
-        console.warn('⚠️ Arrêt du polling notifications après', maxErrors, 'erreurs consécutives');
-        clearInterval(interval);
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeurId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const allNotifications = data.notifications || [];
-          const newNotifications = allNotifications.filter((n: any) => !n.read);
-          
-          if (newNotifications.length > 0) {
-            setNotifications(prev => {
-              // Éviter les doublons
-              const existingIds = prev.map(n => n.id);
-              const uniqueNew = newNotifications.filter((n: any) => !existingIds.includes(n.id));
-              return [...uniqueNew, ...prev];
-            });
-            setShowNotificationOverlay(true);
-            
-            // Vibration et son si supportés
-            if ('vibrate' in navigator) {
-              navigator.vibrate([200, 100, 200]);
-            }
-            playNotificationSound();
-          }
-          
-          // Reset error count on success
-          errorCount = 0;
-        } else {
-          errorCount++;
-          console.warn(`⚠️ Erreur polling notifications (${errorCount}/${maxErrors}):`, response.status);
-        }
-      } catch (error) {
-        errorCount++;
-        console.error(`❌ Erreur écoute notifications (${errorCount}/${maxErrors}):`, error);
-      }
-    }, 10000); // Vérifier toutes les 10 secondes (moins agressif)
-
-    return () => clearInterval(interval);
-  };
-
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.volume = 0.5;
-      audio.play().catch(e => console.log('Son non joué:', e));
-    } catch (error) {
-      console.log('Erreur son:', error);
-    }
-  };
-
-  const toggleDisponibilite = async () => {
-    try {
-      if (typeof window === 'undefined') return;
-      const currentChauffeurId = localStorage.getItem('chauffeur_id');
-      
-      if (!currentChauffeurId) {
-        console.warn('Pas de chauffeur_id pour changer disponibilité');
-        return;
-      }
-
-      // Validation UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(currentChauffeurId)) {
-        console.error('ID chauffeur invalide pour changement disponibilité:', currentChauffeurId);
-        window.location.href = '/chauffeur/connexion';
-        return;
-      }
-      
-      const newStatus = !disponible;
-      
       const response = await fetch('/api/chauffeurs/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chauffeur_id: currentChauffeurId,
-          disponible: newStatus
+          chauffeur_id: chauffeur.id,
+          disponible: !isOnline
         })
       });
 
       if (response.ok) {
-        setDisponible(newStatus);
+        setIsOnline(!isOnline);
       } else {
-        const errorText = await response.text();
-        console.error('Erreur changement disponibilité:', response.status, errorText);
+        console.error('❌ Erreur mise à jour statut');
       }
     } catch (error) {
-      console.error('Erreur changement statut:', error);
+      console.error('❌ Erreur toggle status:', error);
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
-  // Générer un code de livraison unique (5 caractères alphanumériques)
-  const generateDeliveryCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 5; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
+  // Accepter une commande (compétition GPS)
   const accepterCommande = async (notification: Notification) => {
+    if (!chauffeur || !position) {
+      alert('❌ Position GPS requise pour accepter une commande');
+      return;
+    }
+
     try {
-      // Jouer le son de notification
-      playNotificationSound();
+      const orderData = notification.data;
       
-      const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/mcp/supabase`, {
+      const competeResponse = await fetch('/api/orders/compete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'update',
-          resource: 'orders',
-          params: { id: notification.order_id },
-          data: {
-            assigned_driver_id: chauffeurId,
-            assigned_driver_name: chauffeurNom,
-            delivery_code: deliveryCode,
-            status: 'En livraison'
-          }
+          order_id: orderData.order_id,
+          chauffeur_id: chauffeur.id,
+          chauffeur_name: chauffeur.nom || 'Chauffeur',
+          chauffeur_phone: chauffeur.telephone || '',
+          latitude: position.latitude,
+          longitude: position.longitude
         })
       });
 
-      if (response.ok) {
-        console.log('✅ Commande acceptée avec code:', deliveryCode);
-        
-        // Marquer la notification comme lue
-        if (notification.id) {
-          await marquerNotificationLue(notification.id);
-        }
-        
-        setCurrentOrderNotification(null);
-        setShowNotificationOverlay(false);
-        await loadData();
-        
-        // Afficher un message de succès
-        alert(`✅ Commande acceptée ! Code de livraison: ${deliveryCode}`);
-      } else {
-        console.error('❌ Erreur lors de l\'acceptation:', response.status);
-        alert('❌ Erreur lors de l\'acceptation de la commande');
+      if (!competeResponse.ok) {
+        throw new Error('Erreur lors de la participation à la compétition');
       }
-    } catch (error) {
-      console.error('Erreur acceptation commande:', error);
-      alert('❌ Erreur lors de l\'acceptation de la commande');
-    }
-  };
 
-  const refuserCommande = async (notification: Notification) => {
-    try {
+      const competeResult = await competeResponse.json();
+      console.log('🏁 Résultat compétition:', competeResult);
+
       // Marquer la notification comme lue
       if (notification.id) {
         await marquerNotificationLue(notification.id);
       }
+
       setCurrentOrderNotification(null);
       setShowNotificationOverlay(false);
+      await loadData();
+
+      alert('✅ Participation enregistrée ! Le chauffeur le plus proche sera sélectionné dans 10 secondes.');
     } catch (error) {
-      console.error('Erreur refus commande:', error);
+      console.error('❌ Erreur acceptation commande:', error);
+      alert('❌ Erreur lors de l\'acceptation de la commande');
     }
   };
 
+  // Refuser une commande
+  const refuserCommande = async (notification: Notification) => {
+    if (notification.id) {
+      await marquerNotificationLue(notification.id);
+    }
+    setCurrentOrderNotification(null);
+    setShowNotificationOverlay(false);
+  };
 
+  // Marquer une notification comme lue
   const marquerNotificationLue = async (notificationId: string) => {
     try {
-      const response = await fetch('/api/chauffeurs/notifications', {
+      await fetch('/api/chauffeurs/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -462,533 +324,331 @@ export default function DashboardChauffeur() {
           read: true
         })
       });
-
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-        );
-      } else {
-        console.warn('⚠️ Erreur marquage notification lue:', response.status);
-      }
     } catch (error) {
-      console.error('Erreur marquage notification:', error);
+      console.error('❌ Erreur marquage notification:', error);
     }
   };
 
-  const logout = async () => {
-    console.log('🚪 Déconnexion chauffeur en cours...');
-    
-    // Mettre le statut à hors_ligne avant de se déconnecter
+  // Marquer une livraison comme terminée
+  const markAsDelivered = async (deliveryId: string) => {
     try {
-      if (chauffeurId) {
-        console.log('🔄 Mise à jour statut hors_ligne pour:', chauffeurId);
-        
-        // Essayer d'abord l'API status
-        const statusResponse = await fetch('/api/chauffeurs/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chauffeur_id: chauffeurId,
-            disponible: false
-          })
-        });
+      const response = await fetch('/api/chauffeurs/active-deliveries', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          delivery_id: deliveryId,
+          status: 'delivered'
+        })
+      });
 
-        if (!statusResponse.ok) {
-          console.warn('⚠️ API status failed, trying direct Supabase...');
-          
-          // Fallback vers Supabase direct
-          const directResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${chauffeurId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-              disponible: false,
-              statut: 'hors_ligne',
-              derniere_activite: new Date().toISOString()
-            })
-          });
-
-          if (directResponse.ok) {
-            console.log('✅ Statut mis à jour via Supabase direct');
-          } else {
-            console.error('❌ Échec mise à jour statut via Supabase direct');
-          }
-        } else {
-          console.log('✅ Statut mis à jour via API');
-        }
+      if (response.ok) {
+        await loadData();
+        alert('✅ Livraison marquée comme terminée !');
+      } else {
+        alert('❌ Erreur lors de la mise à jour');
       }
     } catch (error) {
-      console.error('❌ Erreur mise à jour statut logout:', error);
+      console.error('❌ Erreur marquage livraison:', error);
+      alert('❌ Erreur lors de la mise à jour');
     }
-    
-    // Utiliser le contexte pour nettoyer l'authentification
-    clearChauffeurAuth();
+  };
+
+  // Déconnexion
+  const handleLogout = async () => {
+    if (!chauffeur) return;
+
+    try {
+      // Mettre le chauffeur hors ligne avant de se déconnecter
+      await fetch('/api/chauffeurs/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chauffeur_id: chauffeur.id,
+          disponible: false,
+          statut: 'hors_ligne'
+        })
+      });
+    } catch (error) {
+      console.error('❌ Erreur mise à jour statut déconnexion:', error);
+    }
+
+    logout();
     router.push('/chauffeur/connexion');
   };
 
-  const getStatusBadge = (statut: string) => {
-    const statusConfig = {
-      'en_attente': { color: 'bg-yellow-100 text-yellow-800', label: 'En attente' },
-      'acceptee': { color: 'bg-blue-100 text-blue-800', label: 'Acceptée' },
-      'en_cours': { color: 'bg-orange-100 text-orange-800', label: 'En cours' },
-      'livree': { color: 'bg-green-100 text-green-800', label: 'Livrée' },
-      'annulee': { color: 'bg-red-100 text-red-800', label: 'Annulée' }
-    };
-
-    const config = statusConfig[statut as keyof typeof statusConfig] || statusConfig.en_attente;
-    return <Badge className={config.color}>{config.label}</Badge>;
-  };
-
-  // Calculs des statistiques financières
-  const livraisonsCompletes = livraisons.filter(l => l.statut === 'livree');
-  const totalGains = livraisonsCompletes.reduce((sum, l) => sum + (l.frais_livraison || 5), 0);
-  const moyenneParLivraison = livraisonsCompletes.length > 0 ? totalGains / livraisonsCompletes.length : 0;
-  const livraisonsAujourdhui = livraisons.filter(l => 
-    new Date(l.created_at).toDateString() === new Date().toDateString()
-  ).length;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Chargement de votre dashboard...</p>
-        </div>
-      </div>
-    );
+  if (!chauffeur) {
+    return <div>Redirection...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header moderne avec gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg sticky top-0 z-40">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center border border-white/30">
-              <User className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-white text-lg">Salut {chauffeur?.nom}! 👋</h1>
-              <p className="text-blue-100 text-sm flex items-center">
-                <Zap className="w-4 h-4 mr-1" />
-                Chauffeur Akanda Apéro
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowNotificationOverlay(true)}
-              className="relative p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur"
-            >
-              <Bell className="w-5 h-5" />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse">
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </button>
-            
-            <button
-              onClick={() => {
-                // Test overlay - simuler une nouvelle commande
-                const testNotification = {
-                  id: 'test-' + Date.now(),
-                  type: 'nouvelle_commande',
-                  order_number: 'TEST-001',
-                  customer_name: 'Client Test',
-                  delivery_address: '123 Rue Test, Libreville',
-                  delivery_district: 'Akanda',
-                  delivery_cost: 2000,
-                  total_amount: 25000,
-                  gps_latitude: 0.4077972,
-                  gps_longitude: 9.4402833,
-                  message: 'Nouvelle commande prête pour livraison',
-                  created_at: new Date().toISOString()
-                };
-                setCurrentOrderNotification(testNotification);
-                setShowNotificationOverlay(true);
-              }}
-              className="p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200"
-              title="Test Overlay"
-            >
-              <Bell className="w-5 h-5" />
-            </button>
-            
-            <button
-              onClick={logout}
-              className="p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Statut disponibilité moderne */}
-      <div className="p-4">
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur">
-          <CardContent className="p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="px-3 py-4 max-w-md mx-auto lg:max-w-6xl lg:px-8">
+        {/* Header ultra-moderne mobile-first */}
+        <div className="mb-6">
+          {/* Greeting Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 mb-4 shadow-lg border border-white/20">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className={`w-6 h-6 rounded-full ${disponible ? 'bg-green-500 animate-pulse' : 'bg-red-500'} shadow-lg`}></div>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Truck className="w-6 h-6 text-white" />
+                </div>
                 <div>
-                  <span className="font-bold text-lg">
-                    {disponible ? '🟢 En ligne' : '🔴 Hors ligne'}
-                  </span>
+                  <h1 className="text-lg font-bold text-gray-900">
+                    Salut {chauffeur?.nom?.split(' ')[0] || 'Chauffeur'} ! 👋
+                  </h1>
                   <p className="text-sm text-gray-600">
-                    {disponible ? 'Prêt à recevoir des livraisons' : 'Connectez-vous pour recevoir des missions'}
+                    {isOnline ? 'Tu es en ligne' : 'Tu es hors ligne'}
                   </p>
                 </div>
               </div>
-              
               <Button
-                onClick={toggleDisponibilite}
-                className={`${disponible 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-green-500 hover:bg-green-600'
-                } text-white font-bold px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105`}
+                onClick={handleLogout}
+                variant="ghost"
+                size="sm"
+                className="text-gray-500 hover:text-red-500 p-2"
               >
-                {disponible ? '🛑 Se déconnecter' : '🚀 Se connecter'}
+                <LogOut className="w-5 h-5" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Statistiques modernes avec icônes */}
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Package className="w-8 h-8 mr-2" />
-                <span className="text-3xl font-bold">{livraisons.length}</span>
-              </div>
-              <p className="text-blue-100 font-medium">Total livraisons</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <CheckCircle className="w-8 h-8 mr-2" />
-                <span className="text-3xl font-bold">{livraisonsCompletes.length}</span>
-              </div>
-              <p className="text-green-100 font-medium">Complétées</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Gains et performance */}
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-3xl font-bold">{(totalGains * 656).toFixed(0)} <span className="text-lg">FCFA</span></span>
-              </div>
-              <p className="text-purple-100 font-medium">Gains totaux</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <TrendingUp className="w-8 h-8 mr-2" />
-                <span className="text-3xl font-bold">{(moyenneParLivraison * 656).toFixed(0)} <span className="text-lg">FCFA</span></span>
-              </div>
-              <p className="text-orange-100 font-medium">Moy. / livraison</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Performance du jour */}
-      <div className="px-4 pb-4">
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-lg">Nouvelle livraison</h4>
-                  <p className="text-indigo-100">{livraisonsAujourdhui} livraison(s) assignée(s)</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">{(livraisonsAujourdhui * 5 * 656).toFixed(0)} <span className="text-base">FCFA</span></p>
-                <p className="text-indigo-100 text-sm">Potentiel gains</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Position actuelle moderne */}
-      {position && (
-        <div className="px-4 pb-4">
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-900">📍 Ma position</p>
-                  <p className="text-sm text-gray-600">
-                    {position?.lat?.toFixed(4) || 'N/A'}, {position?.lng?.toFixed(4) || 'N/A'}
-                  </p>
-                  <p className="text-xs text-green-600 font-medium">✅ Géolocalisation active</p>
-                </div>
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Liste des livraisons moderne */}
-      <div className="px-4 pb-20">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center">
-            <Activity className="w-6 h-6 mr-2 text-blue-600" />
-            Mes missions
-          </h2>
-          <Badge className="bg-blue-100 text-blue-800 font-bold">
-            {livraisons.filter(l => l.statut !== 'livree' && l.statut !== 'annulee').length} actives
-          </Badge>
-        </div>
-        
-        {livraisons.length === 0 ? (
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur">
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Truck className="w-10 h-10 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Aucune mission active</h3>
-              <p className="text-gray-600 mb-4">
-                {disponible ? 'Restez connecté, de nouvelles missions arrivent bientôt! 🚀' : 'Activez votre disponibilité pour recevoir des missions 📱'}
-              </p>
-              {!disponible && (
-                <Button 
-                  onClick={toggleDisponibilite}
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl"
-                >
-                  🚀 Me connecter maintenant
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {livraisons.map((livraison) => (
-              <Card key={livraison.id} className="border-0 shadow-lg bg-white/90 backdrop-blur border-l-4 border-l-blue-500 hover:shadow-xl transition-all duration-200">
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <User className="w-5 h-5 text-blue-600" />
-                        <p className="text-sm text-gray-600">Client: {livraison.commande?.client_nom || 'N/A'}</p>
-                      </div>
-                      <div className="flex items-start space-x-2 mb-2">
-                        <MapPin className="w-4 h-4 text-gray-500 mt-1" />
-                        <p className="text-gray-700">{livraison.adresse_livraison}</p>
-                      </div>
-                      {livraison.montant_livraison && (
-                        <div className="flex items-center space-x-2">
-                          <Euro className="w-4 h-4 text-green-600" />
-                          <p className="text-green-700 font-bold">
-                            {(livraison.montant_livraison * 656).toFixed(0)} <span className="text-sm">FCFA</span> 
-                            <span className="text-sm text-gray-500">+ {livraison.frais_livraison || 5} FCFA livraison</span>
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    {getStatusBadge(livraison.statut)}
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <div className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-full">
-                        <Phone className="w-4 h-4" />
-                        <span className="font-semibold">{livraison.commande?.total || 0} FCFA</span>
-                      </div>
-                      <div className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-full">
-                        <Clock className="w-4 h-4" />
-                        <span>{new Date(livraison.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      size="sm" 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl shadow-md transition-all duration-200 transform hover:scale-105"
-                    >
-                      <Navigation className="w-4 h-4 mr-2" />
-                      GPS
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
           </div>
-        )}
-      </div>
 
-      {/* Overlay de notification pour nouvelle commande */}
-      {currentOrderNotification && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-pulse-slow">
-            {/* Header avec icône */}
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 p-4 text-center">
-              <div className="w-16 h-16 bg-white rounded-full mx-auto mb-2 flex items-center justify-center">
-                <Truck className="w-8 h-8 text-orange-500" />
+          {/* Status Toggle - Mobile Optimized */}
+          <div className="flex gap-3 mb-4">
+            <Button
+              onClick={toggleOnlineStatus}
+              disabled={updatingStatus}
+              className={`flex-1 h-14 rounded-xl font-semibold text-base transition-all duration-300 ${
+                isOnline 
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg shadow-green-500/25' 
+                  : 'bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 shadow-lg shadow-gray-400/25'
+              } text-white`}
+            >
+              {updatingStatus ? (
+                <Clock className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-white animate-pulse' : 'bg-white/70'}`} />
+                  {isOnline ? 'EN LIGNE' : 'HORS LIGNE'}
+                </div>
+              )}
+            </Button>
+            
+            {position && (
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-gray-700">GPS</span>
               </div>
-              <h3 className="text-xl font-bold text-white">Nouvelle Commande</h3>
-              <p className="text-orange-100 text-sm">Une commande vous attend !</p>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Cards - Mobile-First Design */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* Livraisons Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-600 font-medium">Livraisons</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalDeliveries}</p>
+              </div>
             </div>
+            <div className="bg-blue-50 rounded-lg px-2 py-1">
+              <p className="text-xs text-blue-700 font-medium">✅ {stats.completedDeliveries} terminées</p>
+            </div>
+          </div>
 
-            {/* Contenu de la commande */}
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800 mb-1">
-                  #{currentOrderNotification.order_number || 'N/A'}
-                </p>
-                <p className="text-gray-600">
-                  {currentOrderNotification.customer_name || 'Client'}
-                </p>
+          {/* Gains Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-white" />
               </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-600 font-medium">Gains</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalGains.toFixed(0)} FCFA</p>
+              </div>
+            </div>
+            <div className="bg-green-50 rounded-lg px-2 py-1">
+              <p className="text-xs text-green-700 font-medium">📊 Moy: {stats.averageGain.toFixed(0)} FCFA</p>
+            </div>
+          </div>
 
-              {/* Adresse et quartier */}
-              {currentOrderNotification.delivery_address && (
-                <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-gray-500" />
-                    <p className="text-sm text-gray-700 font-medium">
-                      {currentOrderNotification.delivery_address}
+          {/* Today Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-600 font-medium">Aujourd'hui</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.todayDeliveries}</p>
+              </div>
+            </div>
+            <div className="bg-purple-50 rounded-lg px-2 py-1">
+              <p className="text-xs text-purple-700 font-medium">💰 {stats.todayGains.toFixed(0)} FCFA</p>
+            </div>
+          </div>
+
+          {/* Upcoming Orders Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-600 font-medium">À venir</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.upcomingOrders || 0}</p>
+              </div>
+            </div>
+            <div className="bg-orange-50 rounded-lg px-2 py-1">
+              <p className="text-xs text-orange-700 font-medium">📋 Confirmées</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Deliveries - Ultra Modern Mobile */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+              <Truck className="w-4 h-4 text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Livraisons Actives</h2>
+            {activeDeliveries.length > 0 && (
+              <div className="ml-auto bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">
+                {activeDeliveries.length}
+              </div>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-lg text-center">
+              <Clock className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
+              <p className="text-gray-600">Chargement...</p>
+            </div>
+          ) : activeDeliveries.length === 0 ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-lg text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune livraison active</h3>
+              <p className="text-gray-600 text-sm">Les nouvelles commandes apparaîtront ici 📦</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activeDeliveries.map((delivery: any) => (
+                <div key={delivery.id} className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">#{delivery.order_id}</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{delivery.customer_name || 'Client'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className={`w-2 h-2 rounded-full ${delivery.status === 'en_cours' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                          <span className="text-xs text-gray-600 font-medium">
+                            {delivery.status === 'en_cours' ? 'En cours' : delivery.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-green-600">{delivery.total_amount?.toFixed(0) || '0'} FCFA</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-3 mb-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">Adresse de livraison</span>
+                    </div>
+                    <p className="text-sm text-gray-600 ml-6">
+                      {delivery.customer_address || 'Adresse non disponible'}
                     </p>
                   </div>
-                  {currentOrderNotification.delivery_district && (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <p className="text-sm text-blue-700 font-semibold">
-                        Quartier: {currentOrderNotification.delivery_district}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {/* Prix et frais de livraison */}
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">Montant commande:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    {currentOrderNotification.total_amount?.toLocaleString() || 0} FCFA
-                  </span>
-                </div>
-                {currentOrderNotification.delivery_cost && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Frais livraison:</span>
-                    <span className="text-md font-semibold text-orange-600">
-                      {currentOrderNotification.delivery_cost.toLocaleString()} FCFA
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Lien GPS */}
-              {currentOrderNotification.gps_latitude && currentOrderNotification.gps_longitude && (
-                <div className="flex space-x-2">
-                  <a
-                    href={`https://waze.com/ul?ll=${currentOrderNotification.gps_latitude},${currentOrderNotification.gps_longitude}&navigate=yes`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 px-3 bg-blue-500 text-white rounded-lg text-center text-sm font-medium hover:bg-blue-600 transition-colors"
+                  <Button
+                    onClick={() => markAsDelivered(delivery.id)}
+                    className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300"
                   >
-                    📱 Waze
-                  </a>
-                  <a
-                    href={`https://maps.google.com/maps?q=${currentOrderNotification.gps_latitude},${currentOrderNotification.gps_longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 px-3 bg-green-500 text-white rounded-lg text-center text-sm font-medium hover:bg-green-600 transition-colors"
-                  >
-                    🗺️ Google Maps
-                  </a>
-                </div>
-              )}
-
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-800 text-center">
-                  {currentOrderNotification.message}
-                </p>
-              </div>
-            </div>
-
-            {/* Boutons d'action avec animation */}
-            <div className="p-4 bg-gray-50 flex space-x-3">
-              <button
-                onClick={() => refuserCommande(currentOrderNotification)}
-                className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200 flex items-center justify-center space-x-2 animate-pulse hover:animate-none"
-              >
-                <X className="w-5 h-5" />
-                <span>Refuser</span>
-              </button>
-              <button
-                onClick={() => accepterCommande(currentOrderNotification)}
-                className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center space-x-2 animate-pulse hover:animate-none shadow-lg"
-              >
-                <Check className="w-5 h-5" />
-                <span>Accepter</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Overlay de notification général */}
-      {showNotificationOverlay && !currentOrderNotification && notifications.filter(n => !n.read).length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4 text-gray-800">Nouvelles notifications</h3>
-            <div className="space-y-3">
-              {notifications.filter(n => !n.read && n.type !== 'nouvelle_commande').map((notification) => (
-                <div key={notification.id} className="p-3 bg-blue-50 rounded border-l-4 border-blue-400">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      {notification.titre && (
-                        <h4 className="font-medium text-gray-800 mb-1">{notification.titre}</h4>
-                      )}
-                      <p className="text-sm text-gray-600">{notification.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(notification.created_at).toLocaleString('fr-FR')}
-                      </p>
-                    </div>
-                  </div>
+                    <Check className="w-5 h-5 mr-2" />
+                    Marquer comme Livrée ✅
+                  </Button>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => setShowNotificationOverlay(false)}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                Fermer
-              </button>
+          )}
+        </div>
+
+        {/* Notification Overlay - Ultra Modern Mobile */}
+        {showNotificationOverlay && currentOrderNotification && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-white/20 animate-in slide-in-from-bottom-4 duration-300">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Bell className="w-8 h-8 text-white animate-pulse" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Nouvelle Commande ! 🎉</h2>
+                <p className="text-sm text-gray-600">Une commande vous attend</p>
+              </div>
+
+              {/* Order Details */}
+              <div className="space-y-4 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Commande</span>
+                    <span className="text-lg font-bold text-blue-600">#{currentOrderNotification.data?.order_id}</span>
+                  </div>
+                  <p className="font-semibold text-gray-900">{currentOrderNotification.data?.client_name}</p>
+                </div>
+
+                <div className="bg-green-50 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-gray-700">Adresse</span>
+                  </div>
+                  <p className="text-sm text-gray-800">{currentOrderNotification.data?.delivery_address}</p>
+                </div>
+
+                <div className="bg-yellow-50 rounded-2xl p-4 text-center">
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    {currentOrderNotification.data?.total_amount} FCFA
+                  </div>
+                  <p className="text-xs text-gray-600">Montant de la commande</p>
+                </div>
+
+                <div className="bg-orange-50 rounded-2xl p-4 border-l-4 border-orange-400">
+                  <p className="text-sm text-orange-800">
+                    <span className="font-semibold">🏁 Compétition GPS:</span><br />
+                    Le chauffeur le plus proche sera sélectionné automatiquement !
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => accepterCommande(currentOrderNotification)}
+                  className="flex-1 h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25"
+                >
+                  ✅ Accepter
+                </Button>
+                <Button
+                  onClick={() => refuserCommande(currentOrderNotification)}
+                  variant="outline"
+                  className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 rounded-xl font-semibold"
+                >
+                  ❌ Refuser
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

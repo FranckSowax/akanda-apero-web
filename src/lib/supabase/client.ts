@@ -187,8 +187,8 @@ function getSupabaseInstance() {
         }
       },
     },
-    // Configuration de debug pour les erreurs de refresh
-    debug: process.env.NODE_ENV === 'development',
+    // Configuration de debug désactivée pour réduire les logs GoTrueClient
+    debug: false,
   },
   global: {
     headers: {

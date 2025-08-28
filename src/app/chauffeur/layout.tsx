@@ -1,6 +1,6 @@
 'use client';
 
-import { ChauffeurAuthProvider } from '../../contexts/ChauffeurAuthContext';
+import { ChauffeurAuthProvider } from '../../context/ChauffeurAuthContext';
 
 export default function ChauffeurLayout({
   children,

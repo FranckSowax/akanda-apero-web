@@ -7,7 +7,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { AlertCircle, Car, Phone, EyeOff, Eye, LogIn } from 'lucide-react';
-import { useChauffeurAuth } from '../../../contexts/ChauffeurAuthContext';
+import { useChauffeurAuth } from '../../../context/ChauffeurAuthContext';
 
 export default function ConnexionChauffeur() {
   const router = useRouter();

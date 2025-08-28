@@ -51,8 +51,30 @@ export async function POST(request: NextRequest) {
     });
 
     // Gestion des livraisons - utiliser la table orders avec un système de livraison intégré
-    if (resource === 'livraisons') {
+    if (resource === 'livraisons' || resource === 'deliveries') {
       switch (action) {
+        case 'create':
+          const createDeliveryResponse = await fetch(`${supabaseUrl}/rest/v1/deliveries`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (!createDeliveryResponse.ok) {
+            const errorText = await createDeliveryResponse.text();
+            console.error('❌ Erreur création livraison:', errorText);
+            throw new Error(`Erreur Supabase: ${createDeliveryResponse.status} - ${errorText}`);
+          }
+
+          const newDelivery = await createDeliveryResponse.json();
+          console.log('✅ Livraison créée:', newDelivery);
+          return NextResponse.json({ success: true, data: newDelivery });
+
         case 'read':
           // Récupérer les commandes en préparation
           let ordersUrl = `${supabaseUrl}/rest/v1/orders?select=id,order_number,customer_id,delivery_address,delivery_district,delivery_option,delivery_cost,total_amount,subtotal,gps_latitude,gps_longitude,status,created_at,updated_at&status=eq.En%20préparation`;
@@ -567,13 +589,13 @@ export async function POST(request: NextRequest) {
     console.error('❌ Resource ou action non supportée:', {
       resource,
       action,
-      availableResources: ['livraisons', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
+      availableResources: ['livraisons', 'deliveries', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
     });
     
     return NextResponse.json({ 
       success: false, 
       error: `Resource ou action non supportée: ${resource}/${action}`,
-      availableResources: ['livraisons', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
+      availableResources: ['livraisons', 'deliveries', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
     }, { status: 400 });
 
   } catch (error) {
