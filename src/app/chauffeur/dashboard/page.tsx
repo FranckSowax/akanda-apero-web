@@ -442,7 +442,8 @@ export default function DashboardChauffeur() {
       const currentChauffeurId = localStorage.getItem('chauffeur_id');
       if (currentChauffeurId) {
         console.log('🔄 Mise à jour statut hors_ligne pour:', currentChauffeurId);
-        await fetch('/api/chauffeurs/status', {
+        
+        const statusResponse = await fetch('/api/chauffeurs/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -450,7 +451,32 @@ export default function DashboardChauffeur() {
             disponible: false
           })
         });
-        console.log('✅ Statut mis à jour: hors_ligne');
+        
+        if (statusResponse.ok) {
+          console.log('✅ Statut mis à jour: hors_ligne via API status');
+        } else {
+          console.log('⚠️ API status échouée, tentative directe...');
+          // Fallback direct vers Supabase si l'API status échoue
+          const directResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${currentChauffeurId}`, {
+            method: 'PATCH',
+            headers: {
+              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              statut: 'hors_ligne',
+              disponible: false,
+              derniere_activite: new Date().toISOString()
+            })
+          });
+          
+          if (directResponse.ok) {
+            console.log('✅ Statut mis à jour: hors_ligne via Supabase direct');
+          } else {
+            console.error('❌ Échec mise à jour statut déconnexion');
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Erreur mise à jour statut déconnexion:', error);

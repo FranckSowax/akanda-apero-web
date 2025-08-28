@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         disponible,
+        statut: disponible ? 'en_ligne' : 'hors_ligne',
         derniere_activite: new Date().toISOString()
       })
     });
