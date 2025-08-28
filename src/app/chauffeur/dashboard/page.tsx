@@ -28,18 +28,22 @@ interface Livraison {
 
 interface Notification {
   id: string;
-  chauffeur_id: string;
+  chauffeur_id?: string;
   message: string;
   titre?: string;
   type: string;
-  read: boolean;
+  read?: boolean;
   created_at: string;
   livraison_id?: string;
   order_id?: string;
   order_number?: string;
   delivery_address?: string;
+  delivery_district?: string;
+  delivery_cost?: number;
   customer_name?: string;
   total_amount?: number;
+  gps_latitude?: number;
+  gps_longitude?: number;
 }
 
 export default function DashboardChauffeur() {
@@ -330,9 +334,10 @@ export default function DashboardChauffeur() {
   const playNotificationSound = () => {
     try {
       const audio = new Audio('/sounds/notification.mp3');
+      audio.volume = 0.5;
       audio.play().catch(e => console.log('Son non joué:', e));
     } catch (error) {
-      console.error('Erreur son:', error);
+      console.log('Erreur son:', error);
     }
   };
 
@@ -388,10 +393,12 @@ export default function DashboardChauffeur() {
 
   const accepterCommande = async (notification: Notification) => {
     try {
-      const deliveryCode = generateDeliveryCode();
+      // Jouer le son de notification
+      playNotificationSound();
       
-      // Mettre à jour la commande avec le chauffeur assigné et le code
-      const response = await fetch('/api/mcp/supabase', {
+      const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/mcp/supabase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -400,31 +407,50 @@ export default function DashboardChauffeur() {
           params: { id: notification.order_id },
           data: {
             assigned_driver_id: chauffeurId,
-            assigned_driver_name: chauffeur?.nom,
-            delivery_code: deliveryCode
+            assigned_driver_name: chauffeurNom,
+            delivery_code: deliveryCode,
+            status: 'En livraison'
           }
         })
       });
 
       if (response.ok) {
         console.log('✅ Commande acceptée avec code:', deliveryCode);
+        
+        // Marquer la notification comme lue
+        if (notification.id) {
+          await marquerNotificationLue(notification.id);
+        }
+        
         setCurrentOrderNotification(null);
+        setShowNotificationOverlay(false);
         await loadData();
+        
+        // Afficher un message de succès
+        alert(`✅ Commande acceptée ! Code de livraison: ${deliveryCode}`);
+      } else {
+        console.error('❌ Erreur lors de l\'acceptation:', response.status);
+        alert('❌ Erreur lors de l\'acceptation de la commande');
       }
     } catch (error) {
       console.error('Erreur acceptation commande:', error);
+      alert('❌ Erreur lors de l\'acceptation de la commande');
     }
   };
 
   const refuserCommande = async (notification: Notification) => {
     try {
       // Marquer la notification comme lue
-      await marquerNotificationLue(notification.id);
+      if (notification.id) {
+        await marquerNotificationLue(notification.id);
+      }
       setCurrentOrderNotification(null);
+      setShowNotificationOverlay(false);
     } catch (error) {
       console.error('Erreur refus commande:', error);
     }
   };
+
 
   const marquerNotificationLue = async (notificationId: string) => {
     try {
@@ -576,7 +602,11 @@ export default function DashboardChauffeur() {
                   order_number: 'TEST-001',
                   customer_name: 'Client Test',
                   delivery_address: '123 Rue Test, Libreville',
+                  delivery_district: 'Akanda',
+                  delivery_cost: 2000,
                   total_amount: 25000,
+                  gps_latitude: 0.4077972,
+                  gps_longitude: 9.4402833,
                   message: 'Nouvelle commande prête pour livraison',
                   created_at: new Date().toISOString()
                 };
@@ -836,22 +866,65 @@ export default function DashboardChauffeur() {
                 </p>
               </div>
 
+              {/* Adresse et quartier */}
               {currentOrderNotification.delivery_address && (
-                <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="bg-gray-50 p-3 rounded-lg space-y-2">
                   <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-gray-500" />
                     <p className="text-sm text-gray-700 font-medium">
                       {currentOrderNotification.delivery_address}
                     </p>
                   </div>
+                  {currentOrderNotification.delivery_district && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                      <p className="text-sm text-blue-700 font-semibold">
+                        Quartier: {currentOrderNotification.delivery_district}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {currentOrderNotification.total_amount && (
-                <div className="text-center">
-                  <p className="text-lg font-bold text-green-600">
-                    {currentOrderNotification.total_amount.toFixed(2)} €
-                  </p>
+              {/* Prix et frais de livraison */}
+              <div className="bg-green-50 p-3 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Montant commande:</span>
+                  <span className="text-lg font-bold text-green-600">
+                    {currentOrderNotification.total_amount?.toLocaleString() || 0} FCFA
+                  </span>
+                </div>
+                {currentOrderNotification.delivery_cost && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Frais livraison:</span>
+                    <span className="text-md font-semibold text-orange-600">
+                      {currentOrderNotification.delivery_cost.toLocaleString()} FCFA
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Lien GPS */}
+              {currentOrderNotification.gps_latitude && currentOrderNotification.gps_longitude && (
+                <div className="flex space-x-2">
+                  <a
+                    href={`https://waze.com/ul?ll=${currentOrderNotification.gps_latitude},${currentOrderNotification.gps_longitude}&navigate=yes`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 px-3 bg-blue-500 text-white rounded-lg text-center text-sm font-medium hover:bg-blue-600 transition-colors"
+                  >
+                    📱 Waze
+                  </a>
+                  <a
+                    href={`https://maps.google.com/maps?q=${currentOrderNotification.gps_latitude},${currentOrderNotification.gps_longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 px-3 bg-green-500 text-white rounded-lg text-center text-sm font-medium hover:bg-green-600 transition-colors"
+                  >
+                    🗺️ Google Maps
+                  </a>
                 </div>
               )}
 
@@ -862,18 +935,18 @@ export default function DashboardChauffeur() {
               </div>
             </div>
 
-            {/* Boutons d'action */}
+            {/* Boutons d'action avec animation */}
             <div className="p-4 bg-gray-50 flex space-x-3">
               <button
                 onClick={() => refuserCommande(currentOrderNotification)}
-                className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+                className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200 flex items-center justify-center space-x-2 animate-pulse hover:animate-none"
               >
                 <X className="w-5 h-5" />
                 <span>Refuser</span>
               </button>
               <button
                 onClick={() => accepterCommande(currentOrderNotification)}
-                className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+                className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center space-x-2 animate-pulse hover:animate-none shadow-lg"
               >
                 <Check className="w-5 h-5" />
                 <span>Accepter</span>
