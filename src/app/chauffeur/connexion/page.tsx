@@ -1,22 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  LogIn, 
-  Phone, 
-  Eye,
-  EyeOff,
-  Car,
-  AlertCircle
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { AlertCircle, Car, Phone, EyeOff, Eye, LogIn } from 'lucide-react';
+import { useChauffeurAuth } from '../../../contexts/ChauffeurAuthContext';
 
 export default function ConnexionChauffeur() {
   const router = useRouter();
+  const { setChauffeurAuth } = useChauffeurAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -48,10 +43,8 @@ export default function ConnexionChauffeur() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Stocker les informations de session
-        localStorage.setItem('chauffeur_token', data.token);
-        localStorage.setItem('chauffeur_id', data.chauffeur.id);
-        localStorage.setItem('chauffeur_nom', data.chauffeur.nom);
+        // Utiliser le contexte d'authentification chauffeur
+        setChauffeurAuth(data.token, data.chauffeur.id, data.chauffeur.nom);
         
         // Rediriger vers le dashboard
         router.push('/chauffeur/dashboard');

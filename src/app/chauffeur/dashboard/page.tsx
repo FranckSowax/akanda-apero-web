@@ -1,31 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Bell, 
-  LogOut,
-  MapPin, 
-  Navigation, 
-  Package, 
-  Phone, 
-  Truck, 
-  User, 
-  CheckCircle, 
-  AlertCircle, 
-  Check, 
-  X,
-  Clock,
-  Euro,
-  TrendingUp,
-  Calendar,
-  Activity,
-  Zap,
-  Star
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { MapPin, Phone, Clock, Package, Bell, BellOff, Navigation, LogOut, CheckCircle, XCircle, User, Truck, Zap, TrendingUp, Calendar, Activity, Euro, X, Check } from 'lucide-react';
+import { useChauffeurAuth } from '../../../contexts/ChauffeurAuthContext';
 
 interface Livraison {
   id: string;
@@ -70,15 +51,10 @@ export default function DashboardChauffeur() {
   const [disponible, setDisponible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [chauffeurId, setChauffeurId] = useState<string | null>(null);
   const [chauffeur, setChauffeur] = useState<any>(null);
 
-  // Initialiser chauffeurId côté client uniquement
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setChauffeurId(localStorage.getItem('chauffeur_id'));
-    }
-  }, []);
+  // Utiliser le contexte d'authentification chauffeur
+  const { chauffeurId, chauffeurNom, isAuthenticated, loading: authLoading, clearChauffeurAuth } = useChauffeurAuth();
 
   useEffect(() => {
     if (chauffeurId) {
@@ -475,53 +451,53 @@ export default function DashboardChauffeur() {
     
     // Mettre le statut à hors_ligne avant de se déconnecter
     try {
-      const currentChauffeurId = localStorage.getItem('chauffeur_id');
-      if (currentChauffeurId) {
-        console.log('🔄 Mise à jour statut hors_ligne pour:', currentChauffeurId);
+      if (chauffeurId) {
+        console.log('🔄 Mise à jour statut hors_ligne pour:', chauffeurId);
         
+        // Essayer d'abord l'API status
         const statusResponse = await fetch('/api/chauffeurs/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chauffeur_id: currentChauffeurId,
+            chauffeur_id: chauffeurId,
             disponible: false
           })
         });
-        
-        if (statusResponse.ok) {
-          console.log('✅ Statut mis à jour: hors_ligne via API status');
-        } else {
-          console.log('⚠️ API status échouée, tentative directe...');
-          // Fallback direct vers Supabase si l'API status échoue
-          const directResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${currentChauffeurId}`, {
+
+        if (!statusResponse.ok) {
+          console.warn('⚠️ API status failed, trying direct Supabase...');
+          
+          // Fallback vers Supabase direct
+          const directResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${chauffeurId}`, {
             method: 'PATCH',
             headers: {
+              'Content-Type': 'application/json',
               'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
               'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-              'Content-Type': 'application/json'
+              'Prefer': 'return=representation'
             },
             body: JSON.stringify({
-              statut: 'hors_ligne',
               disponible: false,
+              statut: 'hors_ligne',
               derniere_activite: new Date().toISOString()
             })
           });
-          
+
           if (directResponse.ok) {
-            console.log('✅ Statut mis à jour: hors_ligne via Supabase direct');
+            console.log('✅ Statut mis à jour via Supabase direct');
           } else {
-            console.error('❌ Échec mise à jour statut déconnexion');
+            console.error('❌ Échec mise à jour statut via Supabase direct');
           }
+        } else {
+          console.log('✅ Statut mis à jour via API');
         }
       }
     } catch (error) {
-      console.error('❌ Erreur mise à jour statut déconnexion:', error);
+      console.error('❌ Erreur mise à jour statut logout:', error);
     }
     
-    if (typeof window !== 'undefined') {
-      localStorage.clear();
-    }
-    console.log('🚪 Déconnexion terminée, redirection...');
+    // Utiliser le contexte pour nettoyer l'authentification
+    clearChauffeurAuth();
     router.push('/chauffeur/connexion');
   };
 
