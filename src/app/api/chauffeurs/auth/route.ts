@@ -33,33 +33,52 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'login') {
-      // Authentification - Utiliser MCP API pour contourner RLS
       console.log('🔍 Tentative de connexion pour:', telephone);
       
-      // Utiliser l'URL relative pour éviter les problèmes de déploiement
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
-      const mcpResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'read',
-          resource: 'chauffeurs',
-          params: { telephone: telephone }
-        })
-      });
+      // Essayer d'abord l'API MCP, puis fallback vers Supabase direct
+      let chauffeurs = [];
+      
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+        const mcpResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'read',
+            resource: 'chauffeurs',
+            params: { telephone: telephone }
+          })
+        });
 
-      if (!mcpResponse.ok) {
-        const errorText = await mcpResponse.text();
-        console.error('❌ Erreur MCP auth:', mcpResponse.status, errorText);
-        return NextResponse.json({ success: false, message: 'Erreur de connexion' }, { status: 500 });
+        if (mcpResponse.ok) {
+          const mcpResult = await mcpResponse.json();
+          chauffeurs = mcpResult.data || [];
+          console.log('✅ MCP API réussi - Chauffeurs trouvés:', chauffeurs.length);
+        } else {
+          throw new Error(`MCP API failed: ${mcpResponse.status}`);
+        }
+      } catch (mcpError) {
+        console.log('⚠️ MCP API échoué, utilisation de Supabase direct:', mcpError);
+        
+        // Fallback vers Supabase direct
+        const supabaseResponse = await fetch(`${SUPABASE_URL}/rest/v1/chauffeurs?telephone=eq.${encodeURIComponent(telephone)}`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY!,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY!}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (supabaseResponse.ok) {
+          chauffeurs = await supabaseResponse.json();
+          console.log('✅ Supabase direct réussi - Chauffeurs trouvés:', chauffeurs.length);
+        } else {
+          console.error('❌ Supabase direct échoué:', await supabaseResponse.text());
+          return NextResponse.json({ success: false, message: 'Erreur de connexion' }, { status: 500 });
+        }
       }
-
-      const mcpResult = await mcpResponse.json();
-      console.log('📊 Résultat MCP:', mcpResult);
-      const chauffeurs = mcpResult.data || [];
-      console.log('📊 Chauffeurs trouvés:', chauffeurs.length, chauffeurs);
       
       if (chauffeurs.length === 0) {
         console.log('❌ Aucun chauffeur trouvé pour téléphone:', telephone);
@@ -92,35 +111,61 @@ export async function POST(request: NextRequest) {
         { expiresIn: '7d' }
       );
 
-      // Mettre à jour la dernière connexion via MCP API
+      // Mettre à jour la dernière connexion avec fallback
       console.log('🔄 Mise à jour statut connexion pour chauffeur:', chauffeur.id);
-      const updateResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'update',
-          resource: 'chauffeurs',
-          params: {
-            id: chauffeur.id
+      
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+        const updateResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
           },
-          data: {
+          body: JSON.stringify({
+            action: 'update',
+            resource: 'chauffeurs',
+            params: {
+              id: chauffeur.id
+            },
+            data: {
+              derniere_connexion: new Date().toISOString(),
+              statut: 'en_ligne'
+            }
+          })
+        });
+
+        if (updateResponse.ok) {
+          const updateResult = await updateResponse.json();
+          if (updateResult.success) {
+            console.log('✅ Statut mis à jour via MCP: en_ligne pour', chauffeur.nom);
+          } else {
+            throw new Error(`MCP update failed: ${updateResult.error}`);
+          }
+        } else {
+          throw new Error(`MCP update request failed: ${updateResponse.status}`);
+        }
+      } catch (updateError) {
+        console.log('⚠️ MCP update échoué, utilisation de Supabase direct:', updateError);
+        
+        // Fallback vers Supabase direct pour la mise à jour
+        const directUpdateResponse = await fetch(`${SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${chauffeur.id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY!,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY!}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             derniere_connexion: new Date().toISOString(),
             statut: 'en_ligne'
-          }
-        })
-      });
+          })
+        });
 
-      if (updateResponse.ok) {
-        const updateResult = await updateResponse.json();
-        if (updateResult.success) {
-          console.log('✅ Statut mis à jour: en_ligne pour', chauffeur.nom);
+        if (directUpdateResponse.ok) {
+          console.log('✅ Statut mis à jour via Supabase direct: en_ligne pour', chauffeur.nom);
         } else {
-          console.error('❌ Erreur MCP mise à jour statut:', updateResult.error);
+          console.error('❌ Erreur mise à jour Supabase direct:', await directUpdateResponse.text());
         }
-      } else {
-        console.error('❌ Erreur requête mise à jour statut:', await updateResponse.text());
       }
 
       return NextResponse.json({
