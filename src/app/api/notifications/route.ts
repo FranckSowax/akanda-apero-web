@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
           type,
           chauffeur_id,
           livraison_id: commande_id,
+          order_id: commande_id,
           titre: 'Nouvelle commande disponible',
           message,
           read: false

@@ -5,28 +5,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { order_id, status, previous_status } = body;
 
-    // Vérifier si le statut est passé à "en préparation"
-    if (status === 'en préparation' && previous_status !== 'en préparation') {
-      console.log(`Commande ${order_id} passée en préparation - envoi notifications`);
+    // Vérifier si le statut est passé à "En préparation" (avec majuscule)
+    console.log(`🔍 Webhook reçu - Status: "${status}", Previous: "${previous_status}"`);
+    
+    if (status === 'En préparation' && previous_status !== 'En préparation') {
+      console.log(`✅ Commande ${order_id} passée en préparation - envoi notifications`);
 
-      // Récupérer les chauffeurs disponibles
-      const chauffeursResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
+      // Récupérer les chauffeurs en ligne (disponibles)
+      const chauffeursResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/mcp/supabase`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'read',
           resource: 'chauffeurs',
-          params: {
-            disponible: 'eq.true'
-          }
+          action: 'read',
+          params: { statut: 'en_ligne' }
         })
       });
 
       if (chauffeursResponse.ok) {
         const chauffeursResult = await chauffeursResponse.json();
         const chauffeurs = chauffeursResult.data || [];
+        console.log(`📱 ${chauffeurs.length} chauffeurs en ligne trouvés:`, chauffeurs.map((c: any) => ({ id: c.id, nom: c.nom })));
 
         // Récupérer les détails de la commande
         const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
@@ -107,7 +106,9 @@ export async function POST(request: NextRequest) {
 
             // 3. Envoyer notification à tous les chauffeurs disponibles
             for (const chauffeur of chauffeurs) {
-              await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/notifications`, {
+              console.log(`📤 Envoi notification à chauffeur ${chauffeur.id} (${chauffeur.nom})`);
+              
+              const notificationResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/notifications`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -119,9 +120,15 @@ export async function POST(request: NextRequest) {
                   message: `Nouvelle commande prête pour livraison: ${order.nom_client || 'Client'} - ${order.adresse_livraison || 'Adresse non spécifiée'}`
                 })
               });
+
+              if (notificationResponse.ok) {
+                console.log(`✅ Notification envoyée avec succès à ${chauffeur.nom}`);
+              } else {
+                console.error(`❌ Erreur envoi notification à ${chauffeur.nom}:`, await notificationResponse.text());
+              }
             }
 
-            console.log(`📱 Notifications envoyées à ${chauffeurs.length} chauffeurs disponibles`);
+            console.log(`📱 Notifications traitées pour ${chauffeurs.length} chauffeurs disponibles`);
           }
         }
       }

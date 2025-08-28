@@ -138,6 +138,9 @@ export async function POST(request: NextRequest) {
           if (params?.disponible) {
             chauffeurUrl += `&disponible=${params.disponible}`;
           }
+          if (params?.statut) {
+            chauffeurUrl += `&statut=${params.statut}`;
+          }
           if (params?.telephone) {
             chauffeurUrl += `&telephone=eq.${encodeURIComponent(params.telephone)}`;
           }
@@ -175,7 +178,11 @@ export async function POST(request: NextRequest) {
           });
 
           if (!updateChauffeurResponse.ok) {
-            throw new Error(`Erreur Supabase: ${updateChauffeurResponse.status}`);
+            const errorText = await updateChauffeurResponse.text();
+            console.error('❌ MCP - Erreur update chauffeur:', updateChauffeurResponse.status, errorText);
+            console.error('❌ MCP - URL utilisée:', updateChauffeurUrl);
+            console.error('❌ MCP - Data envoyée:', JSON.stringify(data));
+            throw new Error(`Erreur Supabase: ${updateChauffeurResponse.status} - ${errorText}`);
           }
 
           const updatedChauffeur = await updateChauffeurResponse.json();
@@ -255,8 +262,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Gestion des commandes
-    if (resource === 'commandes') {
+    // Gestion des commandes (orders et commandes)
+    if (resource === 'commandes' || resource === 'orders') {
       switch (action) {
         case 'read':
           let commandeUrl = `${supabaseUrl}/rest/v1/orders?select=*`;

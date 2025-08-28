@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function POST(request: NextRequest) {
@@ -11,8 +11,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, telephone, password, chauffeurData } = body;
     
-    console.log('🔐 API Auth - Action:', action);
-    console.log('🔐 API Auth - Body:', { action, telephone: telephone ? '***' : 'missing', password: password ? '***' : 'missing' });
+    console.log('🔐 API Auth Chauffeur - Action:', action);
+    console.log('🔧 Variables d\'environnement Auth:', { 
+      SUPABASE_URL: !!SUPABASE_URL, 
+      SUPABASE_ANON_KEY: !!SUPABASE_ANON_KEY 
+    });
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error('❌ Variables d\'environnement manquantes dans auth');
+      return NextResponse.json({ success: false, message: 'Configuration serveur manquante' }, { status: 500 });
+    }
     
     if (action === 'register') {
       console.log('📝 Données chauffeur inscription:', {
@@ -82,18 +90,36 @@ export async function POST(request: NextRequest) {
         { expiresIn: '7d' }
       );
 
-      // Mettre à jour la dernière connexion
-      await fetch(`${SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${chauffeur.id}`, {
-        method: 'PATCH',
+      // Mettre à jour la dernière connexion via MCP API
+      console.log('🔄 Mise à jour statut connexion pour chauffeur:', chauffeur.id);
+      const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
+        method: 'POST',
         headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          derniere_connexion: new Date().toISOString()
+          action: 'update',
+          resource: 'chauffeurs',
+          params: {
+            id: chauffeur.id
+          },
+          data: {
+            derniere_connexion: new Date().toISOString(),
+            statut: 'en_ligne'
+          }
         })
       });
+
+      if (updateResponse.ok) {
+        const updateResult = await updateResponse.json();
+        if (updateResult.success) {
+          console.log('✅ Statut mis à jour: en_ligne pour', chauffeur.nom);
+        } else {
+          console.error('❌ Erreur MCP mise à jour statut:', updateResult.error);
+        }
+      } else {
+        console.error('❌ Erreur requête mise à jour statut:', await updateResponse.text());
+      }
 
       return NextResponse.json({
         success: true,
@@ -167,8 +193,8 @@ export async function POST(request: NextRequest) {
         // Récupérer les informations actuelles du chauffeur
         const response = await fetch(`${SUPABASE_URL}/rest/v1/chauffeurs?id=eq.${decoded.chauffeurId}`, {
           headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY!,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY!}`,
             'Content-Type': 'application/json'
           }
         });

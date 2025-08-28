@@ -12,15 +12,16 @@ import {
   Truck, 
   User, 
   CheckCircle, 
+  AlertCircle, 
+  Check, 
+  X,
   Clock,
   Euro,
   TrendingUp,
   Calendar,
   Activity,
   Zap,
-  Star,
-  AlertCircle,
-  X
+  Star
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
@@ -53,6 +54,11 @@ interface Notification {
   read: boolean;
   created_at: string;
   livraison_id?: string;
+  order_id?: string;
+  order_number?: string;
+  delivery_address?: string;
+  customer_name?: string;
+  total_amount?: number;
 }
 
 export default function DashboardChauffeur() {
@@ -60,6 +66,7 @@ export default function DashboardChauffeur() {
   const [livraisons, setLivraisons] = useState<Livraison[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotificationOverlay, setShowNotificationOverlay] = useState(false);
+  const [currentOrderNotification, setCurrentOrderNotification] = useState<Notification | null>(null);
   const [disponible, setDisponible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -99,7 +106,21 @@ export default function DashboardChauffeur() {
       if (typeof window === 'undefined') return;
       const currentChauffeurId = localStorage.getItem('chauffeur_id');
       
-      await fetch('/api/chauffeurs/status', {
+      if (!currentChauffeurId) {
+        console.warn('Pas de chauffeur_id trouvé dans localStorage');
+        return;
+      }
+
+      // Validation UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(currentChauffeurId)) {
+        console.error('ID chauffeur invalide (pas un UUID):', currentChauffeurId);
+        // Rediriger vers la page de connexion
+        window.location.href = '/chauffeur/connexion';
+        return;
+      }
+      
+      const response = await fetch('/api/chauffeurs/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,10 +128,16 @@ export default function DashboardChauffeur() {
           disponible: disponible
         })
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erreur mise à jour heartbeat:', response.status, errorText);
+      }
     } catch (error) {
       console.error('Erreur heartbeat:', error);
     }
   };
+
 
   const checkAuth = async () => {
     if (typeof window === 'undefined') return;
@@ -159,8 +186,14 @@ export default function DashboardChauffeur() {
         const notificationsData = await notificationsResponse.json();
         setNotifications(notificationsData.notifications || []);
         
-        // Afficher overlay si nouvelles notifications non lues
+        // Afficher overlay si nouvelles notifications de commande
         const unreadNotifications = notificationsData.notifications?.filter((n: any) => !n.read) || [];
+        const orderNotifications = unreadNotifications.filter((n: any) => n.type === 'nouvelle_commande');
+        
+        if (orderNotifications.length > 0 && !currentOrderNotification) {
+          setCurrentOrderNotification(orderNotifications[0]);
+        }
+        
         if (unreadNotifications.length > 0) {
           setShowNotificationOverlay(true);
         }
@@ -173,65 +206,54 @@ export default function DashboardChauffeur() {
   };
 
   const startLocationTracking = () => {
-    if ('geolocation' in navigator) {
-      const handleLocationSuccess = (position: GeolocationPosition) => {
-        const { latitude, longitude } = position.coords;
-        setPosition({ lat: latitude, lng: longitude });
-        updateLocation(latitude, longitude);
-      };
+    if (!navigator.geolocation) {
+      console.warn('Géolocalisation non supportée par ce navigateur');
+      return;
+    }
 
-      const handleLocationError = (error: GeolocationPositionError) => {
-        console.error('Erreur géolocalisation:', {
-          code: error.code,
-          message: error.message,
-          PERMISSION_DENIED: error.PERMISSION_DENIED,
-          POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
-          TIMEOUT: error.TIMEOUT
-        });
-        
-        // Gestion des erreurs de géolocalisation
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            console.warn('Permission de géolocalisation refusée');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            console.warn('Position non disponible');
-            break;
-          case error.TIMEOUT:
-            console.warn('Timeout de géolocalisation');
-            break;
-          default:
-            console.warn('Erreur géolocalisation inconnue');
-        }
-      };
+    const handleLocationSuccess = (position: GeolocationPosition) => {
+      const { latitude, longitude } = position.coords;
+      console.log('Position mise à jour:', { latitude, longitude });
+      
+      setPosition({ lat: latitude, lng: longitude });
+      updateLocation(latitude, longitude);
+    };
 
-      const locationOptions: PositionOptions = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      };
+    const handleLocationError = (error: GeolocationPositionError) => {
+      // Réduire le niveau de log pour éviter le spam
+      console.warn('Géolocalisation indisponible:', {
+        code: error.code,
+        message: error.message
+      });
+      
+      // Continuer sans géolocalisation - ne pas bloquer l'app
+      // Le chauffeur peut toujours recevoir des notifications
+    };
 
-      // Position initiale
+    const locationOptions: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
+    };
+
+    // Position initiale
+    navigator.geolocation.getCurrentPosition(
+      handleLocationSuccess,
+      handleLocationError,
+      locationOptions
+    );
+
+    // Mise à jour périodique de la position
+    const locationInterval = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         handleLocationSuccess,
         handleLocationError,
         locationOptions
       );
+    }, 30000); // Toutes les 30 secondes
 
-      // Mise à jour périodique de la position
-      const locationInterval = setInterval(() => {
-        navigator.geolocation.getCurrentPosition(
-          handleLocationSuccess,
-          handleLocationError,
-          locationOptions
-        );
-      }, 30000); // Toutes les 30 secondes
-
-      // Nettoyer l'interval au démontage du composant
-      return () => clearInterval(locationInterval);
-    } else {
-      console.error('Géolocalisation non supportée par ce navigateur');
-    }
+    // Nettoyer l'interval au démontage du composant
+    return () => clearInterval(locationInterval);
   };
 
   const updateLocation = async (lat: number, lng: number) => {
@@ -307,6 +329,20 @@ export default function DashboardChauffeur() {
     try {
       if (typeof window === 'undefined') return;
       const currentChauffeurId = localStorage.getItem('chauffeur_id');
+      
+      if (!currentChauffeurId) {
+        console.warn('Pas de chauffeur_id pour changer disponibilité');
+        return;
+      }
+
+      // Validation UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(currentChauffeurId)) {
+        console.error('ID chauffeur invalide pour changement disponibilité:', currentChauffeurId);
+        window.location.href = '/chauffeur/connexion';
+        return;
+      }
+      
       const newStatus = !disponible;
       
       const response = await fetch('/api/chauffeurs/status', {
@@ -320,29 +356,62 @@ export default function DashboardChauffeur() {
 
       if (response.ok) {
         setDisponible(newStatus);
+      } else {
+        const errorText = await response.text();
+        console.error('Erreur changement disponibilité:', response.status, errorText);
       }
     } catch (error) {
       console.error('Erreur changement statut:', error);
     }
   };
 
-  const accepterLivraison = async (livraisonId: string) => {
+  // Générer un code de livraison unique (5 caractères alphanumériques)
+  const generateDeliveryCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const accepterCommande = async (notification: Notification) => {
     try {
-      const response = await fetch('/api/chauffeurs/livraisons', {
-        method: 'PATCH',
+      const deliveryCode = generateDeliveryCode();
+      
+      // Mettre à jour la commande avec le chauffeur assigné et le code
+      const response = await fetch('/api/mcp/supabase', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          livraison_id: livraisonId,
-          action: 'accepter'
+          action: 'update',
+          resource: 'orders',
+          params: { id: notification.order_id },
+          data: {
+            assigned_driver_id: chauffeurId,
+            assigned_driver_name: chauffeur?.nom,
+            delivery_code: deliveryCode
+          }
         })
       });
 
       if (response.ok) {
+        console.log('✅ Commande acceptée avec code:', deliveryCode);
+        setCurrentOrderNotification(null);
         await loadData();
-        setShowNotificationOverlay(false);
       }
     } catch (error) {
-      console.error('Erreur acceptation livraison:', error);
+      console.error('Erreur acceptation commande:', error);
+    }
+  };
+
+  const refuserCommande = async (notification: Notification) => {
+    try {
+      // Marquer la notification comme lue
+      await marquerNotificationLue(notification.id);
+      setCurrentOrderNotification(null);
+    } catch (error) {
+      console.error('Erreur refus commande:', error);
     }
   };
 
@@ -365,10 +434,32 @@ export default function DashboardChauffeur() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    console.log('🚪 Déconnexion chauffeur en cours...');
+    
+    // Mettre le statut à hors_ligne avant de se déconnecter
+    try {
+      const currentChauffeurId = localStorage.getItem('chauffeur_id');
+      if (currentChauffeurId) {
+        console.log('🔄 Mise à jour statut hors_ligne pour:', currentChauffeurId);
+        await fetch('/api/chauffeurs/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chauffeur_id: currentChauffeurId,
+            disponible: false
+          })
+        });
+        console.log('✅ Statut mis à jour: hors_ligne');
+      }
+    } catch (error) {
+      console.error('❌ Erreur mise à jour statut déconnexion:', error);
+    }
+    
     if (typeof window !== 'undefined') {
       localStorage.clear();
     }
+    console.log('🚪 Déconnexion terminée, redirection...');
     router.push('/chauffeur/connexion');
   };
 
@@ -560,7 +651,7 @@ export default function DashboardChauffeur() {
                 <div className="flex-1">
                   <p className="font-bold text-gray-900">📍 Ma position</p>
                   <p className="text-sm text-gray-600">
-                    {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
+                    {position?.lat?.toFixed(4) || 'N/A'}, {position?.lng?.toFixed(4) || 'N/A'}
                   </p>
                   <p className="text-xs text-green-600 font-medium">✅ Géolocalisation active</p>
                 </div>
@@ -658,115 +749,107 @@ export default function DashboardChauffeur() {
         )}
       </div>
 
-      {/* Overlay de notifications moderne */}
-      {showNotificationOverlay && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white/95 backdrop-blur rounded-2xl w-full max-w-md max-h-96 overflow-hidden shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Notifications</h3>
-                  <p className="text-sm text-gray-600">
-                    {notifications.filter(n => !n.read).length} non lues
-                  </p>
-                </div>
+      {/* Overlay de notification pour nouvelle commande */}
+      {currentOrderNotification && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-pulse-slow">
+            {/* Header avec icône */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 p-4 text-center">
+              <div className="w-16 h-16 bg-white rounded-full mx-auto mb-2 flex items-center justify-center">
+                <Truck className="w-8 h-8 text-orange-500" />
               </div>
-              <button
-                onClick={() => setShowNotificationOverlay(false)}
-                className="p-2 hover:bg-white/50 rounded-xl transition-all duration-200"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
+              <h3 className="text-xl font-bold text-white">Nouvelle Commande</h3>
+              <p className="text-orange-100 text-sm">Une commande vous attend !</p>
             </div>
-            
-            <div className="overflow-y-auto max-h-80">
-              {notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Bell className="w-8 h-8 text-gray-400" />
+
+            {/* Contenu de la commande */}
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-800 mb-1">
+                  #{currentOrderNotification.order_number || 'N/A'}
+                </p>
+                <p className="text-gray-600">
+                  {currentOrderNotification.customer_name || 'Client'}
+                </p>
+              </div>
+
+              {currentOrderNotification.delivery_address && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    <p className="text-sm text-gray-700 font-medium">
+                      {currentOrderNotification.delivery_address}
+                    </p>
                   </div>
-                  <h4 className="font-bold text-gray-900 mb-2">Tout est calme! 🔕</h4>
-                  <p className="text-gray-600">Aucune notification pour le moment</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 transition-all duration-200 ${
-                        !notification.read 
-                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-l-blue-500' 
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                            )}
-                            <p className={`font-bold ${!notification.read ? 'text-blue-900' : 'text-gray-900'}`}>
-                              {notification.titre}
-                            </p>
-                          </div>
-                          <p className="text-gray-700 mb-3 leading-relaxed">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="w-3 h-3 text-gray-400" />
-                            <p className="text-xs text-gray-500 font-medium">
-                              {new Date().toLocaleString('fr-FR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                          {notification.type === 'nouvelle_livraison' && notification.livraison_id && (
-                            <div className="flex space-x-2 mt-3">
-                              <Button 
-                                size="sm" 
-                                className="bg-green-500 hover:bg-green-600 text-white"
-                                onClick={() => accepterLivraison(notification.livraison_id!)}
-                              >
-                                Accepter
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                Refuser
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {!notification.read && (
-                        <div className="flex flex-col items-center">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full mb-1"></div>
-                          <span className="text-xs text-blue-600 font-bold">NOUVEAU</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
                 </div>
               )}
-            </div>
-            
-            {notifications.filter(n => !n.read).length > 0 && (
-              <div className="p-4 border-t border-gray-200/50 bg-gray-50/50">
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl"
-                  onClick={() => {
-                    // Marquer toutes comme lues
-                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                  }}
-                >
-                  ✅ Tout marquer comme lu
-                </Button>
+
+              {currentOrderNotification.total_amount && (
+                <div className="text-center">
+                  <p className="text-lg font-bold text-green-600">
+                    {currentOrderNotification.total_amount.toFixed(2)} €
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-800 text-center">
+                  {currentOrderNotification.message}
+                </p>
               </div>
-            )}
+            </div>
+
+            {/* Boutons d'action */}
+            <div className="p-4 bg-gray-50 flex space-x-3">
+              <button
+                onClick={() => refuserCommande(currentOrderNotification)}
+                className="flex-1 py-3 px-4 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+              >
+                <X className="w-5 h-5" />
+                <span>Refuser</span>
+              </button>
+              <button
+                onClick={() => accepterCommande(currentOrderNotification)}
+                className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+              >
+                <Check className="w-5 h-5" />
+                <span>Accepter</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de notification général */}
+      {showNotificationOverlay && !currentOrderNotification && notifications.filter(n => !n.read).length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4 text-gray-800">Nouvelles notifications</h3>
+            <div className="space-y-3">
+              {notifications.filter(n => !n.read && n.type !== 'nouvelle_commande').map((notification) => (
+                <div key={notification.id} className="p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      {notification.titre && (
+                        <h4 className="font-medium text-gray-800 mb-1">{notification.titre}</h4>
+                      )}
+                      <p className="text-sm text-gray-600">{notification.message}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(notification.created_at).toLocaleString('fr-FR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowNotificationOverlay(false)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}

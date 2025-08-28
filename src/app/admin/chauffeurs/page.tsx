@@ -92,16 +92,11 @@ export default function ChauffeursPage() {
       console.log('🔍 Vérification statuts en ligne pour', dataToCheck.length, 'chauffeurs');
       
       dataToCheck.forEach(chauffeur => {
-        const lastActivity = chauffeur.derniere_activite ? new Date(chauffeur.derniere_activite) : null;
-        const now = new Date();
-        const timeDiff = lastActivity ? (now.getTime() - lastActivity.getTime()) : Infinity;
-        const isOnline = timeDiff < 60000; // En ligne si activité < 1 min
+        // Nouvelle logique : utiliser le champ statut directement
+        const isOnline = chauffeur.statut === 'en_ligne';
         
         console.log(`👤 ${chauffeur.nom} (ID: ${chauffeur.id}):`, {
-          derniere_activite: chauffeur.derniere_activite,
-          lastActivity: lastActivity?.toISOString(),
-          now: now.toISOString(),
-          timeDiff: Math.round(timeDiff / 1000) + 's',
+          statut: chauffeur.statut,
           isOnline,
           email: chauffeur.email,
           telephone: chauffeur.telephone

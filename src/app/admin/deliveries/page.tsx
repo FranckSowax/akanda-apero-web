@@ -45,6 +45,9 @@ interface OrderWithCustomer {
   status: string;
   created_at: string;
   updated_at: string;
+  delivery_code?: string;
+  assigned_driver_id?: string;
+  assigned_driver_name?: string;
 }
 
 // Types pour les filtres
@@ -152,12 +155,66 @@ const DeliveriesPage = () => {
     return `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`;
   };
 
+  // Générer un code de livraison unique
+  const generateDeliveryCode = () => {
+    return Math.random().toString(36).substr(2, 7).toUpperCase();
+  };
+
+  // Attribuer automatiquement un chauffeur disponible
+  const assignRandomDriver = () => {
+    const availableDrivers = chauffeurs.filter(c => c.disponible);
+    if (availableDrivers.length > 0) {
+      const randomIndex = Math.floor(Math.random() * availableDrivers.length);
+      return availableDrivers[randomIndex];
+    }
+    return null;
+  };
+
   // Mettre à jour le statut d'une livraison
   const handleStatusUpdate = async (livraisonId: string, newStatus: string) => {
     try {
       console.log(`Mise à jour statut livraison ${livraisonId} vers ${newStatus}`);
-      // Pour l'instant, juste recharger les données
-      await loadData();
+      
+      // Seulement mettre à jour le statut - pas d'attribution automatique
+      const updateData = { 
+        status: newStatus
+      };
+      
+      // Mettre à jour le statut via l'API MCP
+      const response = await fetch('/api/mcp/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'update',
+          resource: 'orders',
+          params: { id: livraisonId },
+          data: updateData
+        })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        console.log('✅ Statut mis à jour avec succès');
+        
+        // Mettre à jour l'état local immédiatement pour un feedback instantané
+        setLivraisons(prevLivraisons => 
+          prevLivraisons.map(livraison => 
+            livraison.id === livraisonId 
+              ? { 
+                  ...livraison, 
+                  status: newStatus
+                }
+              : livraison
+          )
+        );
+        
+        // Recharger les données pour synchroniser avec la base
+        setTimeout(() => loadData(), 1000);
+      } else {
+        console.error('❌ Erreur lors de la mise à jour:', result.error);
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
     }
@@ -354,13 +411,13 @@ const DeliveriesPage = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-gray-600">Nom:</span>
                             <span className="font-medium text-gray-900">
-                              {livraison.customers?.name || 'Non renseigné'}
+                              {livraison.customers?.name || 'FRANCK SOWAX'}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-gray-600">Téléphone:</span>
                             <span className="font-medium text-gray-900">
-                              {livraison.customers?.phone || 'Non renseigné'}
+                              {livraison.customers?.phone || '+33624576620'}
                             </span>
                           </div>
                         </div>
@@ -404,7 +461,7 @@ const DeliveriesPage = () => {
                       <p className="text-gray-800 font-medium">{livraison.delivery_address}</p>
                       {livraison.delivery_district && (
                         <p className="text-sm text-gray-600 mt-1">
-                          District: {livraison.delivery_district}
+                          Quartier: {livraison.delivery_district}
                         </p>
                       )}
                       {livraison.gps_latitude && livraison.gps_longitude && (
@@ -466,22 +523,77 @@ const DeliveriesPage = () => {
                         </Button>
                       )}
 
+                      {/* Attribution chauffeur par validation */}
+                      <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-100">
+                        <h5 className="font-medium text-gray-900 mb-3 flex items-center">
+                          <UserCheck className="w-4 h-4 mr-2 text-purple-600" />
+                          Attribution Chauffeur
+                        </h5>
+                        
+                        {livraison.assigned_driver_name && livraison.delivery_code ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between p-2 bg-white rounded border">
+                              <span className="text-sm text-gray-600">Chauffeur validé:</span>
+                              <span className="font-medium text-gray-900">
+                                {livraison.assigned_driver_name}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-white rounded border">
+                              <span className="text-sm text-gray-600">Code de validation:</span>
+                              <span className="font-mono font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded">
+                                {livraison.delivery_code}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-2 p-2 bg-green-50 rounded border border-green-200">
+                              ✅ Course validée - Code à présenter au client
+                            </div>
+                          </div>
+                        ) : livraison.status === 'En livraison' ? (
+                          <div className="text-center p-3 bg-orange-50 rounded border border-orange-200">
+                            <div className="flex items-center justify-center mb-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
+                              <span className="ml-2 text-sm text-orange-700 font-medium">
+                                En attente de validation chauffeur
+                              </span>
+                            </div>
+                            <p className="text-xs text-orange-600">
+                              Un chauffeur doit valider cette course pour générer le code
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center p-3 bg-white rounded border border-dashed border-gray-300">
+                            <p className="text-sm text-gray-500">
+                              Attribution après validation par un chauffeur
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Statut et actions */}
                       <div className="pt-3 border-t border-gray-300">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm font-medium text-gray-600">Statut:</span>
-                          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                            Prêt à livrer
+                          <Badge className={`${
+                            livraison.status === 'En livraison' 
+                              ? 'bg-blue-100 text-blue-800 border-blue-200'
+                              : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          }`}>
+                            {livraison.status === 'En livraison' ? 'En livraison' : 'Prêt à livrer'}
                           </Badge>
                         </div>
                         
                         <Button
                           size="sm"
-                          className="w-full bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleStatusUpdate(livraison.id, 'en_livraison')}
+                          className={`w-full text-white ${
+                            livraison.status === 'En livraison'
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                          onClick={() => handleStatusUpdate(livraison.id, 'En livraison')}
+                          disabled={livraison.status === 'En livraison'}
                         >
                           <Truck className="w-4 h-4 mr-2" />
-                          Marquer en livraison
+                          {livraison.status === 'En livraison' ? 'En cours de livraison' : 'Marquer en livraison'}
                         </Button>
                       </div>
                     </div>
