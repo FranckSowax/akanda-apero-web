@@ -62,12 +62,15 @@ export default function DashboardChauffeur() {
       loadData();
       const cleanupLocation = startLocationTracking();
       
+      // Immédiatement marquer comme "en ligne" à la connexion
+      updateHeartbeat();
+      
       // Polling pour notifications temps réel ET mise à jour activité
       const notificationInterval = setInterval(() => {
         loadData();
         // Mettre à jour l'activité pour rester "en ligne"
         updateHeartbeat();
-      }, 3000); // Vérifier toutes les 3 secondes
+      }, 10000); // Vérifier toutes les 10 secondes (réduit la fréquence)
       
       return () => {
         clearInterval(notificationInterval);
@@ -79,20 +82,16 @@ export default function DashboardChauffeur() {
   // Fonction pour maintenir le chauffeur "en ligne"
   const updateHeartbeat = async () => {
     try {
-      if (typeof window === 'undefined') return;
-      const currentChauffeurId = localStorage.getItem('chauffeur_id');
+      if (typeof window === 'undefined' || !chauffeurId) return;
       
-      if (!currentChauffeurId) {
-        console.warn('Pas de chauffeur_id trouvé dans localStorage');
-        return;
-      }
+      console.log('💓 Heartbeat - Mise à jour statut pour:', chauffeurId);
 
       // Validation UUID
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(currentChauffeurId)) {
-        console.error('ID chauffeur invalide (pas un UUID):', currentChauffeurId);
-        // Rediriger vers la page de connexion
-        window.location.href = '/chauffeur/connexion';
+      if (!uuidRegex.test(chauffeurId)) {
+        console.error('ID chauffeur invalide (pas un UUID):', chauffeurId);
+        clearChauffeurAuth();
+        router.push('/chauffeur/connexion');
         return;
       }
       
@@ -100,17 +99,19 @@ export default function DashboardChauffeur() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chauffeur_id: currentChauffeurId,
-          disponible: disponible
+          chauffeur_id: chauffeurId,
+          disponible: true // Forcer à true car connecté = disponible
         })
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        console.log('✅ Heartbeat - Statut mis à jour: en_ligne');
+      } else {
         const errorText = await response.text();
-        console.error('Erreur mise à jour heartbeat:', response.status, errorText);
+        console.error('❌ Erreur mise à jour heartbeat:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Erreur heartbeat:', error);
+      console.error('❌ Erreur heartbeat:', error);
     }
   };
 
@@ -147,7 +148,7 @@ export default function DashboardChauffeur() {
 
   const loadData = async () => {
     try {
-      const chauffeurId = localStorage.getItem('chauffeur_id');
+      if (!chauffeurId) return;
       
       // Charger les livraisons assignées
       const livraisonsResponse = await fetch(`/api/chauffeurs/livraisons?chauffeur_id=${chauffeurId}`);
@@ -242,28 +243,30 @@ export default function DashboardChauffeur() {
 
   const updateLocation = async (lat: number, lng: number) => {
     try {
-      if (typeof window === 'undefined') return;
-      const currentChauffeurId = localStorage.getItem('chauffeur_id');
+      if (typeof window === 'undefined' || !chauffeurId) return;
       
       // Mettre à jour la position GPS
       await fetch('/api/chauffeurs/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chauffeur_id: currentChauffeurId,
+          chauffeur_id: chauffeurId,
           latitude: lat,
           longitude: lng,
           timestamp: new Date().toISOString()
         })
       });
 
-      // Mettre à jour la dernière activité pour le statut en ligne
-      await fetch('/api/chauffeurs/status', {
+      // Mettre à jour l'état local
+      setPosition({ lat, lng });
+      
+      // Mettre à jour le heartbeat avec la position
+      await fetch('/api/chauffeurs/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chauffeur_id: currentChauffeurId,
-          disponible: disponible // Garder le statut actuel
+          chauffeur_id: chauffeurId,
+          disponible: true // Connecté = disponible
         })
       });
     } catch (error) {
