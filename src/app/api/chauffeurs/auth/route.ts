@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       // Authentification - Utiliser MCP API pour contourner RLS
       console.log('🔍 Tentative de connexion pour:', telephone);
       
-      const mcpResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
+      // Utiliser l'URL relative pour éviter les problèmes de déploiement
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+      const mcpResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
 
       // Mettre à jour la dernière connexion via MCP API
       console.log('🔄 Mise à jour statut connexion pour chauffeur:', chauffeur.id);
-      const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
+      const updateResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

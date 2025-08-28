@@ -13,8 +13,25 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 let supabaseClientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null;
 
-export const supabase = supabaseInstance || (supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey))
-export const supabaseClient = supabaseClientInstance || (supabaseClientInstance = createClientComponentClient<Database>())
+export const getSupabase = () => {
+  if (!supabaseInstance) {
+    console.log('🔧 Création d\'une nouvelle instance Supabase (singleton)');
+    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  }
+  return supabaseInstance;
+};
+
+export const getSupabaseClient = () => {
+  if (!supabaseClientInstance) {
+    console.log('🔧 Création d\'une nouvelle instance Supabase Client (singleton)');
+    supabaseClientInstance = createClientComponentClient<Database>();
+  }
+  return supabaseClientInstance;
+};
+
+// Export des instances pour compatibilité
+export const supabase = getSupabase();
+export const supabaseClient = getSupabaseClient();
 
 // Types pour la base de données Akanda Apéro
 export type Database = {
