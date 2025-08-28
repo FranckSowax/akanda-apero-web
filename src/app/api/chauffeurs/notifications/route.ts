@@ -171,3 +171,54 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// PATCH - Marquer une notification comme lue
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { notification_id, read } = body;
+
+    if (!notification_id) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'notification_id requis' 
+      }, { status: 400 });
+    }
+
+    const updateUrl = `${supabaseUrl}/rest/v1/chauffeur_notifications?id=eq.${notification_id}`;
+    const updateResponse = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ read: read !== undefined ? read : true })
+    });
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('❌ Erreur mise à jour notification:', updateResponse.status, errorText);
+      return NextResponse.json({ 
+        success: false, 
+        error: `Erreur API: ${updateResponse.status}` 
+      }, { status: updateResponse.status });
+    }
+
+    const updatedNotification = await updateResponse.json();
+    console.log('✅ Notification marquée comme lue:', notification_id);
+
+    return NextResponse.json({ 
+      success: true, 
+      data: updatedNotification 
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur mise à jour notification:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Erreur interne du serveur' 
+    }, { status: 500 });
+  }
+}

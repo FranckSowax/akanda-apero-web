@@ -123,8 +123,26 @@ export type Database = {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mcdpzoisorbnhkjhljaj.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZHB6b2lzb3JibmhramhsamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjM3ODQsImV4cCI6MjA2MjE5OTc4NH0.S4omBGzpY3_8TEYJD2YBQwoyZg67nBOEJIUrZ4pZkcA';
 
-// Configuration améliorée pour éviter les erreurs 400 refresh_token
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+// Singleton pour éviter les multiples instances GoTrueClient
+let supabaseInstance: any = null;
+
+// Fonction pour créer ou récupérer l'instance unique de Supabase
+function getSupabaseInstance() {
+  // En mode browser, utiliser une clé globale pour éviter les multiples instances
+  if (typeof window !== 'undefined') {
+    if ((window as any).__supabase_client_enhanced) {
+      return (window as any).__supabase_client_enhanced;
+    }
+  }
+  
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
+  console.log('🔧 Création d\'une nouvelle instance Supabase Enhanced (singleton)');
+  
+  // Configuration améliorée pour éviter les erreurs 400 refresh_token
+  supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -183,6 +201,17 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+  // Sauvegarder dans la variable globale pour éviter les multiples instances
+  if (typeof window !== 'undefined') {
+    (window as any).__supabase_client_enhanced = supabaseInstance;
+  }
+
+  return supabaseInstance;
+}
+
+// Exporter l'instance unique
+export const supabase = getSupabaseInstance();
+
 // Fonction utilitaire pour gérer les erreurs d'authentification
 export const handleAuthError = async (error: any) => {
   console.error('Erreur d\'authentification:', error);
@@ -196,7 +225,7 @@ export const handleAuthError = async (error: any) => {
       sessionStorage.clear();
       
       // Forcer une déconnexion propre
-      await supabase.auth.signOut();
+      await getSupabaseInstance().auth.signOut();
       
       console.log('Nettoyage terminé. Veuillez vous reconnecter.');
       

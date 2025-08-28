@@ -11,15 +11,82 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
 
 // Singleton pattern pour éviter les multiples instances
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
-let supabaseClientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null;
 
 export const getSupabase = () => {
+  // En mode browser, utiliser une clé globale pour éviter les multiples instances
+  if (typeof window !== 'undefined') {
+    if ((window as any).__akanda_supabase_client) {
+      return (window as any).__akanda_supabase_client;
+    }
+  }
+  
   if (!supabaseInstance) {
-    console.log('🔧 Création d\'une nouvelle instance Supabase (singleton)');
-    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey);
+    console.log('🔧 Creating new Supabase client instance (singleton)');
+    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        storageKey: 'akanda-supabase-auth',
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: {
+          getItem: (key: string) => {
+            try {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                return localStorage.getItem(key);
+              }
+              return null;
+            } catch (error) {
+              console.warn('Erreur lors de la lecture du localStorage:', error);
+              return null;
+            }
+          },
+          setItem: (key: string, value: string) => {
+            try {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                localStorage.setItem(key, value);
+              }
+            } catch (error) {
+              console.warn('Erreur lors de l\'écriture dans le localStorage:', error);
+            }
+          },
+          removeItem: (key: string) => {
+            try {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                localStorage.removeItem(key);
+              }
+            } catch (error) {
+              console.warn('Erreur lors de la suppression du localStorage:', error);
+            }
+          },
+        },
+        debug: process.env.NODE_ENV === 'development',
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'Akanda Apero App',
+          'apikey': supabaseAnonKey
+        },
+      },
+      db: {
+        schema: 'public',
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    });
+
+    // Sauvegarder dans la variable globale pour éviter les multiples instances
+    if (typeof window !== 'undefined') {
+      (window as any).__akanda_supabase_client = supabaseInstance;
+    }
   }
   return supabaseInstance;
 };
+
+let supabaseClientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null;
 
 export const getSupabaseClient = () => {
   if (!supabaseClientInstance) {

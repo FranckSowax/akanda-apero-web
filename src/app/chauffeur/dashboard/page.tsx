@@ -181,22 +181,30 @@ export default function DashboardChauffeur() {
       }
 
       // Charger les notifications
-      const notificationsResponse = await fetch(`/api/notifications?chauffeur_id=${chauffeurId}`);
-      if (notificationsResponse.ok) {
-        const notificationsData = await notificationsResponse.json();
-        setNotifications(notificationsData.notifications || []);
-        
-        // Afficher overlay si nouvelles notifications de commande
-        const unreadNotifications = notificationsData.notifications?.filter((n: any) => !n.read) || [];
-        const orderNotifications = unreadNotifications.filter((n: any) => n.type === 'nouvelle_commande');
-        
-        if (orderNotifications.length > 0 && !currentOrderNotification) {
-          setCurrentOrderNotification(orderNotifications[0]);
+      try {
+        const notificationsResponse = await fetch(`/api/notifications?chauffeur_id=${chauffeurId}`);
+        if (notificationsResponse.ok) {
+          const notificationsData = await notificationsResponse.json();
+          setNotifications(notificationsData.notifications || []);
+          
+          // Afficher overlay si nouvelles notifications de commande
+          const unreadNotifications = notificationsData.notifications?.filter((n: any) => !n.read) || [];
+          const orderNotifications = unreadNotifications.filter((n: any) => n.type === 'nouvelle_commande');
+          
+          if (orderNotifications.length > 0 && !currentOrderNotification) {
+            setCurrentOrderNotification(orderNotifications[0]);
+          }
+          
+          if (unreadNotifications.length > 0) {
+            setShowNotificationOverlay(true);
+          }
+        } else {
+          console.warn('⚠️ Erreur chargement notifications:', notificationsResponse.status);
+          setNotifications([]);
         }
-        
-        if (unreadNotifications.length > 0) {
-          setShowNotificationOverlay(true);
-        }
+      } catch (notificationError) {
+        console.error('❌ Erreur notifications:', notificationError);
+        setNotifications([]);
       }
     } catch (error) {
       console.error('Erreur chargement données:', error);
@@ -288,17 +296,34 @@ export default function DashboardChauffeur() {
   };
 
   const setupNotificationListener = () => {
+    let errorCount = 0;
+    const maxErrors = 3;
+    
     // Simulation d'écoute des notifications en temps réel
     const interval = setInterval(async () => {
       const chauffeurId = localStorage.getItem('chauffeur_id');
+      
+      // Arrêter le polling si trop d'erreurs consécutives
+      if (errorCount >= maxErrors) {
+        console.warn('⚠️ Arrêt du polling notifications après', maxErrors, 'erreurs consécutives');
+        clearInterval(interval);
+        return;
+      }
+      
       try {
-        const response = await fetch(`/api/chauffeurs/notifications?chauffeur_id=${chauffeurId}&unread_only=true`);
+        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeurId}`);
         if (response.ok) {
           const data = await response.json();
-          const newNotifications = data.notifications || [];
+          const allNotifications = data.notifications || [];
+          const newNotifications = allNotifications.filter((n: any) => !n.read);
           
           if (newNotifications.length > 0) {
-            setNotifications(prev => [...newNotifications, ...prev]);
+            setNotifications(prev => {
+              // Éviter les doublons
+              const existingIds = prev.map(n => n.id);
+              const uniqueNew = newNotifications.filter((n: any) => !existingIds.includes(n.id));
+              return [...uniqueNew, ...prev];
+            });
             setShowNotificationOverlay(true);
             
             // Vibration et son si supportés
@@ -307,11 +332,18 @@ export default function DashboardChauffeur() {
             }
             playNotificationSound();
           }
+          
+          // Reset error count on success
+          errorCount = 0;
+        } else {
+          errorCount++;
+          console.warn(`⚠️ Erreur polling notifications (${errorCount}/${maxErrors}):`, response.status);
         }
       } catch (error) {
-        console.error('Erreur écoute notifications:', error);
+        errorCount++;
+        console.error(`❌ Erreur écoute notifications (${errorCount}/${maxErrors}):`, error);
       }
-    }, 5000); // Vérifier toutes les 5 secondes
+    }, 10000); // Vérifier toutes les 10 secondes (moins agressif)
 
     return () => clearInterval(interval);
   };
@@ -417,7 +449,7 @@ export default function DashboardChauffeur() {
 
   const marquerNotificationLue = async (notificationId: string) => {
     try {
-      await fetch('/api/chauffeurs/notifications', {
+      const response = await fetch('/api/chauffeurs/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -426,9 +458,13 @@ export default function DashboardChauffeur() {
         })
       });
 
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+        );
+      } else {
+        console.warn('⚠️ Erreur marquage notification lue:', response.status);
+      }
     } catch (error) {
       console.error('Erreur marquage notification:', error);
     }
