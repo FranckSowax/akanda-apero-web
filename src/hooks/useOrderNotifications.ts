@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '../lib/supabase';
 
 interface NewOrderData {
   orderNumber: string;
@@ -24,11 +24,8 @@ export function useOrderNotifications(): UseOrderNotificationsReturn {
   const [newOrder, setNewOrder] = useState<NewOrderData | null>(null);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
-  // Initialiser Supabase
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // Utiliser le singleton Supabase
+  const supabase = getSupabase();
 
   // Fonction pour récupérer les détails d'une commande
   const fetchOrderDetails = useCallback(async (orderId: string): Promise<NewOrderData | null> => {
