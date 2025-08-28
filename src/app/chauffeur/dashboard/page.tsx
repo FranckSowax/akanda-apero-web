@@ -568,6 +568,28 @@ export default function DashboardChauffeur() {
             </button>
             
             <button
+              onClick={() => {
+                // Test overlay - simuler une nouvelle commande
+                const testNotification = {
+                  id: 'test-' + Date.now(),
+                  type: 'nouvelle_commande',
+                  order_number: 'TEST-001',
+                  customer_name: 'Client Test',
+                  delivery_address: '123 Rue Test, Libreville',
+                  total_amount: 25000,
+                  message: 'Nouvelle commande prête pour livraison',
+                  created_at: new Date().toISOString()
+                };
+                setCurrentOrderNotification(testNotification);
+                setShowNotificationOverlay(true);
+              }}
+              className="p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200"
+              title="Test Overlay"
+            >
+              <Bell className="w-5 h-5" />
+            </button>
+            
+            <button
               onClick={logout}
               className="p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200"
             >
