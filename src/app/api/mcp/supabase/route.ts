@@ -231,25 +231,32 @@ export async function POST(request: NextRequest) {
                   previous_status: 'pending'
                 });
                 
-                const webhookResponse = await fetch(webhookUrl, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    order_id: params.id,
-                    status: data.status,
-                    previous_status: 'pending'
-                  })
-                });
-                console.log('📡 Réponse webhook chauffeurs:', webhookResponse.status);
-                
-                if (webhookResponse.ok) {
-                  const webhookResult = await webhookResponse.json();
-                  console.log('✅ Webhook chauffeurs exécuté avec succès:', webhookResult);
-                } else {
-                  const webhookError = await webhookResponse.text();
-                  console.error('❌ Erreur webhook chauffeurs:', webhookResponse.status, webhookError);
+                try {
+                  console.log('🚀 DEBUT appel webhook...');
+                  const webhookResponse = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      order_id: params.id,
+                      status: data.status,
+                      previous_status: 'pending'
+                    })
+                  });
+                  console.log('📡 Réponse webhook chauffeurs:', webhookResponse.status);
+                  
+                  if (webhookResponse.ok) {
+                    const webhookResult = await webhookResponse.json();
+                    console.log('✅ Webhook chauffeurs exécuté avec succès:', webhookResult);
+                  } else {
+                    const webhookError = await webhookResponse.text();
+                    console.error('❌ Erreur webhook chauffeurs:', webhookResponse.status, webhookError);
+                  }
+                } catch (webhookFetchError) {
+                  console.error('💥 ERREUR CRITIQUE appel webhook:', webhookFetchError);
+                  console.error('💥 Type erreur:', (webhookFetchError as Error).name);
+                  console.error('💥 Message erreur:', (webhookFetchError as Error).message);
                 }
               }
             } catch (notificationError) {
