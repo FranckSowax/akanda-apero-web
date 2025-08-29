@@ -3,17 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, chauffeur_id, commande_id, message } = body;
+    const { type, chauffeur_id, message } = body;
 
     const notificationData = {
       type,
       chauffeur_id,
-      livraison_id: commande_id,
-      order_id: commande_id,
       titre: 'Nouvelle commande disponible',
       message,
       read: false
     };
+
+    console.log('📋 Données notification à créer:', notificationData);
 
     let result;
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       if (mcpResponse.ok) {
         const mcpResult = await mcpResponse.json();
         result = mcpResult.data;
-        console.log('✅ Notification créée via MCP API');
+        console.log('✅ Notification créée via MCP API:', result);
       } else {
         throw new Error(`MCP API failed: ${mcpResponse.status}`);
       }
@@ -89,6 +89,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const chauffeur_id = searchParams.get('chauffeur_id');
+    const type = searchParams.get('type');
+    const read = searchParams.get('read');
+
+    console.log('🔍 GET notifications - Params:', { chauffeur_id, type, read });
 
     if (!chauffeur_id) {
       return NextResponse.json(
@@ -112,6 +116,8 @@ export async function GET(request: NextRequest) {
           resource: 'chauffeur_notifications',
           params: {
             chauffeur_id,
+            ...(type && { type }),
+            ...(read && { read: read === 'true' }),
             order: 'created_at.desc'
           }
         })
@@ -135,7 +141,12 @@ export async function GET(request: NextRequest) {
         throw new Error('Configuration Supabase manquante');
       }
 
-      const supabaseResponse = await fetch(`${supabaseUrl}/rest/v1/chauffeur_notifications?chauffeur_id=eq.${chauffeur_id}&order=created_at.desc`, {
+      let supabaseUrl_with_params = `${supabaseUrl}/rest/v1/chauffeur_notifications?chauffeur_id=eq.${chauffeur_id}`;
+      if (type) supabaseUrl_with_params += `&type=eq.${type}`;
+      if (read) supabaseUrl_with_params += `&read=eq.${read === 'true'}`;
+      supabaseUrl_with_params += '&order=created_at.desc';
+
+      const supabaseResponse = await fetch(supabaseUrl_with_params, {
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${supabaseKey}`
@@ -152,9 +163,30 @@ export async function GET(request: NextRequest) {
       console.log('✅ Notifications récupérées via Supabase direct:', notifications.length);
     }
 
-    return NextResponse.json({ 
-      notifications: notifications || [] 
-    });
+    // Filtrer côté serveur si nécessaire
+    let filteredNotifications = notifications || [];
+    console.log('🔍 Notifications avant filtrage:', filteredNotifications.map((n: any) => ({
+      id: n.id,
+      type: n.type,
+      read: n.read,
+      chauffeur_id: n.chauffeur_id
+    })));
+    
+    if (type) {
+      console.log(`🔍 Filtrage par type: ${type}`);
+      filteredNotifications = filteredNotifications.filter((n: any) => n.type === type);
+      console.log(`📊 Après filtrage type: ${filteredNotifications.length}`);
+    }
+    if (read !== null) {
+      const readBool = read === 'true';
+      console.log(`🔍 Filtrage par read: ${readBool}`);
+      filteredNotifications = filteredNotifications.filter((n: any) => n.read === readBool);
+      console.log(`📊 Après filtrage read: ${filteredNotifications.length}`);
+    }
+
+    console.log('📋 Notifications filtrées:', filteredNotifications.length);
+
+    return NextResponse.json(filteredNotifications);
 
   } catch (error) {
     console.error('❌ Erreur API notifications:', error);

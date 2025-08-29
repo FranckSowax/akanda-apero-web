@@ -6,13 +6,17 @@ export async function POST(request: NextRequest) {
     const { order_id, status, previous_status } = body;
 
     // Vérifier si le statut est passé à "En préparation" (avec majuscule)
-    console.log(`🔍 Webhook reçu - Status: "${status}", Previous: "${previous_status}"`);
+    console.log(`🔍 Webhook reçu - Order: "${order_id}", Status: "${status}", Previous: "${previous_status}"`);
     
     if (status === 'En préparation' && previous_status !== 'En préparation') {
       console.log(`✅ Commande ${order_id} passée en préparation - envoi notifications`);
+      
+      // Vérifier si la commande existe
+      console.log(`🔍 Vérification existence commande ${order_id}...`);
 
       // Récupérer les chauffeurs en ligne (disponibles)
-      const chauffeursResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/mcp/supabase`, {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+      const chauffeursResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -27,44 +31,65 @@ export async function POST(request: NextRequest) {
         const chauffeurs = chauffeursResult.data || [];
         console.log(`📱 ${chauffeurs.length} chauffeurs en ligne trouvés:`, chauffeurs.map((c: any) => ({ id: c.id, nom: c.nom })));
 
-        // Récupérer les détails de la commande
-        const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
-          method: 'POST',
+        // Récupérer les détails de la commande directement via Supabase
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${order_id}`, {
           headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'read',
-            resource: 'commandes',
-            params: {
-              id: `eq.${order_id}`
-            }
-          })
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey!}`
+          }
         });
 
         if (orderResponse.ok) {
           const orderResult = await orderResponse.json();
-          const order = orderResult.data?.[0];
+          const order = orderResult[0];
+          
+          console.log(`🔍 Commande trouvée:`, order ? 'OUI' : 'NON');
+          if (order) {
+            console.log(`📋 Détails commande:`, {
+              id: order.id,
+              numero: order.order_number,
+              client: order.customer_id,
+              adresse: order.delivery_address
+            });
+          }
 
           if (order) {
-            // 1. Envoyer notification WhatsApp au client
-            if (order.telephone_client) {
+            // 1. Récupérer les infos client pour WhatsApp
+            const customerResponse = await fetch(`${supabaseUrl}/rest/v1/customers?id=eq.${order.customer_id}`, {
+              headers: {
+                'apikey': supabaseKey!,
+                'Authorization': `Bearer ${supabaseKey!}`
+              }
+            });
+
+            let customer = null;
+            if (customerResponse.ok) {
+              const customers = await customerResponse.json();
+              customer = customers[0];
+              console.log(`👤 Client trouvé:`, customer ? customer.name : 'NON');
+            }
+
+            // 2. Envoyer notification WhatsApp au client
+            if (customer?.phone) {
               try {
-                const whapiResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/whatsapp/send`, {
+                const whapiResponse = await fetch(`${baseUrl}/api/whatsapp/send`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    phone: order.telephone_client,
-                    orderNumber: order.numero_commande || order_id,
+                    phone: customer.phone,
+                    orderNumber: order.order_number || order_id,
                     status: 'En préparation',
-                    customerName: order.nom_client || 'Client'
+                    customerName: customer.name || 'Client'
                   })
                 });
 
                 if (whapiResponse.ok) {
-                  console.log(`✅ Notification WhatsApp envoyée au client ${order.nom_client}`);
+                  console.log(`✅ Notification WhatsApp envoyée au client ${customer.name}`);
                 } else {
                   console.error('❌ Erreur envoi WhatsApp client:', await whapiResponse.text());
                 }
@@ -75,7 +100,7 @@ export async function POST(request: NextRequest) {
 
             // 2. Créer automatiquement une livraison
             try {
-              const livraisonResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/mcp/supabase`, {
+              const livraisonResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -84,13 +109,13 @@ export async function POST(request: NextRequest) {
                   action: 'create',
                   resource: 'livraisons',
                   data: {
-                    commande_id: order_id,
-                    adresse_livraison: order.adresse_livraison,
-                    telephone_client: order.telephone_client,
-                    nom_client: order.nom_client,
-                    statut: 'en_attente',
-                    date_creation: new Date().toISOString(),
-                    priorite: 'normale'
+                    order_id: order.id,
+                    delivery_address: order.delivery_address,
+                    customer_phone: customer?.phone,
+                    customer_name: customer?.name,
+                    status: 'pending',
+                    created_at: new Date().toISOString(),
+                    priority: 'normal'
                   }
                 })
               });
@@ -105,26 +130,34 @@ export async function POST(request: NextRequest) {
             }
 
             // 3. Envoyer notification à tous les chauffeurs disponibles
+            console.log(`🚨 DÉBUT ENVOI NOTIFICATIONS - ${chauffeurs.length} chauffeurs trouvés`);
             for (const chauffeur of chauffeurs) {
               console.log(`📤 Envoi notification à chauffeur ${chauffeur.id} (${chauffeur.nom})`);
               
-              const notificationResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/notifications`, {
+              const notificationData = {
+                type: 'info',
+                chauffeur_id: chauffeur.id,
+                message: `Nouvelle commande ${order.order_number} prête pour livraison: ${customer?.name || 'Client'} - ${order.delivery_address || 'Adresse non spécifiée'}`
+              };
+              
+              console.log(`📋 Données notification:`, notificationData);
+              
+              const notificationResponse = await fetch(`${baseUrl}/api/notifications`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                  type: 'nouvelle_commande',
-                  chauffeur_id: chauffeur.id,
-                  commande_id: order_id,
-                  message: `Nouvelle commande prête pour livraison: ${order.nom_client || 'Client'} - ${order.adresse_livraison || 'Adresse non spécifiée'}`
-                })
+                body: JSON.stringify(notificationData)
               });
 
+              console.log(`📡 Réponse notification API: ${notificationResponse.status} ${notificationResponse.statusText}`);
+
               if (notificationResponse.ok) {
-                console.log(`✅ Notification envoyée avec succès à ${chauffeur.nom}`);
+                const responseData = await notificationResponse.json();
+                console.log(`✅ Notification créée avec succès pour ${chauffeur.nom}:`, responseData);
               } else {
-                console.error(`❌ Erreur envoi notification à ${chauffeur.nom}:`, await notificationResponse.text());
+                const errorText = await notificationResponse.text();
+                console.error(`❌ Erreur envoi notification à ${chauffeur.nom}:`, errorText);
               }
             }
 

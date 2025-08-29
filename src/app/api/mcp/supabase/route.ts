@@ -28,263 +28,35 @@ export async function POST(request: NextRequest) {
     }
 
     const { action, resource, params, data } = body;
+    
+    console.log('🔍 MCP API - Paramètres extraits:', {
+      action,
+      resource,
+      params,
+      data
+    });
+
+    if (!action || !resource) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Missing required fields: action and resource' 
+      }, { status: 400 });
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Configuration Supabase manquante:', {
-        supabaseUrl: !!supabaseUrl,
-        supabaseKey: !!supabaseKey
-      });
+      console.error('❌ Variables Supabase manquantes');
       return NextResponse.json({ 
         success: false, 
-        error: 'Configuration Supabase manquante' 
+        error: 'Supabase configuration missing' 
       }, { status: 500 });
     }
 
-    console.log('✅ Configuration Supabase OK:', {
-      action,
-      resource,
-      hasParams: !!params,
-      hasData: !!data
-    });
+    console.log('🔍 MCP API - Configuration Supabase OK');
 
-    // Gestion des livraisons - utiliser la table orders avec un système de livraison intégré
-    if (resource === 'livraisons' || resource === 'deliveries') {
-      switch (action) {
-        case 'create':
-          const createDeliveryResponse = await fetch(`${supabaseUrl}/rest/v1/deliveries`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(data)
-          });
-
-          if (!createDeliveryResponse.ok) {
-            const errorText = await createDeliveryResponse.text();
-            console.error('❌ Erreur création livraison:', errorText);
-            throw new Error(`Erreur Supabase: ${createDeliveryResponse.status} - ${errorText}`);
-          }
-
-          const newDelivery = await createDeliveryResponse.json();
-          console.log('✅ Livraison créée:', newDelivery);
-          return NextResponse.json({ success: true, data: newDelivery });
-
-        case 'read':
-          // Récupérer les commandes en préparation
-          let ordersUrl = `${supabaseUrl}/rest/v1/orders?select=id,order_number,customer_id,delivery_address,delivery_district,delivery_option,delivery_cost,total_amount,subtotal,gps_latitude,gps_longitude,status,created_at,updated_at&status=eq.En%20préparation`;
-          
-          if (params?.chauffeur_id) {
-            ordersUrl += `&chauffeur_id=eq.${params.chauffeur_id}`;
-          }
-          if (params?.statut) {
-            ordersUrl += `&status=eq.${encodeURIComponent(params.statut)}`;
-          }
-          ordersUrl += '&order=created_at.desc';
-
-          const ordersResponse = await fetch(ordersUrl, {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          });
-
-          if (!ordersResponse.ok) {
-            const errorText = await ordersResponse.text();
-            console.error('❌ Erreur Supabase orders:', ordersResponse.status, errorText);
-            throw new Error(`Erreur Supabase: ${ordersResponse.status} - ${errorText}`);
-          }
-
-          const orders = await ordersResponse.json();
-          console.log('📋 Commandes récupérées:', orders.length);
-
-          // Récupérer les informations clients pour chaque commande
-          const ordersWithCustomers = await Promise.all(
-            orders.map(async (order: any) => {
-              if (!order.customer_id) return { ...order, customers: null };
-              
-              const customerUrl = `${supabaseUrl}/rest/v1/customers?select=name,phone&id=eq.${order.customer_id}`;
-              const customerResponse = await fetch(customerUrl, {
-                headers: {
-                  'apikey': supabaseKey,
-                  'Authorization': `Bearer ${supabaseKey}`
-                }
-              });
-
-              if (customerResponse.ok) {
-                const customers = await customerResponse.json();
-                return { ...order, customers: customers[0] || null };
-              } else {
-                console.warn(`⚠️ Client non trouvé pour customer_id: ${order.customer_id}`);
-                return { ...order, customers: null };
-              }
-            })
-          );
-
-          console.log('📋 Livraisons avec clients récupérées:', ordersWithCustomers.length);
-          return NextResponse.json({ success: true, data: ordersWithCustomers });
-
-        case 'update':
-          const updateUrl = `${supabaseUrl}/rest/v1/deliveries?id=eq.${params.id}`;
-          const updateResponse = await fetch(updateUrl, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(data)
-          });
-
-          if (!updateResponse.ok) {
-            throw new Error(`Erreur Supabase: ${updateResponse.status}`);
-          }
-
-          const updatedLivraison = await updateResponse.json();
-          return NextResponse.json({ data: updatedLivraison });
-      }
-    }
-
-    // Gestion des chauffeurs
-    if (resource === 'chauffeurs') {
-      switch (action) {
-        case 'read':
-          let chauffeurUrl = `${supabaseUrl}/rest/v1/chauffeurs?select=*`;
-          
-          if (params?.disponible) {
-            chauffeurUrl += `&disponible=${params.disponible}`;
-          }
-          if (params?.statut) {
-            chauffeurUrl += `&statut=${params.statut}`;
-          }
-          if (params?.telephone) {
-            chauffeurUrl += `&telephone=eq.${encodeURIComponent(params.telephone)}`;
-          }
-          chauffeurUrl += '&order=created_at.desc';
-
-          console.log('🔍 MCP - URL chauffeurs:', chauffeurUrl);
-          const chauffeurResponse = await fetch(chauffeurUrl, {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          });
-
-          if (!chauffeurResponse.ok) {
-            const errorText = await chauffeurResponse.text();
-            console.error('❌ MCP - Erreur Supabase chauffeurs:', chauffeurResponse.status, errorText);
-            throw new Error(`Erreur Supabase: ${chauffeurResponse.status} - ${errorText}`);
-          }
-
-          const chauffeurs = await chauffeurResponse.json();
-          console.log('✅ MCP - Chauffeurs récupérés:', chauffeurs.length, chauffeurs);
-          return NextResponse.json({ success: true, data: chauffeurs });
-
-        case 'update':
-          const updateChauffeurUrl = `${supabaseUrl}/rest/v1/chauffeurs?id=eq.${params.id}`;
-          const updateChauffeurResponse = await fetch(updateChauffeurUrl, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(data)
-          });
-
-          if (!updateChauffeurResponse.ok) {
-            const errorText = await updateChauffeurResponse.text();
-            console.error('❌ MCP - Erreur update chauffeur:', updateChauffeurResponse.status, errorText);
-            console.error('❌ MCP - URL utilisée:', updateChauffeurUrl);
-            console.error('❌ MCP - Data envoyée:', JSON.stringify(data));
-            throw new Error(`Erreur Supabase: ${updateChauffeurResponse.status} - ${errorText}`);
-          }
-
-          const updatedChauffeur = await updateChauffeurResponse.json();
-          return NextResponse.json({ data: updatedChauffeur });
-
-        case 'create':
-          try {
-            console.log('➕ Création chauffeur via REST API:', data);
-            const createChauffeurResponse = await fetch(`${supabaseUrl}/rest/v1/chauffeurs`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Prefer': 'return=representation'
-              },
-              body: JSON.stringify(data)
-            });
-
-            if (!createChauffeurResponse.ok) {
-              const errorText = await createChauffeurResponse.text();
-              console.error('❌ Erreur REST API create chauffeur:', createChauffeurResponse.status, errorText);
-              return NextResponse.json({ 
-                success: false, 
-                error: `Erreur API: ${createChauffeurResponse.status} - ${errorText}` 
-              }, { status: createChauffeurResponse.status });
-            }
-
-            const newChauffeur = await createChauffeurResponse.json();
-            console.log('✅ Chauffeur créé:', newChauffeur);
-            return NextResponse.json({ 
-              success: true,
-              data: newChauffeur 
-            });
-
-          } catch (error) {
-            console.error('❌ Erreur lors de la création du chauffeur:', error);
-            return NextResponse.json({ 
-              success: false, 
-              error: 'Erreur interne du serveur' 
-            }, { status: 500 });
-          }
-
-        case 'delete':
-          try {
-            console.log('🗑️ Suppression chauffeur ID:', params.id);
-            const deleteChauffeurResponse = await fetch(`${supabaseUrl}/rest/v1/chauffeurs?id=eq.${params.id}`, {
-              method: 'DELETE',
-              headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`
-              }
-            });
-
-            if (!deleteChauffeurResponse.ok) {
-              const errorText = await deleteChauffeurResponse.text();
-              console.error('❌ Erreur REST API delete chauffeur:', deleteChauffeurResponse.status, errorText);
-              return NextResponse.json({ 
-                success: false, 
-                error: `Erreur API: ${deleteChauffeurResponse.status} - ${errorText}` 
-              }, { status: deleteChauffeurResponse.status });
-            }
-
-            console.log('✅ Chauffeur supprimé');
-            return NextResponse.json({ 
-              success: true,
-              message: 'Chauffeur supprimé avec succès'
-            });
-
-          } catch (error) {
-            console.error('❌ Erreur lors de la suppression du chauffeur:', error);
-            return NextResponse.json({ 
-              success: false, 
-              error: 'Erreur interne du serveur' 
-            }, { status: 500 });
-          }
-      }
-    }
-
-    // Gestion des commandes (orders et commandes)
+    // Gestion des commandes/orders
     if (resource === 'commandes' || resource === 'orders') {
       switch (action) {
         case 'read':
@@ -292,6 +64,9 @@ export async function POST(request: NextRequest) {
           
           if (params?.id) {
             commandeUrl += `&id=eq.${params.id}`;
+          }
+          if (params?.customer_id) {
+            commandeUrl += `&customer_id=eq.${params.customer_id}`;
           }
           if (params?.status) {
             commandeUrl += `&status=eq.${params.status}`;
@@ -357,9 +132,12 @@ export async function POST(request: NextRequest) {
             updatedCommande: updatedCommande
           });
           
-          if (data.status && Array.isArray(updatedCommande) && updatedCommande.length > 0) {
+          // Force l'exécution du webhook pour diagnostic
+          console.log('🚨 FORCE WEBHOOK EXECUTION FOR DIAGNOSTIC');
+          
+          if (data.status === 'En préparation' && updatedCommande.length > 0) {
             const order = updatedCommande[0];
-            console.log('🔄 Déclenchement notifications pour changement de statut:', {
+            console.log('✅ CONDITIONS REMPLIES - Déclenchement notifications pour changement de statut:', {
               orderId: params.id,
               newStatus: data.status,
               orderNumber: order.order_number,
@@ -387,7 +165,6 @@ export async function POST(request: NextRequest) {
                   console.log('📱 Envoi notification WhatsApp à:', customer.phone);
                   
                   // Envoyer notification WhatsApp via l'API existante
-                  // Utiliser l'URL absolue pour éviter les problèmes de réseau en production
                   const whatsappUrl = process.env.NODE_ENV === 'production' 
                     ? 'https://akanda-apero.netlify.app/api/whatsapp/send'
                     : 'http://localhost:3002/api/whatsapp/send';
@@ -424,7 +201,16 @@ export async function POST(request: NextRequest) {
               } else {
                 console.error('❌ Erreur récupération client:', await customerResponse.text());
               }
-
+              
+              // Log pour diagnostiquer la condition du webhook
+              console.log('🔍 Vérification condition webhook:', {
+                statusReçu: data.status,
+                typeStatus: typeof data.status,
+                conditionEnPreparation: data.status === 'En préparation',
+                statusTrimmed: data.status?.trim(),
+                statusLength: data.status?.length
+              });
+              
               // Créer livraison et déclencher webhook pour notifications chauffeurs si statut "En préparation"
               if (data.status === 'En préparation') {
                 console.log('🚚 Création livraison pour statut En préparation');
@@ -438,6 +224,13 @@ export async function POST(request: NextRequest) {
                   ? 'https://akanda-apero.netlify.app/api/orders/webhook'
                   : 'http://localhost:3002/api/orders/webhook';
                 
+                console.log('🌐 URL webhook:', webhookUrl);
+                console.log('📦 Payload webhook:', {
+                  order_id: params.id,
+                  status: data.status,
+                  previous_status: 'pending'
+                });
+                
                 const webhookResponse = await fetch(webhookUrl, {
                   method: 'POST',
                   headers: {
@@ -450,24 +243,17 @@ export async function POST(request: NextRequest) {
                   })
                 });
                 console.log('📡 Réponse webhook chauffeurs:', webhookResponse.status);
+                
+                if (webhookResponse.ok) {
+                  const webhookResult = await webhookResponse.json();
+                  console.log('✅ Webhook chauffeurs exécuté avec succès:', webhookResult);
+                } else {
+                  const webhookError = await webhookResponse.text();
+                  console.error('❌ Erreur webhook chauffeurs:', webhookResponse.status, webhookError);
+                }
               }
             } catch (notificationError) {
               console.error('❌ Erreur notifications:', notificationError);
-              // Ajouter l'erreur au debug pour visibilité côté client
-              return NextResponse.json({ 
-                success: true, 
-                data: updatedCommande,
-                message: 'Commande mise à jour avec succès',
-                debug: {
-                  notificationTriggered: true,
-                  hasStatus: !!data.status,
-                  isArray: Array.isArray(updatedCommande),
-                  length: updatedCommande?.length,
-                  customerId: updatedCommande?.[0]?.customer_id,
-                  orderNumber: updatedCommande?.[0]?.order_number,
-                  notificationError: notificationError instanceof Error ? notificationError.message : String(notificationError)
-                }
-              });
             }
           }
           
@@ -476,13 +262,76 @@ export async function POST(request: NextRequest) {
             data: updatedCommande,
             message: 'Commande mise à jour avec succès',
             debug: {
-              notificationTriggered: data.status && Array.isArray(updatedCommande) && updatedCommande.length > 0,
+              notificationTriggered: data.status === 'En préparation' && Array.isArray(updatedCommande) && updatedCommande.length > 0,
               hasStatus: !!data.status,
               isArray: Array.isArray(updatedCommande),
               length: updatedCommande?.length,
               customerId: updatedCommande?.[0]?.customer_id,
               orderNumber: updatedCommande?.[0]?.order_number
             }
+          });
+      }
+    }
+
+    // Gestion des chauffeurs
+    if (resource === 'chauffeurs') {
+      switch (action) {
+        case 'read':
+          let chauffeursUrl = `${supabaseUrl}/rest/v1/chauffeurs?select=*`;
+          
+          if (params?.id) {
+            chauffeursUrl += `&id=eq.${params.id}`;
+          }
+          if (params?.telephone) {
+            chauffeursUrl += `&telephone=eq.${encodeURIComponent(params.telephone)}`;
+          }
+          if (params?.statut) {
+            chauffeursUrl += `&statut=eq.${params.statut}`;
+          }
+          chauffeursUrl += '&order=nom.asc';
+
+          const chauffeursResponse = await fetch(chauffeursUrl, {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            }
+          });
+
+          if (!chauffeursResponse.ok) {
+            throw new Error(`Erreur Supabase: ${chauffeursResponse.status}`);
+          }
+
+          const chauffeurs = await chauffeursResponse.json();
+          return NextResponse.json({ data: chauffeurs });
+
+        case 'update':
+          console.log('🔄 Mise à jour chauffeur:', { id: params.id, data });
+          const updateChauffeurUrl = `${supabaseUrl}/rest/v1/chauffeurs?id=eq.${params.id}`;
+          
+          const updateChauffeurResponse = await fetch(updateChauffeurUrl, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (!updateChauffeurResponse.ok) {
+            const errorText = await updateChauffeurResponse.text();
+            console.error('❌ Erreur Supabase détaillée:', errorText);
+            throw new Error(`Erreur Supabase: ${updateChauffeurResponse.status}`);
+          }
+
+          const updatedChauffeur = await updateChauffeurResponse.json();
+          console.log('✅ Chauffeur mis à jour:', updatedChauffeur);
+          
+          return NextResponse.json({ 
+            success: true, 
+            data: updatedChauffeur,
+            message: 'Chauffeur mis à jour avec succès'
           });
       }
     }
@@ -503,17 +352,26 @@ export async function POST(request: NextRequest) {
           });
 
           if (!createNotifResponse.ok) {
-            throw new Error(`Erreur Supabase: ${createNotifResponse.status}`);
+            const errorText = await createNotifResponse.text();
+            console.error('❌ Erreur création notification:', createNotifResponse.status, errorText);
+            throw new Error(`Erreur Supabase: ${createNotifResponse.status} - ${errorText}`);
           }
 
           const newNotification = await createNotifResponse.json();
-          return NextResponse.json({ data: newNotification });
+          console.log('✅ Notification créée:', newNotification);
+          return NextResponse.json({ success: true, data: newNotification });
 
         case 'read':
           let notifUrl = `${supabaseUrl}/rest/v1/chauffeur_notifications?select=*`;
           
           if (params?.chauffeur_id) {
             notifUrl += `&chauffeur_id=eq.${params.chauffeur_id}`;
+          }
+          if (params?.type) {
+            notifUrl += `&type=eq.${params.type}`;
+          }
+          if (params?.read !== undefined) {
+            notifUrl += `&read=eq.${params.read}`;
           }
           if (params?.order) {
             notifUrl += `&order=${params.order}`;
@@ -537,61 +395,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Gestion des positions de chauffeurs
-    if (resource === 'chauffeur_positions') {
-      switch (action) {
-        case 'create':
-          const createPositionResponse = await fetch(`${supabaseUrl}/rest/v1/chauffeur_positions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(data)
-          });
-
-          if (!createPositionResponse.ok) {
-            throw new Error(`Erreur Supabase: ${createPositionResponse.status}`);
-          }
-
-          const newPosition = await createPositionResponse.json();
-          return NextResponse.json({ data: newPosition });
-
-        case 'read':
-          let positionUrl = `${supabaseUrl}/rest/v1/chauffeur_positions?select=*`;
-          
-          if (params?.chauffeur_id) {
-            positionUrl += `&chauffeur_id=eq.${params.chauffeur_id}`;
-          }
-          if (params?.limit) {
-            positionUrl += `&limit=${params.limit}`;
-          }
-          positionUrl += '&order=timestamp.desc';
-
-          const readPositionResponse = await fetch(positionUrl, {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          });
-
-          if (!readPositionResponse.ok) {
-            throw new Error(`Erreur Supabase: ${readPositionResponse.status}`);
-          }
-
-          const positions = await readPositionResponse.json();
-          return NextResponse.json({ data: positions });
-      }
-    }
-
-    console.error('❌ Resource ou action non supportée:', {
+    console.log('❌ Resource ou action non supportée:', {
       resource,
-      action,
-      availableResources: ['livraisons', 'deliveries', 'chauffeurs', 'commandes', 'orders', 'chauffeur_notifications', 'chauffeur_positions']
+      action
     });
-    
     return NextResponse.json({ 
       success: false, 
       error: `Resource ou action non supportée: ${resource}/${action}`,

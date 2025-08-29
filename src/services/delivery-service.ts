@@ -139,13 +139,28 @@ const DeliveryService = {
       const response = await mcpClient.readResource('chauffeurs');
       console.log('🔗 Réponse MCP brute:', response);
       
-      if (!response || !response.success) {
-        console.error('❌ MCP Error:', response?.message || 'Réponse MCP invalide');
-        return { data: null, error: response?.message || 'Erreur MCP' };
+      // Vérifier si la réponse contient des données directement ou via success
+      if (!response) {
+        console.error('❌ MCP Error: Aucune réponse reçue');
+        return { data: null, error: 'Aucune réponse MCP' };
       }
       
-      console.log('📋 Données chauffeurs reçues:', response.data?.length || 0, 'chauffeurs');
-      return { data: response.data || [], error: null };
+      // Si la réponse a un champ success et qu'il est false
+      if (response.success === false) {
+        console.error('❌ MCP Error:', response.message || response.error || 'Erreur MCP');
+        return { data: null, error: response.message || response.error || 'Erreur MCP' };
+      }
+      
+      // Récupérer les données soit directement, soit via response.data
+      const chauffeurs = response.data || response;
+      
+      if (!Array.isArray(chauffeurs)) {
+        console.error('❌ Format de données invalide:', typeof chauffeurs);
+        return { data: null, error: 'Format de données invalide' };
+      }
+      
+      console.log('📋 Données chauffeurs reçues:', chauffeurs.length, 'chauffeurs');
+      return { data: chauffeurs, error: null };
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des chauffeurs:', error);
       return { data: null, error };

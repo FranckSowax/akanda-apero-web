@@ -111,7 +111,7 @@ export default function DashboardChauffeur() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chauffeur_id: chauffeur.id,
+            chauffeurId: chauffeur.id,
             latitude: position.latitude,
             longitude: position.longitude
           })
@@ -140,15 +140,19 @@ export default function DashboardChauffeur() {
 
     const pollNotifications = async () => {
       try {
-        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeur.id}&type=nouvelle_commande&read=false`);
+        console.log('🔍 Polling notifications pour chauffeur:', chauffeur.id);
+        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeur.id}&type=info&read=false`);
         if (response.ok) {
           const data = await response.json();
           const notificationsArray = Array.isArray(data) ? data : [];
+          console.log('📬 Notifications trouvées:', notificationsArray.length);
           setNotifications(notificationsArray);
           
           // Vérifier s'il y a une nouvelle notification non lue
-          const newNotification = notificationsArray.find((n: Notification) => !n.read && n.type === 'nouvelle_commande');
+          const newNotification = notificationsArray.find((n: Notification) => !n.read && n.type === 'info');
+          console.log('🔔 Nouvelle notification:', newNotification ? 'OUI' : 'NON');
           if (newNotification && (!currentOrderNotification || newNotification.id !== currentOrderNotification.id)) {
+            console.log('🚨 AFFICHAGE OVERLAY - Notification:', newNotification);
             setCurrentOrderNotification(newNotification);
             setShowNotificationOverlay(true);
             

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const updateData: any = {
       statut: statut || 'en_ligne',
       disponible: true,
-      last_heartbeat: new Date().toISOString()
+      derniere_activite: new Date().toISOString()
     };
 
     // Ajouter la position GPS si fournie
