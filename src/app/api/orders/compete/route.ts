@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`📍 Distance calculée: ${distance.toFixed(2)}km pour chauffeur ${chauffeur_name}`);
 
-    // Approche simplifiée: attribuer directement la commande au premier chauffeur qui accepte
+    // Attribuer le chauffeur à la commande (qui est déjà "En préparation")
     const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
     
     const updateOrderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${order_id}`, {
@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        status: 'En préparation',
         delivery_notes: `Chauffeur: ${chauffeur_name} (${chauffeur_id}) - Distance: ${distance.toFixed(2)}km - Code: ${deliveryCode}`
       })
     });
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
     const notificationData = {
       type: 'commande_acceptee',
       chauffeur_id,
-      message: `✅ Commande acceptée ! En attente de préparation. Distance: ${distance.toFixed(2)}km du siège. Code: ${deliveryCode}`,
+      message: `✅ Commande acceptée ! Commande en cours de préparation. Distance: ${distance.toFixed(2)}km du siège. Code: ${deliveryCode}`,
       data: {
         order_id,
         delivery_code: deliveryCode,
@@ -103,11 +102,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(notificationData)
     });
 
-    console.log(`✅ Commande ${order_id} acceptée par ${chauffeur_name} - En attente de préparation - Code ${deliveryCode}`);
+    console.log(`✅ Commande ${order_id} acceptée par ${chauffeur_name} - Chauffeur assigné - Code ${deliveryCode}`);
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Commande acceptée ! En attente de préparation.',
+      message: 'Commande acceptée ! Chauffeur assigné.',
       data: {
         delivery_code: deliveryCode,
         distance: distance.toFixed(2),
