@@ -78,6 +78,9 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    const updatedOrder = await updateOrderResponse.json();
+    console.log(`✅ Commande mise à jour avec delivery_notes:`, updatedOrder[0]?.delivery_notes);
+
     // Notifier le chauffeur qu'il a accepté la livraison
     const notificationData = {
       type: 'commande_acceptee',
