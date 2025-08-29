@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
 
     // Essayer d'abord l'API MCP
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://akanda-apero.netlify.app'
+        : 'http://localhost:3002';
       const mcpResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
         method: 'POST',
         headers: {
@@ -105,7 +107,9 @@ export async function GET(request: NextRequest) {
 
     // Essayer d'abord l'API MCP
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://akanda-apero.netlify.app'
+        : 'http://localhost:3002';
       const mcpResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
         method: 'POST',
         headers: {
