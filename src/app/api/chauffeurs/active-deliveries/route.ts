@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (!deliveriesResponse.ok) {
       // Si la table n'existe pas, récupérer depuis orders avec delivery_notes
       const ordersResponse = await fetch(
-        `${supabaseUrl}/rest/v1/orders?status=eq.En%20livraison&delivery_notes=ilike.*${chauffeur_id}*&select=*`,
+        `${supabaseUrl}/rest/v1/orders?status=eq.En%20livraison&delivery_notes=ilike.*%28${chauffeur_id}%29*&select=*`,
         {
           headers: {
             'apikey': supabaseKey,
