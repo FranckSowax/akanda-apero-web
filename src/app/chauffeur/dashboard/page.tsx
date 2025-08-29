@@ -208,11 +208,18 @@ export default function DashboardChauffeur() {
       setLoading(true);
 
       // Charger les livraisons actives
+      console.log('📡 Chargement livraisons actives pour chauffeur:', chauffeur.id);
       const deliveriesResponse = await fetch(`/api/chauffeurs/active-deliveries?chauffeur_id=${chauffeur.id}`);
+      console.log('📊 Réponse API livraisons:', deliveriesResponse.status);
+      
       if (deliveriesResponse.ok) {
         const deliveriesData = await deliveriesResponse.json();
+        console.log('📋 Données livraisons reçues:', deliveriesData);
         const deliveriesArray = Array.isArray(deliveriesData) ? deliveriesData : [];
+        console.log('🚚 Livraisons actives définies:', deliveriesArray.length);
         setActiveDeliveries(deliveriesArray);
+      } else {
+        console.error('❌ Erreur API livraisons:', deliveriesResponse.status);
       }
 
       // Charger les statistiques
@@ -339,7 +346,10 @@ export default function DashboardChauffeur() {
 
       setCurrentOrderNotification(null);
       setShowNotificationOverlay(false);
+      
+      console.log('🔄 Rafraîchissement des livraisons actives...');
       await loadData();
+      console.log('✅ Livraisons actives rafraîchies');
 
       alert('✅ Participation enregistrée ! Le chauffeur le plus proche sera sélectionné dans 10 secondes.');
     } catch (error) {
