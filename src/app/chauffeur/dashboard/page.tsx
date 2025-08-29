@@ -386,6 +386,33 @@ export default function DashboardChauffeur() {
     }
   };
 
+  // Démarrer une livraison (passer de "Prête" à "En livraison")
+  const startDelivery = async (orderId: string) => {
+    if (!chauffeur?.id) return;
+
+    try {
+      const response = await fetch('/api/chauffeurs/start-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderId,
+          chauffeur_id: chauffeur.id
+        })
+      });
+
+      if (response.ok) {
+        await loadData();
+        alert('✅ Livraison démarrée ! Le client a été notifié.');
+      } else {
+        const error = await response.json();
+        alert(`❌ Erreur: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Erreur démarrage livraison:', error);
+      alert('❌ Erreur lors du démarrage de la livraison');
+    }
+  };
+
   // Marquer une livraison comme terminée
   const markAsDelivered = async (deliveryId: string) => {
     try {
@@ -600,15 +627,26 @@ export default function DashboardChauffeur() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">#{delivery.order_id}</span>
+                        <span className="text-white font-bold text-sm">#{delivery.order_number || delivery.order_id}</span>
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">{delivery.customer_name || 'Client'}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <div className={`w-2 h-2 rounded-full ${delivery.status === 'en_cours' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                          <div className={`w-2 h-2 rounded-full ${
+                            delivery.status === 'pending' ? 'bg-orange-500 animate-pulse' :
+                            delivery.status === 'ready' ? 'bg-blue-500 animate-pulse' :
+                            delivery.status === 'en_cours' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                          }`} />
                           <span className="text-xs text-gray-600 font-medium">
-                            {delivery.status === 'en_cours' ? 'En cours' : delivery.status}
+                            {delivery.status === 'pending' ? 'En préparation' :
+                             delivery.status === 'ready' ? 'Prête' :
+                             delivery.status === 'en_cours' ? 'En livraison' : delivery.status}
                           </span>
+                          {delivery.delivery_code && (
+                            <Badge variant="outline" className="text-xs">
+                              Code: {delivery.delivery_code}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -623,17 +661,39 @@ export default function DashboardChauffeur() {
                       <span className="text-sm font-medium text-gray-700">Adresse de livraison</span>
                     </div>
                     <p className="text-sm text-gray-600 ml-6">
-                      {delivery.customer_address || 'Adresse non disponible'}
+                      {delivery.delivery_address || 'Adresse non disponible'}
                     </p>
                   </div>
 
-                  <Button
-                    onClick={() => markAsDelivered(delivery.id)}
-                    className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300"
-                  >
-                    <Check className="w-5 h-5 mr-2" />
-                    Marquer comme Livrée ✅
-                  </Button>
+                  {delivery.status === 'pending' && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-medium text-orange-700">Commande en préparation</span>
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1">Attendez que la commande soit prête avant de partir</p>
+                    </div>
+                  )}
+
+                  {delivery.status === 'ready' && (
+                    <Button
+                      onClick={() => startDelivery(delivery.order_id)}
+                      className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-300 mb-3"
+                    >
+                      <Truck className="w-5 h-5 mr-2" />
+                      Marquer en Livraison 🚚
+                    </Button>
+                  )}
+
+                  {delivery.status === 'en_cours' && (
+                    <Button
+                      onClick={() => markAsDelivered(delivery.id)}
+                      className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300"
+                    >
+                      <Check className="w-5 h-5 mr-2" />
+                      Marquer comme Livrée ✅
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        status: 'En livraison',
+        status: 'En préparation',
         delivery_notes: `Chauffeur: ${chauffeur_name} (${chauffeur_id}) - Distance: ${distance.toFixed(2)}km - Code: ${deliveryCode}`
       })
     });
@@ -81,13 +81,14 @@ export async function POST(request: NextRequest) {
 
     // Notifier le chauffeur qu'il a accepté la livraison
     const notificationData = {
-      type: 'commande_gagnee',
+      type: 'commande_acceptee',
       chauffeur_id,
-      message: `🎉 Commande acceptée avec succès ! Distance: ${distance.toFixed(2)}km du siège. Code: ${deliveryCode}`,
+      message: `✅ Commande acceptée ! En attente de préparation. Distance: ${distance.toFixed(2)}km du siège. Code: ${deliveryCode}`,
       data: {
         order_id,
         delivery_code: deliveryCode,
-        distance: distance.toFixed(2)
+        distance: distance.toFixed(2),
+        status: 'pending'
       },
       created_at: new Date().toISOString()
     };
@@ -102,15 +103,16 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(notificationData)
     });
 
-    console.log(`✅ Commande ${order_id} attribuée à ${chauffeur_name} avec code ${deliveryCode}`);
+    console.log(`✅ Commande ${order_id} acceptée par ${chauffeur_name} - En attente de préparation - Code ${deliveryCode}`);
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Commande acceptée avec succès!',
+      message: 'Commande acceptée ! En attente de préparation.',
       data: {
         delivery_code: deliveryCode,
         distance: distance.toFixed(2),
-        chauffeur_name
+        chauffeur_name,
+        status: 'pending'
       }
     });
 

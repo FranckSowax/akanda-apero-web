@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (!deliveriesResponse.ok) {
       // Si la table n'existe pas, récupérer depuis orders avec delivery_notes
       const ordersResponse = await fetch(
-        `${supabaseUrl}/rest/v1/orders?status=eq.En%20livraison&delivery_notes=ilike.*%28${chauffeur_id}%29*&select=*`,
+        `${supabaseUrl}/rest/v1/orders?or=(status.eq.En%20préparation,status.eq.Prête,status.eq.En%20livraison)&delivery_notes=ilike.*%28${chauffeur_id}%29*&select=*`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -56,22 +56,34 @@ export async function GET(request: NextRequest) {
 
       const orders = await ordersResponse.json();
       
-      // Transformer les commandes en format livraisons
-      const deliveries = orders.map((order: any) => ({
-        id: order.id,
-        order_id: order.id,
-        order_number: order.order_number,
-        customer_name: order.customer_name || 'Client',
-        delivery_address: order.delivery_address,
-        delivery_district: order.delivery_district,
-        total_amount: order.total_amount,
-        delivery_cost: order.delivery_cost,
-        status: 'en_cours',
-        delivery_code: order.delivery_notes?.match(/Code: (\d+)/)?.[1] || 'N/A',
-        created_at: order.created_at,
-        gps_latitude: order.gps_latitude,
-        gps_longitude: order.gps_longitude
-      }));
+      // Transformer les commandes en format livraisons avec statut approprié
+      const deliveries = orders.map((order: any) => {
+        let deliveryStatus = 'en_cours';
+        if (order.status === 'En préparation') {
+          deliveryStatus = 'pending';
+        } else if (order.status === 'Prête') {
+          deliveryStatus = 'ready';
+        } else if (order.status === 'En livraison') {
+          deliveryStatus = 'en_cours';
+        }
+
+        return {
+          id: order.id,
+          order_id: order.id,
+          order_number: order.order_number,
+          customer_name: order.customer_name || 'Client',
+          delivery_address: order.delivery_address,
+          delivery_district: order.delivery_district,
+          total_amount: order.total_amount,
+          delivery_cost: order.delivery_cost,
+          status: deliveryStatus,
+          order_status: order.status,
+          delivery_code: order.delivery_notes?.match(/Code: (\d+)/)?.[1] || 'N/A',
+          created_at: order.created_at,
+          gps_latitude: order.gps_latitude,
+          gps_longitude: order.gps_longitude
+        };
+      });
 
       return NextResponse.json({ 
         success: true, 
