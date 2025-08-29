@@ -291,6 +291,35 @@ export default function OrderDetailPage() {
                 
                 <Separator className="my-4" />
                 
+                {/* Sous-total et frais de livraison */}
+                <div className="space-y-2">
+                  {order.subtotal && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Sous-total articles</span>
+                      <span>{order.subtotal}€</span>
+                    </div>
+                  )}
+                  
+                  {/* Frais de livraison */}
+                  {(order.delivery_cost || order.delivery_option) && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <span className="text-gray-600">Frais de livraison</span>
+                        {order.delivery_option && (
+                          <span className="text-xs text-gray-500 capitalize">
+                            {order.delivery_option === 'standard' && 'Standard'}
+                            {order.delivery_option === 'express' && 'Express'}
+                            {order.delivery_option === 'premium' && 'Premium'}
+                          </span>
+                        )}
+                      </div>
+                      <span>{order.delivery_cost || 0}€</span>
+                    </div>
+                  )}
+                </div>
+                
+                <Separator className="my-4" />
+                
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Total de la commande</span>
                   <span className="text-[#f5a623]">{order.total_amount}€</span>
