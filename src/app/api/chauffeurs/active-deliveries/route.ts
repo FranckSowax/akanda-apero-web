@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
 
     if (!deliveriesResponse.ok) {
       // Si la table n'existe pas, récupérer depuis orders avec delivery_notes
+      console.log(`🔍 Recherche livraisons pour chauffeur ${chauffeur_id}`);
       const ordersResponse = await fetch(
         `${supabaseUrl}/rest/v1/orders?or=(status.eq.En%20préparation,status.eq.Prête,status.eq.En%20livraison)&delivery_notes=ilike.*%28${chauffeur_id}%29*&select=*`,
         {
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
       }
 
       const orders = await ordersResponse.json();
+      console.log(`📋 ${orders.length} commandes trouvées pour chauffeur ${chauffeur_id}:`, orders.map(o => ({ id: o.id, status: o.status, delivery_notes: o.delivery_notes })));
       
       // Transformer les commandes en format livraisons avec statut approprié
       const deliveries = orders.map((order: any) => {
