@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
       console.log(`🔍 Vérification existence commande ${order_id}...`);
 
       // Récupérer les chauffeurs en ligne (disponibles)
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://akanda-apero.netlify.app'
+        : 'http://localhost:3002';
       const chauffeursResponse = await fetch(`${baseUrl}/api/mcp/supabase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

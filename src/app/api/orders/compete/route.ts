@@ -43,56 +43,75 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // 1. Enregistrer cette acceptation dans une table temporaire
-    const acceptationData = {
-      order_id,
-      chauffeur_id,
-      chauffeur_name,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
-      distance_from_base: calculateDistance(
-        AKANDA_APERO_LOCATION.latitude,
-        AKANDA_APERO_LOCATION.longitude,
-        parseFloat(latitude),
-        parseFloat(longitude)
-      ),
-      accepted_at: new Date().toISOString()
-    };
+    // Calculer la distance depuis le siège
+    const distance = calculateDistance(
+      AKANDA_APERO_LOCATION.latitude,
+      AKANDA_APERO_LOCATION.longitude,
+      parseFloat(latitude),
+      parseFloat(longitude)
+    );
 
-    // Créer ou mettre à jour l'acceptation
-    const acceptationResponse = await fetch(`${supabaseUrl}/rest/v1/order_acceptations`, {
-      method: 'POST',
+    console.log(`📍 Distance calculée: ${distance.toFixed(2)}km pour chauffeur ${chauffeur_name}`);
+
+    // Approche simplifiée: attribuer directement la commande au premier chauffeur qui accepte
+    const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    const updateOrderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${order_id}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
         'Prefer': 'return=representation'
       },
-      body: JSON.stringify(acceptationData)
+      body: JSON.stringify({
+        status: 'En livraison',
+        delivery_notes: `Chauffeur: ${chauffeur_name} (${chauffeur_id}) - Distance: ${distance.toFixed(2)}km - Code: ${deliveryCode}`
+      })
     });
 
-    if (!acceptationResponse.ok) {
-      const errorText = await acceptationResponse.text();
-      console.error('❌ Erreur enregistrement acceptation:', errorText);
+    if (!updateOrderResponse.ok) {
+      const errorText = await updateOrderResponse.text();
+      console.error('❌ Erreur mise à jour commande:', errorText);
       return NextResponse.json({ 
         success: false, 
-        error: 'Erreur lors de l\'enregistrement de l\'acceptation' 
+        error: 'Erreur lors de la mise à jour de la commande' 
       }, { status: 500 });
     }
 
-    // 2. Attendre 10 secondes pour permettre à d'autres chauffeurs d'accepter
-    setTimeout(async () => {
-      try {
-        await determineWinner(order_id, supabaseUrl, supabaseKey);
-      } catch (error) {
-        console.error('❌ Erreur lors de la détermination du gagnant:', error);
-      }
-    }, 10000); // 10 secondes
+    // Notifier le chauffeur qu'il a accepté la livraison
+    const notificationData = {
+      type: 'commande_gagnee',
+      chauffeur_id,
+      message: `🎉 Commande acceptée avec succès ! Distance: ${distance.toFixed(2)}km du siège. Code: ${deliveryCode}`,
+      data: {
+        order_id,
+        delivery_code: deliveryCode,
+        distance: distance.toFixed(2)
+      },
+      created_at: new Date().toISOString()
+    };
+
+    await fetch(`${supabaseUrl}/rest/v1/chauffeur_notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify(notificationData)
+    });
+
+    console.log(`✅ Commande ${order_id} attribuée à ${chauffeur_name} avec code ${deliveryCode}`);
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Acceptation enregistrée. Détermination du gagnant en cours...',
-      data: acceptationData
+      message: 'Commande acceptée avec succès!',
+      data: {
+        delivery_code: deliveryCode,
+        distance: distance.toFixed(2),
+        chauffeur_name
+      }
     });
 
   } catch (error) {
@@ -104,119 +123,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function determineWinner(order_id: string, supabaseUrl: string, supabaseKey: string) {
-  try {
-    console.log('🏆 Détermination du gagnant pour commande:', order_id);
-
-    // Récupérer toutes les acceptations pour cette commande
-    const acceptationsResponse = await fetch(
-      `${supabaseUrl}/rest/v1/order_acceptations?order_id=eq.${order_id}&select=*&order=distance_from_base.asc`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
-        }
-      }
-    );
-
-    if (!acceptationsResponse.ok) {
-      throw new Error('Erreur lors de la récupération des acceptations');
-    }
-
-    const acceptations = await acceptationsResponse.json();
-    
-    if (acceptations.length === 0) {
-      console.log('❌ Aucune acceptation trouvée pour la commande:', order_id);
-      return;
-    }
-
-    // Le gagnant est celui avec la plus petite distance
-    const winner = acceptations[0];
-    console.log('🏆 Gagnant déterminé:', winner);
-
-    // Mettre à jour la commande avec le chauffeur gagnant
-    const updateOrderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${order_id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({
-        status: 'En livraison',
-        delivery_notes: `Chauffeur: ${winner.chauffeur_name} (${winner.chauffeur_id}) - Distance: ${winner.distance_from_base.toFixed(2)}km`
-      })
-    });
-
-    if (!updateOrderResponse.ok) {
-      throw new Error('Erreur lors de la mise à jour de la commande');
-    }
-
-    // Créer une livraison pour le gagnant
-    const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
-    const deliveryData = {
-      order_id,
-      chauffeur_id: winner.chauffeur_id,
-      chauffeur_name: winner.chauffeur_name,
-      delivery_code: deliveryCode,
-      status: 'en_cours',
-      distance_from_base: winner.distance_from_base,
-      created_at: new Date().toISOString()
-    };
-
-    // Utiliser la table orders pour stocker les livraisons (comme défini précédemment)
-    const deliveryResponse = await fetch(`${supabaseUrl}/rest/v1/active_deliveries`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(deliveryData)
-    });
-
-    if (!deliveryResponse.ok) {
-      console.error('❌ Erreur création livraison active');
-    }
-
-    // Notifier tous les chauffeurs du résultat
-    for (const acceptation of acceptations) {
-      const isWinner = acceptation.chauffeur_id === winner.chauffeur_id;
-      const notificationData = {
-        type: isWinner ? 'commande_gagnee' : 'commande_perdue',
-        chauffeur_id: acceptation.chauffeur_id,
-        order_id,
-        message: isWinner 
-          ? `🎉 Félicitations ! Vous avez remporté la livraison (${winner.distance_from_base.toFixed(2)}km du siège). Code: ${deliveryCode}`
-          : `❌ Un autre chauffeur plus proche a remporté cette livraison.`,
-        created_at: new Date().toISOString()
-      };
-
-      await fetch(`${supabaseUrl}/rest/v1/chauffeur_notifications`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
-        },
-        body: JSON.stringify(notificationData)
-      });
-    }
-
-    // Nettoyer les acceptations temporaires
-    await fetch(`${supabaseUrl}/rest/v1/order_acceptations?order_id=eq.${order_id}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`
-      }
-    });
-
-    console.log('✅ Compétition terminée pour commande:', order_id);
-
-  } catch (error) {
-    console.error('❌ Erreur lors de la détermination du gagnant:', error);
-  }
-}
