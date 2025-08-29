@@ -309,11 +309,18 @@ export default function OrderDetailPage() {
                           <span className="text-xs text-gray-500 capitalize">
                             {order.delivery_option === 'standard' && 'Standard'}
                             {order.delivery_option === 'express' && 'Express'}
+                            {order.delivery_option === 'nuit' && 'Nuit (après 22h)'}
                             {order.delivery_option === 'premium' && 'Premium'}
                           </span>
                         )}
                       </div>
-                      <span>{order.delivery_cost || 0} FCFA</span>
+                      <span>
+                        {order.delivery_cost || 
+                         (order.delivery_option === 'standard' ? 2000 :
+                          order.delivery_option === 'express' ? 3000 :
+                          order.delivery_option === 'nuit' ? 3500 :
+                          order.delivery_option === 'premium' ? 4000 : 2000)} FCFA
+                      </span>
                     </div>
                   )}
                 </div>

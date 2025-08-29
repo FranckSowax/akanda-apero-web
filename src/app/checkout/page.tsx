@@ -43,7 +43,7 @@ const deliveryOptions = [
   { id: 'pickup', name: 'Retrait au Shop', price: 0, description: 'Retirez sur place - Gratuit' },
   { id: 'standard', name: 'Livraison Standard', price: 2000, description: 'Livraison en moins de 45 min' },
   { id: 'express', name: 'Livraison Express', price: 3000, description: 'Livraison en moins de 25 min' },
-  { id: 'night', name: 'Livraison nuit', price: 3500, description: 'Après 22H30' },
+  { id: 'nuit', name: 'Livraison Nuit', price: 3500, description: 'Après 22h (obligatoire)' },
 ];
 
 // Payment methods
@@ -428,17 +428,24 @@ export default function CheckoutPage() {
     }
   }, [profile, deliveryInfo.fullName, deliveryInfo.phone]);
 
-  // Vérifier si c'est la nuit (après 22h30)
+  // Vérifier si c'est la nuit (après 22h - heure Libreville)
   const [isNightTime, setIsNightTime] = useState(false);
   
   useEffect(() => {
     const checkNightTime = () => {
+      // Heure de Libreville (UTC+1)
       const now = new Date();
-      const hour = now.getHours();
-      const minutes = now.getMinutes();
+      const librevileTime = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Libreville"}));
+      const hour = librevileTime.getHours();
       
-      // Considérer qu'il est nuit après 22h30 (22:30)
-      setIsNightTime(hour >= 22 && minutes >= 30);
+      // Considérer qu'il est nuit après 22h (22:00) heure Libreville
+      const isNight = hour >= 22;
+      setIsNightTime(isNight);
+      
+      console.log('🌙 Vérification heure nuit:', {
+        heureLibreville: `${hour}:${librevileTime.getMinutes().toString().padStart(2, '0')}`,
+        isNight
+      });
     };
     
     checkNightTime();
@@ -521,6 +528,12 @@ export default function CheckoutPage() {
 
   // Handle delivery option change
   const handleDeliveryOptionChange = (option: string) => {
+    // Forcer l'option nuit après 22h
+    if (isNightTime && option !== 'nuit') {
+      console.log('🌙 Forçage option nuit après 22h');
+      option = 'nuit';
+    }
+    
     // Mettre à jour l'option de livraison locale
     setDeliveryInfo(prev => ({
       ...prev,
@@ -1274,28 +1287,41 @@ export default function CheckoutPage() {
                 Option de livraison
               </Label>
               <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {deliveryOptions.map(option => (
-                  <div key={option.id} className="relative">
-                    <RadioGroupItem 
-                      value={option.id} 
-                      id={option.id} 
-                      className="peer sr-only"
-                    />
-                    <Label 
-                      htmlFor={option.id}
-                      className="group flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 backdrop-blur-sm p-5 hover:border-indigo-300 hover:bg-indigo-50/50 peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-indigo-50 [&:has([data-state=checked])]:border-indigo-500 [&:has([data-state=checked])]:bg-indigo-50 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
-                    >
-                      <div className="mb-3 text-3xl group-hover:scale-110 transition-transform duration-200">
-                        {option.id === 'pickup' ? '🏪' : option.id === 'standard' ? '🚚' : option.id === 'night' ? '🌙' : '⚡️'}
-                      </div>
-                      <div className="font-semibold text-gray-900 text-center">{option.name}</div>
-                      <div className="text-xs text-gray-600 mt-1 text-center leading-tight">{option.description}</div>
-                      <div className="font-bold mt-3 text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full text-sm">
-                        {formatPrice(option.price)} XAF
-                      </div>
-                    </Label>
-                  </div>
-                ))}
+                {deliveryOptions.map(option => {
+                  const isDisabled = isNightTime && option.id !== 'nuit';
+                  return (
+                    <div key={option.id} className="relative">
+                      <RadioGroupItem 
+                        value={option.id} 
+                        id={option.id} 
+                        className="peer sr-only"
+                        disabled={isDisabled}
+                      />
+                      <Label 
+                        htmlFor={option.id}
+                        className={`group flex flex-col items-center justify-between rounded-xl border-2 bg-white/50 backdrop-blur-sm p-5 transition-all duration-200 cursor-pointer ${
+                          isDisabled 
+                            ? 'border-gray-200 bg-gray-100/50 opacity-50 cursor-not-allowed' 
+                            : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-indigo-50 [&:has([data-state=checked])]:border-indigo-500 [&:has([data-state=checked])]:bg-indigo-50 hover:shadow-md hover:scale-[1.02]'
+                        }`}
+                      >
+                        <div className="mb-3 text-3xl group-hover:scale-110 transition-transform duration-200">
+                          {option.id === 'pickup' ? '🏪' : option.id === 'standard' ? '🚚' : option.id === 'nuit' ? '🌙' : '⚡️'}
+                        </div>
+                        <div className="font-semibold text-gray-900 text-center">{option.name}</div>
+                        <div className="text-xs text-gray-600 mt-1 text-center leading-tight">
+                          {option.description}
+                          {isDisabled && option.id !== 'nuit' && (
+                            <div className="text-red-500 font-medium mt-1">Non disponible après 22h</div>
+                          )}
+                        </div>
+                        <div className="font-bold mt-3 text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full text-sm">
+                          {formatPrice(option.price)} FCFA
+                        </div>
+                      </Label>
+                    </div>
+                  );
+                })}
               </RadioGroup>
             </div>
           </div>
