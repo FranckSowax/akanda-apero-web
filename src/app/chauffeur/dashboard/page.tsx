@@ -215,7 +215,8 @@ export default function DashboardChauffeur() {
       if (deliveriesResponse.ok) {
         const deliveriesData = await deliveriesResponse.json();
         console.log('📋 Données livraisons reçues:', deliveriesData);
-        const deliveriesArray = Array.isArray(deliveriesData) ? deliveriesData : [];
+        // L'API retourne {success: true, deliveries: Array} - extraire le tableau deliveries
+        const deliveriesArray = deliveriesData.deliveries || [];
         console.log('🚚 Livraisons actives définies:', deliveriesArray.length);
         setActiveDeliveries(deliveriesArray);
       } else {
