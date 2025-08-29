@@ -138,46 +138,55 @@ export default function DashboardChauffeur() {
 
   // Polling des notifications
   useEffect(() => {
-    if (!chauffeur) return;
+    if (!chauffeur?.id) return;
 
     const pollNotifications = async () => {
       try {
-        console.log('🔍 Polling notifications pour chauffeur:', chauffeur.id);
-        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeur.id}&type=info&read=false`);
+        console.log(`🔍 Polling notifications pour chauffeur ${chauffeur.id}...`);
+        const response = await fetch(`/api/notifications?chauffeur_id=${chauffeur.id}&read=false`);
+        console.log(`📡 Réponse polling: ${response.status} ${response.statusText}`);
+        
         if (response.ok) {
-          const data = await response.json();
-          const notificationsArray = Array.isArray(data) ? data : [];
-          console.log('📬 Notifications trouvées:', notificationsArray.length);
-          setNotifications(notificationsArray);
+          const newNotifications = await response.json();
+          console.log(`📋 Notifications récupérées:`, {
+            count: newNotifications?.length || 0,
+            notifications: newNotifications?.slice(0, 2) // Log des 2 premières pour debug
+          });
+          setNotifications(newNotifications);
           
-          // Vérifier s'il y a une nouvelle notification non lue
-          const newNotification = notificationsArray.find((n: Notification) => !n.read && n.type === 'info');
-          console.log('🔔 Nouvelle notification:', newNotification ? 'OUI' : 'NON');
-          if (newNotification && (!currentOrderNotification || newNotification.id !== currentOrderNotification.id)) {
-            console.log('🚨 AFFICHAGE OVERLAY - Notification:', newNotification);
+          if (newNotifications?.length > 0) {
+            console.log(`🔔 ${newNotifications.length} nouvelles notifications trouvées!`);
             
-            // Extract order data from message if it exists
-            if (newNotification.message && newNotification.message.includes('|DATA:')) {
-              const [originalMessage, dataString] = newNotification.message.split('|DATA:');
+            // Prendre la première notification non lue
+            const newNotification = newNotifications[0];
+            if (newNotification && (!currentOrderNotification || newNotification.id !== currentOrderNotification.id)) {
+              console.log('🚨 AFFICHAGE OVERLAY - Notification:', newNotification);
+              
+              // Extract order data from message if it exists
+              if (newNotification.message && newNotification.message.includes('|DATA:')) {
+                const [originalMessage, dataString] = newNotification.message.split('|DATA:');
+                try {
+                  const orderData = JSON.parse(dataString);
+                  newNotification.data = orderData;
+                  newNotification.message = originalMessage;
+                } catch (e) {
+                  console.error('❌ Erreur parsing order data:', e);
+                }
+              }
+              
+              setCurrentOrderNotification(newNotification);
+              setShowNotificationOverlay(true);
+              
+              // Son de notification
               try {
-                const orderData = JSON.parse(dataString);
-                newNotification.data = orderData;
-                newNotification.message = originalMessage;
+                const audio = new Audio('/sounds/notification.mp3');
+                audio.play().catch(e => console.log('Son non disponible:', e));
               } catch (e) {
-                console.error('❌ Erreur parsing order data:', e);
+                console.log('Son non disponible:', e);
               }
             }
-            
-            setCurrentOrderNotification(newNotification);
-            setShowNotificationOverlay(true);
-            
-            // Son de notification
-            try {
-              const audio = new Audio('/sounds/notification.mp3');
-              audio.play().catch(e => console.log('Son non disponible:', e));
-            } catch (e) {
-              console.log('Son non disponible:', e);
-            }
+          } else {
+            console.log(`📭 Aucune nouvelle notification`);
           }
         }
       } catch (error) {
