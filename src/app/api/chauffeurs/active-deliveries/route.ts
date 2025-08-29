@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       console.log(`📋 ${orders.length} commandes trouvées pour chauffeur ${chauffeur_id}:`, orders.map(o => ({ id: o.id, status: o.status, delivery_notes: o.delivery_notes })));
       
       // Transformer les commandes en format livraisons avec statut approprié
-      const deliveries = orders.map((order: any) => {
+      const deliveries = await Promise.all(orders.map(async (order: any) => {
         let deliveryStatus = 'en_cours';
         if (order.status === 'En préparation') {
           deliveryStatus = 'pending';
@@ -69,15 +69,38 @@ export async function GET(request: NextRequest) {
           deliveryStatus = 'en_cours';
         }
 
+        // Récupérer le nom du client depuis customer_id si disponible
+        let customerName = order.customer_name || 'Client';
+        
+        // Si on a un customer_id, récupérer le nom complet
+        if (order.customer_id && order.customer_id !== 'Client') {
+          try {
+            const customerResponse = await fetch(`${supabaseUrl}/rest/v1/customers?id=eq.${order.customer_id}&select=nom,prenom`, {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`
+              }
+            });
+            if (customerResponse.ok) {
+              const customers = await customerResponse.json();
+              if (customers[0]) {
+                customerName = `${customers[0].prenom || ''} ${customers[0].nom || ''}`.trim() || 'Client';
+              }
+            }
+          } catch (e) {
+            console.log('⚠️ Erreur récupération nom client:', e);
+          }
+        }
+
         return {
           id: order.id,
           order_id: order.id,
           order_number: order.order_number,
-          customer_name: order.customer_name || 'Client',
+          customer_name: customerName,
           delivery_address: order.delivery_address,
           delivery_district: order.delivery_district,
           total_amount: order.total_amount,
-          delivery_cost: order.delivery_cost,
+          delivery_fee: order.delivery_fee || order.delivery_cost || 2000,
           status: deliveryStatus,
           order_status: order.status,
           delivery_code: order.delivery_notes?.match(/Code: (\d+)/)?.[1] || 'N/A',
@@ -85,7 +108,7 @@ export async function GET(request: NextRequest) {
           gps_latitude: order.gps_latitude,
           gps_longitude: order.gps_longitude
         };
-      });
+      }));
 
       return NextResponse.json({ 
         success: true, 

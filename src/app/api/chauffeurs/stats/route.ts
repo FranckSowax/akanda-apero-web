@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     console.log('📊 Récupération statistiques pour chauffeur:', chauffeurId);
 
     // Récupérer toutes les commandes livrées par le chauffeur
-    const ordersResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders?delivery_notes=ilike.*${chauffeurId}*&status=eq.Livrée&select=*,customers(nom,prenom)&order=delivered_at.desc`, {
+    const ordersResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders?delivery_notes=ilike.*${chauffeurId}*&status=eq.Livrée&select=*&order=delivered_at.desc`, {
       headers: {
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -30,15 +30,22 @@ export async function GET(request: NextRequest) {
 
     const deliveredOrders = await ordersResponse.json();
     console.log('📦 Commandes livrées trouvées:', deliveredOrders.length);
+    console.log('📦 Exemple commande:', deliveredOrders[0] ? { 
+      delivery_fee: deliveredOrders[0].delivery_fee, 
+      total_amount: deliveredOrders[0].total_amount 
+    } : 'Aucune commande');
 
     // Calculer les statistiques
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Statistiques totales
+    // Statistiques totales - utiliser delivery_fee ou une valeur par défaut si null
     const totalDeliveries = deliveredOrders.length;
-    const totalEarnings = deliveredOrders.reduce((sum: number, order: any) => sum + (parseFloat(order.total_amount) || 0), 0);
+    const totalEarnings = deliveredOrders.reduce((sum: number, order: any) => {
+      const fee = order.delivery_fee ? parseFloat(order.delivery_fee) : 2000; // 2000 FCFA par défaut
+      return sum + fee;
+    }, 0);
 
     // Statistiques du jour
     const todayDeliveries = deliveredOrders.filter((order: any) => {
@@ -46,7 +53,10 @@ export async function GET(request: NextRequest) {
       const deliveredDate = new Date(order.delivered_at);
       return deliveredDate >= today;
     });
-    const todayEarnings = todayDeliveries.reduce((sum: number, order: any) => sum + (parseFloat(order.total_amount) || 0), 0);
+    const todayEarnings = todayDeliveries.reduce((sum: number, order: any) => {
+      const fee = order.delivery_fee ? parseFloat(order.delivery_fee) : 2000;
+      return sum + fee;
+    }, 0);
 
     // Statistiques du mois
     const monthDeliveries = deliveredOrders.filter((order: any) => {
@@ -54,7 +64,10 @@ export async function GET(request: NextRequest) {
       const deliveredDate = new Date(order.delivered_at);
       return deliveredDate >= startOfMonth;
     });
-    const monthEarnings = monthDeliveries.reduce((sum: number, order: any) => sum + (parseFloat(order.total_amount) || 0), 0);
+    const monthEarnings = monthDeliveries.reduce((sum: number, order: any) => {
+      const fee = order.delivery_fee ? parseFloat(order.delivery_fee) : 2000;
+      return sum + fee;
+    }, 0);
 
     // Récupérer les commandes actives (En préparation, Prête, En livraison)
     const activeOrdersResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders?delivery_notes=ilike.*${chauffeurId}*&status=in.(En préparation,Prête,En livraison)&select=*`, {

@@ -618,11 +618,9 @@ export default function DashboardChauffeur() {
                 <div key={delivery.id} className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">#{delivery.order_number || delivery.order_id}</span>
-                      </div>
                       <div>
                         <p className="font-semibold text-gray-900">{delivery.customer_name || 'Client'}</p>
+                        <p className="text-xs text-gray-500">Commande #{delivery.order_number || delivery.order_id?.slice(-8)}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <div className={`w-2 h-2 rounded-full ${
                             delivery.status === 'pending' ? 'bg-orange-500 animate-pulse' :
@@ -643,18 +641,46 @@ export default function DashboardChauffeur() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-green-600">{delivery.total_amount?.toFixed(0) || '0'} FCFA</p>
+                      <p className="text-lg font-bold text-green-600">{delivery.delivery_fee || '2000'} FCFA</p>
+                      <p className="text-xs text-gray-500">Total: {delivery.total_amount?.toFixed(0) || '0'} FCFA</p>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-3 mb-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-700">Adresse de livraison</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">Quartier:</span>
+                        <span className="text-sm text-gray-600">
+                          {delivery.delivery_district || delivery.delivery_address?.split(',')[0] || 'Quartier non disponible'}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                          onClick={() => {
+                            const address = encodeURIComponent(delivery.delivery_address || '');
+                            window.open(`https://waze.com/ul?q=${address}`, '_blank');
+                          }}
+                        >
+                          <Navigation className="w-3 h-3 mr-1" />
+                          Waze
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                          onClick={() => {
+                            const address = encodeURIComponent(delivery.delivery_address || '');
+                            window.open(`https://maps.google.com/maps?q=${address}`, '_blank');
+                          }}
+                        >
+                          <MapPin className="w-3 h-3 mr-1" />
+                          Maps
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 ml-6">
-                      {delivery.delivery_address || 'Adresse non disponible'}
-                    </p>
                   </div>
 
                   {delivery.status === 'pending' && (
