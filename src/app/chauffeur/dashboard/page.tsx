@@ -350,11 +350,6 @@ export default function DashboardChauffeur() {
       console.log('🔄 Rafraîchissement des livraisons actives...');
       await loadData();
       console.log('✅ Livraisons actives rafraîchies');
-
-      // Utiliser setTimeout pour ne pas bloquer l'exécution
-      setTimeout(() => {
-        alert('✅ Participation enregistrée ! Le chauffeur le plus proche sera sélectionné dans 10 secondes.');
-      }, 100);
     } catch (error) {
       console.error('❌ Erreur acceptation commande:', error);
       alert('❌ Erreur lors de l\'acceptation de la commande');
