@@ -220,12 +220,16 @@ export default function DashboardChauffeur() {
         const todayDeliveries = statsArray.filter((d: any) => d.created_at?.startsWith(today));
         const todayGains = todayDeliveries.reduce((sum: number, delivery: any) => sum + (delivery.total_amount || 0), 0);
 
-        // Charger les commandes confirmées (à venir)
-        const upcomingResponse = await fetch(`/api/orders?status=Confirmée&chauffeur_id=${chauffeur.id}`);
+        // Charger les commandes confirmées (à venir) - toutes les commandes confirmées disponibles
+        const upcomingResponse = await fetch(`/api/orders?status=Confirmée`);
         let upcomingCount = 0;
         if (upcomingResponse.ok) {
           const upcomingData = await upcomingResponse.json();
-          upcomingCount = Array.isArray(upcomingData) ? upcomingData.length : 0;
+          upcomingCount = Array.isArray(upcomingData.orders) ? upcomingData.orders.length : 
+                         Array.isArray(upcomingData) ? upcomingData.length : 0;
+          console.log('📋 Commandes confirmées récupérées:', upcomingCount);
+        } else {
+          console.error('❌ Erreur récupération commandes confirmées:', upcomingResponse.status);
         }
 
         setStats({

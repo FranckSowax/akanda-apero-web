@@ -125,21 +125,24 @@ export const useDashboardStats = () => {
 
       console.log('📅 Périodes:', { today, weekAgo, monthAgo });
 
-      // Statistiques des commandes
-      console.log('📊 Récupération des commandes...');
+      // Statistiques des commandes confirmées
+      console.log('📊 Récupération des commandes confirmées...');
       const { data: ordersToday, error: ordersTodayError } = await supabase
         .from('orders')
         .select('total_amount')
+        .eq('status', 'Confirmée')
         .gte('created_at', today);
 
       const { data: ordersWeek, error: ordersWeekError } = await supabase
         .from('orders')
         .select('total_amount')
+        .eq('status', 'Confirmée')
         .gte('created_at', weekAgo);
 
       const { data: ordersMonth, error: ordersMonthError } = await supabase
         .from('orders')
         .select('total_amount')
+        .eq('status', 'Confirmée')
         .gte('created_at', monthAgo);
 
       if (ordersTodayError) console.log('❌ Erreur ordersToday:', ordersTodayError);
@@ -156,6 +159,7 @@ export const useDashboardStats = () => {
       const { data: ordersPreviousWeek } = await supabase
         .from('orders')
         .select('total_amount')
+        .eq('status', 'Confirmée')
         .gte('created_at', previousWeekStart)
         .lt('created_at', weekAgo);
 

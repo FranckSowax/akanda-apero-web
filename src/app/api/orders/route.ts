@@ -147,10 +147,11 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const status = searchParams.get('status');
     const customerId = searchParams.get('customerId');
+    const chauffeurId = searchParams.get('chauffeur_id');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
-    console.log('🔍 GET /api/orders - Paramètres:', { page, limit, status, customerId, startDate, endDate });
+    console.log('🔍 GET /api/orders - Paramètres:', { page, limit, status, customerId, chauffeurId, startDate, endDate });
     
     // Si on demande une commande spécifique
     const orderId = searchParams.get('id');
@@ -188,6 +189,10 @@ export async function GET(request: NextRequest) {
     
     if (customerId) {
       query = query.eq('customer_id', customerId);
+    }
+    
+    if (chauffeurId) {
+      query = query.eq('delivery_person_id', chauffeurId);
     }
     
     if (startDate) {
