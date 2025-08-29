@@ -423,22 +423,25 @@ export default function DashboardChauffeur() {
   };
 
   // Marquer une livraison comme terminée
-  const markAsDelivered = async (deliveryId: string) => {
+  const markAsDelivered = async (orderId: string) => {
+    if (!chauffeur?.id) return;
+
     try {
-      const response = await fetch('/api/chauffeurs/active-deliveries', {
-        method: 'PATCH',
+      const response = await fetch('/api/chauffeurs/mark-delivered', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          delivery_id: deliveryId,
-          status: 'delivered'
+          order_id: orderId,
+          chauffeur_id: chauffeur.id
         })
       });
 
       if (response.ok) {
         await loadData();
-        alert('✅ Livraison marquée comme terminée !');
+        alert('✅ Livraison marquée comme terminée ! Le client a été notifié.');
       } else {
-        alert('❌ Erreur lors de la mise à jour');
+        const error = await response.json();
+        alert(`❌ Erreur: ${error.error}`);
       }
     } catch (error) {
       console.error('❌ Erreur marquage livraison:', error);
@@ -696,7 +699,7 @@ export default function DashboardChauffeur() {
 
                   {delivery.status === 'en_cours' && (
                     <Button
-                      onClick={() => markAsDelivered(delivery.id)}
+                      onClick={() => markAsDelivered(delivery.order_id)}
                       className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300"
                     >
                       <Check className="w-5 h-5 mr-2" />
