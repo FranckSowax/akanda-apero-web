@@ -576,7 +576,7 @@ export default function DashboardChauffeur() {
               </div>
               <div className="flex-1">
                 <p className="text-xs text-gray-600 font-medium">À venir</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.upcomingOrders || 0}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.upcomingOrders}</p>
               </div>
             </div>
             <div className="bg-orange-50 rounded-lg px-2 py-1">

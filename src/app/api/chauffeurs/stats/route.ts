@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
       activeDeliveries = activeOrders.length;
     }
 
-    // Récupérer les commandes confirmées disponibles (non assignées)
-    const availableOrdersResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders?status=eq.Confirmée&delivery_notes=is.null&select=*`, {
+    // Récupérer toutes les commandes confirmées (disponibles pour les chauffeurs)
+    const availableOrdersResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders?status=eq.Confirmée&select=*`, {
       headers: {
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
     if (availableOrdersResponse.ok) {
       const orders = await availableOrdersResponse.json();
       availableOrders = orders.length;
+      console.log('📋 Commandes confirmées trouvées:', availableOrders);
     }
 
     const stats = {
