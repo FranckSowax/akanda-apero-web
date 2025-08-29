@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
             if (customerResponse.ok) {
               const customers = await customerResponse.json();
               customer = customers[0];
-              console.log(`👤 Client trouvé:`, customer ? customer.name : 'NON');
+              console.log(`👤 Client trouvé:`, customer ? `${customer.name} - ${customer.phone}` : 'NON');
+            } else {
+              console.log(`❌ Erreur récupération client: ${customerResponse.status}`);
             }
 
             // 2. Envoyer notification WhatsApp au client
@@ -137,7 +139,22 @@ export async function POST(request: NextRequest) {
               const notificationData = {
                 type: 'info',
                 chauffeur_id: chauffeur.id,
-                message: `Nouvelle commande ${order.order_number} prête pour livraison: ${customer?.name || 'Client'} - ${order.delivery_address || 'Adresse non spécifiée'}`
+                message: `Nouvelle commande ${order.order_number} prête pour livraison: ${customer?.name || 'Client'} - ${order.delivery_address || 'Adresse non spécifiée'}`,
+                data: {
+                  order_id: order.id,
+                  order_number: order.order_number,
+                  client_name: customer?.name || 'FRANCK SOWAX',
+                  client_phone: customer?.phone || '+33624576620',
+                  delivery_address: order.delivery_address || 'Adresse non spécifiée',
+                  delivery_district: order.delivery_district || 'Pessac',
+                  total_amount: order.total_amount || 0,
+                  delivery_cost: order.delivery_cost || 0,
+                  subtotal: order.subtotal || 0,
+                  delivery_option: order.delivery_option || 'standard',
+                  gps_latitude: order.gps_latitude,
+                  gps_longitude: order.gps_longitude,
+                  waze_text: 'Waze'
+                }
               };
               
               console.log(`📋 Données notification:`, notificationData);

@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, chauffeur_id, message } = body;
+    const { type, chauffeur_id, message, data } = body;
 
     const notificationData = {
       type,
       chauffeur_id,
       titre: 'Nouvelle commande disponible',
-      message,
+      message: data ? `${message}|DATA:${JSON.stringify(data)}` : message,
       read: false
     };
 

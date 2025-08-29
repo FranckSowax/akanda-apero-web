@@ -14,7 +14,9 @@ import {
   Package, 
   Bell, 
   LogOut,
-  Check 
+  Check,
+  Navigation,
+  Phone 
 } from 'lucide-react';
 
 interface Delivery {
@@ -34,7 +36,7 @@ interface Notification {
   type: string;
   title: string;
   message: string;
-  data: any;
+  data: string | any;
   read: boolean;
   created_at: string;
 }
@@ -153,6 +155,19 @@ export default function DashboardChauffeur() {
           console.log('🔔 Nouvelle notification:', newNotification ? 'OUI' : 'NON');
           if (newNotification && (!currentOrderNotification || newNotification.id !== currentOrderNotification.id)) {
             console.log('🚨 AFFICHAGE OVERLAY - Notification:', newNotification);
+            
+            // Extract order data from message if it exists
+            if (newNotification.message && newNotification.message.includes('|DATA:')) {
+              const [originalMessage, dataString] = newNotification.message.split('|DATA:');
+              try {
+                const orderData = JSON.parse(dataString);
+                newNotification.data = orderData;
+                newNotification.message = originalMessage;
+              } catch (e) {
+                console.error('❌ Erreur parsing order data:', e);
+              }
+            }
+            
             setCurrentOrderNotification(newNotification);
             setShowNotificationOverlay(true);
             
@@ -270,7 +285,19 @@ export default function DashboardChauffeur() {
     }
 
     try {
-      const orderData = notification.data;
+      // Parse data if it's a string
+      const orderData = typeof notification.data === 'string' 
+        ? JSON.parse(notification.data) 
+        : notification.data;
+      
+      // Ensure GPS coordinates are numbers
+      const latitude = typeof position.latitude === 'number' ? position.latitude : parseFloat(position.latitude);
+      const longitude = typeof position.longitude === 'number' ? position.longitude : parseFloat(position.longitude);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        alert('❌ Coordonnées GPS invalides. Veuillez réactiver votre géolocalisation.');
+        return;
+      }
       
       const competeResponse = await fetch('/api/orders/compete', {
         method: 'POST',
@@ -280,8 +307,8 @@ export default function DashboardChauffeur() {
           chauffeur_id: chauffeur.id,
           chauffeur_name: chauffeur.nom || 'Chauffeur',
           chauffeur_phone: chauffeur.telephone || '',
-          latitude: position.latitude,
-          longitude: position.longitude
+          latitude: latitude,
+          longitude: longitude
         })
       });
 
@@ -305,6 +332,19 @@ export default function DashboardChauffeur() {
     } catch (error) {
       console.error('❌ Erreur acceptation commande:', error);
       alert('❌ Erreur lors de l\'acceptation de la commande');
+    }
+  };
+
+  // Ouvrir Waze pour navigation
+  const ouvrirWaze = (orderData: any) => {
+    if (orderData.gps_latitude && orderData.gps_longitude) {
+      const wazeUrl = `https://waze.com/ul?ll=${orderData.gps_latitude},${orderData.gps_longitude}&navigate=yes`;
+      window.open(wazeUrl, '_blank');
+    } else if (orderData.delivery_address) {
+      const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(orderData.delivery_address)}&navigate=yes`;
+      window.open(wazeUrl, '_blank');
+    } else {
+      alert('❌ Adresse de livraison non disponible');
     }
   };
 
@@ -601,37 +641,78 @@ export default function DashboardChauffeur() {
               </div>
 
               {/* Order Details */}
-              <div className="space-y-4 mb-6">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Commande</span>
-                    <span className="text-lg font-bold text-blue-600">#{currentOrderNotification.data?.order_id}</span>
-                  </div>
-                  <p className="font-semibold text-gray-900">{currentOrderNotification.data?.client_name}</p>
-                </div>
+              {(() => {
+                const orderData = typeof currentOrderNotification.data === 'string' 
+                  ? JSON.parse(currentOrderNotification.data) 
+                  : currentOrderNotification.data;
+                
+                return (
+                  <div className="space-y-4 mb-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Commande</span>
+                        <span className="text-lg font-bold text-blue-600">#{orderData?.order_number}</span>
+                      </div>
+                      <p className="font-semibold text-gray-900">{orderData?.client_name}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-gray-700">{orderData?.client_phone}</span>
+                      </div>
+                    </div>
 
-                <div className="bg-green-50 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-gray-700">Adresse</span>
-                  </div>
-                  <p className="text-sm text-gray-800">{currentOrderNotification.data?.delivery_address}</p>
-                </div>
+                    <div className="bg-green-50 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-medium text-gray-700">Quartier : {orderData?.delivery_district || 'Pessac'}</span>
+                      </div>
+                      
+                      {/* Waze Button */}
+                      <Button
+                        onClick={() => ouvrirWaze(orderData)}
+                        className="w-full mt-3 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25"
+                      >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        {orderData?.waze_text || 'Waze'} 🗺️
+                      </Button>
+                    </div>
 
-                <div className="bg-yellow-50 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600 mb-1">
-                    {currentOrderNotification.data?.total_amount} FCFA
-                  </div>
-                  <p className="text-xs text-gray-600">Montant de la commande</p>
-                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-yellow-50 rounded-2xl p-4 text-center">
+                        <div className="text-xl font-bold text-green-600 mb-1">
+                          {orderData?.total_amount || 12000} FCFA
+                        </div>
+                        <p className="text-xs text-gray-600">Montant total</p>
+                      </div>
+                      
+                      <div className="bg-purple-50 rounded-2xl p-4 text-center">
+                        <div className="text-xl font-bold text-purple-600 mb-1">
+                          {orderData?.delivery_cost || 2000} FCFA
+                        </div>
+                        <p className="text-xs text-gray-600">Frais de livraison</p>
+                      </div>
+                    </div>
 
-                <div className="bg-orange-50 rounded-2xl p-4 border-l-4 border-orange-400">
-                  <p className="text-sm text-orange-800">
-                    <span className="font-semibold">🏁 Compétition GPS:</span><br />
-                    Le chauffeur le plus proche sera sélectionné automatiquement !
-                  </p>
-                </div>
-              </div>
+                    <div className="bg-blue-50 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Truck className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-gray-700">Type de livraison</span>
+                      </div>
+                      <p className="text-sm text-gray-800 capitalize">
+                        {orderData?.delivery_option === 'standard' ? 'Standard' : 
+                         orderData?.delivery_option === 'express' ? 'Express' : 
+                         orderData?.delivery_option || 'Standard'}
+                      </p>
+                    </div>
+
+                    <div className="bg-orange-50 rounded-2xl p-4 border-l-4 border-orange-400">
+                      <p className="text-sm text-orange-800">
+                        <span className="font-semibold">🏁 Compétition GPS:</span><br />
+                        Le chauffeur le plus proche sera sélectionné automatiquement !
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Action Buttons */}
               <div className="flex gap-3">
