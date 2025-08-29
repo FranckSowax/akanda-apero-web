@@ -52,7 +52,7 @@ interface Stats {
 }
 
 export default function DashboardChauffeur() {
-  const { chauffeur, logout } = useChauffeurAuth();
+  const { chauffeur, logout, loading: authLoading } = useChauffeurAuth();
   const router = useRouter();
   
   // États principaux
@@ -80,11 +80,11 @@ export default function DashboardChauffeur() {
 
   // Vérification de l'authentification
   useEffect(() => {
-    if (!chauffeur) {
+    if (!authLoading && !chauffeur) {
       router.push('/chauffeur/connexion');
       return;
     }
-  }, [chauffeur, router]);
+  }, [chauffeur, router, authLoading]);
 
   // Initialisation de la géolocalisation
   useEffect(() => {
@@ -223,40 +223,20 @@ export default function DashboardChauffeur() {
         console.error('❌ Erreur API livraisons:', deliveriesResponse.status);
       }
 
-      // Charger les statistiques
-      const statsResponse = await fetch(`/api/chauffeurs/livraisons?chauffeur_id=${chauffeur.id}`);
+      // Charger les statistiques via la nouvelle API
+      const statsResponse = await fetch(`/api/chauffeurs/stats?chauffeur_id=${chauffeur.id}`);
       if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        const statsArray = Array.isArray(statsData) ? statsData : [];
-        
-        const totalGains = statsArray.reduce((sum: number, delivery: any) => sum + (delivery.total_amount || 0), 0);
-        const completedCount = statsArray.filter((d: any) => d.status === 'delivered').length;
-        
-        // Statistiques du jour
-        const today = new Date().toISOString().split('T')[0];
-        const todayDeliveries = statsArray.filter((d: any) => d.created_at?.startsWith(today));
-        const todayGains = todayDeliveries.reduce((sum: number, delivery: any) => sum + (delivery.total_amount || 0), 0);
-
-        // Charger les commandes confirmées (à venir) - toutes les commandes confirmées disponibles
-        const upcomingResponse = await fetch(`/api/orders?status=Confirmée`);
-        let upcomingCount = 0;
-        if (upcomingResponse.ok) {
-          const upcomingData = await upcomingResponse.json();
-          upcomingCount = Array.isArray(upcomingData.orders) ? upcomingData.orders.length : 
-                         Array.isArray(upcomingData) ? upcomingData.length : 0;
-          console.log('📋 Commandes confirmées récupérées:', upcomingCount);
-        } else {
-          console.error('❌ Erreur récupération commandes confirmées:', upcomingResponse.status);
-        }
+        const { stats } = await statsResponse.json();
+        console.log('📊 Statistiques reçues:', stats);
 
         setStats({
-          totalDeliveries: statsArray.length,
-          completedDeliveries: completedCount,
-          totalGains,
-          averageGain: statsArray.length > 0 ? totalGains / statsArray.length : 0,
-          todayDeliveries: todayDeliveries.length,
-          todayGains,
-          upcomingOrders: upcomingCount
+          totalDeliveries: stats.totalDeliveries,
+          completedDeliveries: stats.totalDeliveries,
+          totalGains: stats.totalEarnings,
+          averageGain: stats.totalDeliveries > 0 ? stats.totalEarnings / stats.totalDeliveries : 0,
+          todayDeliveries: stats.todayDeliveries,
+          todayGains: stats.todayEarnings,
+          upcomingOrders: stats.availableOrders
         });
       }
     } catch (error) {
