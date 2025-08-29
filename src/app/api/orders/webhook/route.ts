@@ -174,7 +174,8 @@ export async function POST(request: NextRequest) {
                 console.log(`✅ Notification créée avec succès pour ${chauffeur.nom}:`, responseData);
               } else {
                 const errorText = await notificationResponse.text();
-                console.error(`❌ Erreur envoi notification à ${chauffeur.nom}:`, errorText);
+                console.error(`❌ Erreur envoi notification à ${chauffeur.nom}:`, notificationResponse.status, errorText);
+                console.error(`❌ Données envoyées:`, JSON.stringify(notificationData, null, 2));
               }
             }
 
