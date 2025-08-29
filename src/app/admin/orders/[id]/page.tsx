@@ -282,8 +282,8 @@ export default function OrderDetailPage() {
                         <p className="text-sm text-gray-500">Quantité: {item.quantity}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-900">{item.unit_price}€</p>
-                        <p className="text-sm text-gray-500">Total: {(item.quantity * item.unit_price).toFixed(2)}€</p>
+                        <p className="font-medium text-gray-900">{item.unit_price} FCFA</p>
+                        <p className="text-sm text-gray-500">Total: {(item.quantity * item.unit_price).toFixed(0)} FCFA</p>
                       </div>
                     </div>
                   ))}
@@ -296,7 +296,7 @@ export default function OrderDetailPage() {
                   {order.subtotal && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Sous-total articles</span>
-                      <span>{order.subtotal}€</span>
+                      <span>{order.subtotal} FCFA</span>
                     </div>
                   )}
                   
@@ -313,7 +313,7 @@ export default function OrderDetailPage() {
                           </span>
                         )}
                       </div>
-                      <span>{order.delivery_cost || 0}€</span>
+                      <span>{order.delivery_cost || 0} FCFA</span>
                     </div>
                   )}
                 </div>
@@ -322,7 +322,7 @@ export default function OrderDetailPage() {
                 
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Total de la commande</span>
-                  <span className="text-[#f5a623]">{order.total_amount}€</span>
+                  <span className="text-[#f5a623]">{order.total_amount} FCFA</span>
                 </div>
               </CardContent>
             </Card>
@@ -445,7 +445,7 @@ export default function OrderDetailPage() {
                   
                   <div className="flex justify-between">
                     <span className="text-gray-600">Montant:</span>
-                    <span className="font-medium text-[#f5a623]">{order.total_amount}€</span>
+                    <span className="font-medium text-[#f5a623]">{order.total_amount} FCFA</span>
                   </div>
                 </div>
               </CardContent>
