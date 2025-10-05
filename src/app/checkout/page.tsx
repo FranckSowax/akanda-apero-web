@@ -102,45 +102,53 @@ export default function CheckoutPage() {
   const [savedLoyaltyPoints, setSavedLoyaltyPoints] = useState<number>(0);
   const [currentLoyaltyPoints, setCurrentLoyaltyPoints] = useState<number>(0);
   
-  // 💾 Charger les données de confirmation depuis localStorage SEULEMENT si c'est une reprise récente
+  // 💾 Charger une confirmation récente UNIQUEMENT si le panier est vide OU si l'URL contient ?resume=1
   useEffect(() => {
-    const savedConfirmation = localStorage.getItem('akanda-order-confirmation');
-    if (savedConfirmation) {
-      try {
-        const confirmationData = JSON.parse(savedConfirmation);
-        const timeElapsed = Date.now() - (confirmationData.timestamp || 0);
-        const maxAge = 10 * 60 * 1000; // 10 minutes maximum
-        
-        console.log('💾 Confirmation trouvée dans localStorage:', {
-          ...confirmationData,
-          timeElapsed: Math.round(timeElapsed / 1000) + 's',
-          isRecent: timeElapsed < maxAge
-        });
-        
-        // Charger seulement si la confirmation est récente (moins de 10 minutes)
-        if (timeElapsed < maxAge) {
-          console.log('✅ Chargement confirmation récente');
-          setFormStep('confirmation');
-          setOrderPlaced(true);
-          setOrderNumber(confirmationData.orderNumber || '');
-          setSavedLoyaltyPoints(confirmationData.loyaltyPoints || 0);
-          setCurrentLoyaltyPoints(confirmationData.currentLoyaltyPoints || 0);
-        } else {
-          console.log('⚠️ Confirmation trop ancienne, suppression');
-          localStorage.removeItem('akanda-order-confirmation');
-        }
-        
-        // Nettoyer automatiquement après 15 minutes
-        setTimeout(() => {
-          localStorage.removeItem('akanda-order-confirmation');
-          console.log('🧹 Nettoyage automatique confirmation localStorage');
-        }, 15 * 60 * 1000);
-      } catch (error) {
-        console.error('❌ Erreur parsing confirmation localStorage:', error);
+    try {
+      const savedConfirmation = localStorage.getItem('akanda-order-confirmation');
+      if (!savedConfirmation) return;
+
+      const confirmationData = JSON.parse(savedConfirmation);
+      const timeElapsed = Date.now() - (confirmationData.timestamp || 0);
+      const maxAge = 10 * 60 * 1000; // 10 minutes maximum
+
+      const hasCartItems = (state.cart.items?.length || 0) > 0;
+      const resumeParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('resume') : null;
+      const shouldResume = resumeParam === '1';
+
+      console.log('💾 Confirmation détectée:', {
+        hasCartItems,
+        shouldResume,
+        resumeParam,
+        timeElapsed: Math.round(timeElapsed / 1000) + 's',
+        isRecent: timeElapsed < maxAge,
+        confirmationData,
+      });
+
+      if (timeElapsed < maxAge && shouldResume) {
+        console.log('✅ Reprise de la confirmation récente');
+        setFormStep('confirmation');
+        setOrderPlaced(true);
+        setOrderNumber(confirmationData.orderNumber || '');
+        setSavedLoyaltyPoints(confirmationData.loyaltyPoints || 0);
+        setCurrentLoyaltyPoints(confirmationData.currentLoyaltyPoints || 0);
+      } else if (timeElapsed >= maxAge) {
+        console.log('⚠️ Confirmation trop ancienne, suppression');
         localStorage.removeItem('akanda-order-confirmation');
+      } else {
+        console.log('⏭️ Confirmation récente ignorée (panier non vide et pas de ?resume=1)');
       }
+
+      // Nettoyage automatique après 15 minutes
+      setTimeout(() => {
+        localStorage.removeItem('akanda-order-confirmation');
+        console.log('🧹 Nettoyage automatique confirmation localStorage');
+      }, 15 * 60 * 1000);
+    } catch (error) {
+      console.error('❌ Erreur parsing confirmation localStorage:', error);
+      localStorage.removeItem('akanda-order-confirmation');
     }
-  }, []);
+  }, [state.cart.items]);
   
   // États pour le feedback mobile
   const [mobileOverlay, setMobileOverlay] = useState({
