@@ -49,7 +49,7 @@ export function useOrders() {
   const { createCustomer } = useCustomers();
 
   // Créer une nouvelle commande via l'API
-  const createOrder = async (orderData: OrderData): Promise<{ success: boolean; orderNumber: string; error: Error | null }> => {
+  const createOrder = async (orderData: OrderData): Promise<{ success: boolean; orderNumber: string; orderId: string; error: Error | null }> => {
     try {
       setLoading(true);
       setError(null);
@@ -83,6 +83,7 @@ export function useOrders() {
       return {
         success: true,
         orderNumber: result.order.order_number,
+        orderId: result.order.id,
         error: null
       };
 
@@ -108,7 +109,7 @@ export function useOrders() {
       });
       
       setError(detailedError);
-      return { success: false, orderNumber: '', error: detailedError };
+      return { success: false, orderNumber: '', orderId: '', error: detailedError };
     } finally {
       setLoading(false);
     }
@@ -253,13 +254,12 @@ export function useOrders() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/orders', {
+      const response = await fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: orderId,
           payment_status: paymentStatus
         }),
       });

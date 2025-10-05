@@ -17,7 +17,7 @@ import MobileLoadingOverlay from '@/components/MobileLoadingOverlay';
 import { LocationMap } from '../../components/ui/location-map';
 import { useAppContext } from '../../context/AppContext';
 import { formatPrice } from '../../lib/utils/formatters';
-import { normalizeGabonPhone, isValidGabonPhone } from '../../utils/phoneUtils';
+import { normalizeGabonPhone, isValidGabonPhone, formatGabonPhoneToLocal } from '../../utils/phoneUtils';
 import { useOrders } from '../../hooks/supabase/useOrders';
 import { useAuth } from '../../hooks/supabase/useAuth';
 import { useUserProfile } from '../../hooks/supabase/useUserProfile';
@@ -25,6 +25,7 @@ import { supabase } from '../../lib/supabase';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Header } from '../../components/layout/Header';
 import { useEcommerceTracking, useComponentPerformance } from '../../components/MonitoringProvider';
+import { initiateMobileMoney, pollMobileMoneyStatus, buildPaymentReference } from '../../services/payment';
 
 // Types pour la page de checkout
 interface CheckoutCartItem {
@@ -175,7 +176,7 @@ export default function CheckoutPage() {
   const { profile, loading: profileLoading } = useUserProfile();
   
   // Récupérer les fonctions du hook useOrders
-  const { createOrder, loading: orderLoading } = useOrders();
+  const { createOrder, updatePaymentStatus, loading: orderLoading } = useOrders();
 
   // État pour suivre si la commande a été placée
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -945,33 +946,97 @@ export default function CheckoutPage() {
       console.log('  - items:', orderData.items);
       console.log('  - montants:', { totalAmount: orderData.totalAmount, subtotal: orderData.subtotal, deliveryCost: orderData.deliveryCost, discount: orderData.discount });
       
-      const { success, orderNumber: newOrderNumber, error } = await createOrder(orderData);
+      const { success, orderNumber: newOrderNumber, orderId: newOrderId, error } = await createOrder(orderData);
       console.log('📝 Résultat createOrder:', { success, newOrderNumber, error });
       
       if (success) {
-        // Afficher le succès sur mobile
+        // Si Mobile Money sélectionné, initier le paiement
+        if (paymentInfo.method === 'mobile_money') {
+          // Validation et normalisation du numéro Mobile Money
+          const mobileValidation = normalizeGabonPhone(paymentInfo.mobileNumber || '');
+          if (!mobileValidation.isValid || !mobileValidation.normalizedPhone.startsWith('+241')) {
+            const errorMsg = 'Numéro Mobile Money invalide. Utilisez un numéro gabonais (ex: 077889988)';
+            setOrderError(errorMsg);
+            setMobileOverlay({ visible: true, status: 'error', message: errorMsg });
+            setIsSubmitting(false);
+            return;
+          }
+
+          const payerLocalPhone = formatGabonPhoneToLocal(mobileValidation.normalizedPhone); // 077xxxxxx
+          // Détecter opérateur (simple heuristique)
+          const provider = payerLocalPhone.startsWith('07') ? 'airtel_money' : 'moov_money';
+
+          // Construire la référence de paiement (<= 15 caractères)
+          const paymentRef = buildPaymentReference();
+
+          // Construire la charge
+          const paymentPayload = {
+            reference: paymentRef,
+            amount: Math.round(Number(total) || 0),
+            description: `Commande ${newOrderNumber}`,
+            customer: {
+              name: deliveryInfo.fullName || `${firstName} ${lastName}`.trim(),
+              email: customerEmail,
+              phone: payerLocalPhone,
+            },
+            delivery: {
+              method: 'physical',
+              address: `${deliveryInfo.district || ''} - ${deliveryInfo.address}`.trim(),
+            },
+            items: validCartItems.map((it) => ({
+              name: it.product.name,
+              price: Math.round(Number(it.product.price) || 0),
+              quantity: it.quantity,
+              description: '',
+            })),
+            provider: provider as 'airtel_money' | 'moov_money',
+          };
+
+          // Feedback UI
+          setMobileOverlay({ visible: true, status: 'loading', message: 'Paiement Mobile Money en cours…' });
+
+          // Initier le paiement
+          const initRes = await initiateMobileMoney(paymentPayload);
+          console.log('📡 Initiation Mobile Money:', initRes);
+
+          if (!initRes.success) {
+            await updatePaymentStatus(newOrderId, 'Échoué');
+            setMobileOverlay({ visible: true, status: 'error', message: initRes.error || 'Échec de l\'initiation du paiement' });
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Polling du statut
+          const pollRes = await pollMobileMoneyStatus(paymentRef, { intervalMs: 2000, maxAttempts: 12 });
+          console.log('⏱️ Résultat polling Mobile Money:', pollRes);
+
+          if (!pollRes.success) {
+            await updatePaymentStatus(newOrderId, 'Échoué');
+            const statusLabel = pollRes.status === 'timeout' ? 'Délai dépassé' : (pollRes.status || 'Échec');
+            setMobileOverlay({ visible: true, status: 'error', message: `Paiement Mobile Money: ${statusLabel}` });
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Succès du paiement
+          await updatePaymentStatus(newOrderId, 'Payé');
+        }
+
+        // Succès affichage (commun à toutes les méthodes après paiement ou cash)
         setMobileOverlay({
           visible: true,
           status: 'success',
           message: `Commande ${newOrderNumber} créée avec succès !`
         });
-        
-        // Vibration de succès sur mobile
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([100, 50, 100]); // Pattern de succès
+          navigator.vibrate([100, 50, 100]);
         }
-        
-        // Masquer l'overlay après 2 secondes
         setTimeout(() => {
           setMobileOverlay({ visible: false, status: 'loading', message: '' });
         }, 2000);
-        
-        // 💎 Sauvegarder les points de fidélité AVANT de vider le panier
+
         const pointsEarned = calculateLoyaltyPoints();
         setSavedLoyaltyPoints(pointsEarned);
-        console.log('💎 Points de fidélité sauvegardés:', pointsEarned);
-        
-        // 💾 Sauvegarder dans localStorage pour persistance
         const confirmationData = {
           orderNumber: newOrderNumber,
           loyaltyPoints: pointsEarned,
@@ -980,13 +1045,10 @@ export default function CheckoutPage() {
           timestamp: Date.now()
         };
         localStorage.setItem('akanda-order-confirmation', JSON.stringify(confirmationData));
-        console.log('💾 Confirmation sauvegardée dans localStorage:', confirmationData);
-        
         setOrderNumber(newOrderNumber);
         setOrderPlaced(true);
         setFormStep('confirmation');
-        
-        // 📊 Tracker l'achat finalisé
+
         trackPurchase(
           newOrderNumber,
           total,
@@ -997,42 +1059,22 @@ export default function CheckoutPage() {
             quantity: item.quantity
           }))
         );
-        
-        // Nettoyer intelligemment le panier - supprimer seulement les articles commandés
-        console.log('🧽 Nettoyage intelligent du panier...');
+
+        // Nettoyage du panier pour les articles commandés
         validCartItems.forEach(orderedItem => {
-          console.log(`🗑️ Suppression de l'article commandé: ${orderedItem.product.name}`);
-          dispatch({ 
-            type: 'REMOVE_FROM_CART', 
-            payload: { productId: orderedItem.product.id } 
-          });
+          dispatch({ type: 'REMOVE_FROM_CART', payload: { productId: orderedItem.product.id } });
         });
-        
-        // Vérifier s'il reste des articles invalides dans le panier
-        const remainingItems = cartItems.filter(item => 
-          !validCartItems.some(ordered => ordered.product.id === item.product.id)
-        );
-        
+
+        const remainingItems = cartItems.filter(item => !validCartItems.some(ordered => ordered.product.id === item.product.id));
         if (remainingItems.length > 0) {
-          console.log(`⚠️ ${remainingItems.length} article(s) invalide(s) resté(s) dans le panier:`, 
-            remainingItems.map(item => ({ id: item.product.id, name: item.product.name }))
-          );
-          
-          // Afficher une notification pour informer l'utilisateur
           setTimeout(() => {
-            setMobileOverlay({
-              visible: true,
-              status: 'error',
-              message: `Attention: ${remainingItems.length} article(s) invalide(s) resté(s) dans votre panier`
-            });
+            setMobileOverlay({ visible: true, status: 'error', message: `Attention: ${remainingItems.length} article(s) invalide(s) resté(s) dans votre panier` });
             setTimeout(() => {
               setMobileOverlay({ visible: false, status: 'loading', message: '' });
             }, 3000);
           }, 2500);
-        } else {
-          console.log('✅ Panier complètement nettoyé - tous les articles étaient valides');
         }
-        
+
         window.scrollTo(0, 0);
       } else {
         const errorMsg = error?.message || 'Une erreur est survenue lors de la création de la commande';
@@ -1286,7 +1328,7 @@ export default function CheckoutPage() {
                 <Truck className="h-4 w-4 text-indigo-600" />
                 Option de livraison
               </Label>
-              <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <RadioGroup value={deliveryInfo.deliveryOption} onValueChange={(value: string) => handleDeliveryOptionChange(value)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {deliveryOptions.map(option => {
                   const isDisabled = isNightTime && option.id !== 'nuit';
                   return (
